@@ -1,0 +1,26 @@
+[
+  {
+    "id": "eq_sword_01",
+    "name": "青锋剑",
+    "slot": "weapon",
+    "attackBonus": 85,
+    "critRateBonus": 0.05,
+    "description": "一柄凡铁所铸，却蕴含一丝剑意"
+  },
+  {
+    "id": "eq_robe_01",
+    "name": "玄阴道袍",
+    "slot": "armor",
+    "attackBonus": 30,
+    "critRateBonus": 0.02,
+    "description": "以玄阴丝织就，护体兼增威"
+  },
+  {
+    "id": "eq_ring_01",
+    "name": "聚灵戒",
+    "slot": "accessory",
+    "attackBonus": 45,
+    "critRateBonus": 0.08,
+    "description": "聚集天地灵气，增幅术法威力"
+  }
+]

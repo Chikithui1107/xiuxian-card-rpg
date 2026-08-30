@@ -1,0 +1,11 @@
+{
+  "id": "hero_001",
+  "name": "方源",
+  "title": "魔道散修",
+  "realm": "築基中期",
+  "baseAttack": 120,
+  "critRate": 0.15,
+  "critMultiplier": 2.0,
+  "maxHp": 800,
+  "equippedIds": ["eq_sword_01", "eq_robe_01", "eq_ring_01"]
+}

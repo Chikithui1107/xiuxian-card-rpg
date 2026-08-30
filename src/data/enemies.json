@@ -1,0 +1,26 @@
+[
+  {
+    "id": "enemy_wolf",
+    "name": "妖狼",
+    "realm": "练气圆满",
+    "maxHp": 2500,
+    "attackDamage": 40,
+    "description": "盘踞灵山的妖兽，皮糙肉厚"
+  },
+  {
+    "id": "enemy_spider",
+    "name": "毒蛛精",
+    "realm": "筑基初期",
+    "maxHp": 8000,
+    "attackDamage": 80,
+    "description": "吐丝结网，剧毒无比"
+  },
+  {
+    "id": "enemy_elder",
+    "name": "血魔长老",
+    "realm": "筑基后期",
+    "maxHp": 25000,
+    "attackDamage": 150,
+    "description": "血魔宗长老，手段阴毒"
+  }
+]

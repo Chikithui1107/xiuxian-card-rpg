@@ -1,0 +1,74 @@
+[
+  {
+    "id": "card_slash",
+    "name": "裂空斩",
+    "type": "招式",
+    "baseValue": 50,
+    "multiplier": 1.2,
+    "energyCost": 1,
+    "description": "以剑气撕裂虚空，造成基础伤害"
+  },
+  {
+    "id": "card_thunder",
+    "name": "雷劫术",
+    "type": "招式",
+    "baseValue": 80,
+    "multiplier": 1.5,
+    "energyCost": 1,
+    "description": "引天雷降世，威力惊人"
+  },
+  {
+    "id": "card_talisman",
+    "name": "焚天符",
+    "type": "法寶",
+    "baseValue": 120,
+    "multiplier": 2.0,
+    "energyCost": 2,
+    "description": "上古符箓，焚尽万物"
+  },
+  {
+    "id": "card_buff",
+    "name": "真元灌注",
+    "type": "增益",
+    "baseValue": 200,
+    "multiplier": 2.5,
+    "energyCost": 2,
+    "description": "灌注真元，下一击威力倍增"
+  },
+  {
+    "id": "card_dragon",
+    "name": "龙吟诀",
+    "type": "招式",
+    "baseValue": 300,
+    "multiplier": 3.0,
+    "energyCost": 3,
+    "description": "龙吟震天，毁天灭地之一击"
+  },
+  {
+    "id": "card_sword_rain",
+    "name": "萬劍歸宗",
+    "type": "招式",
+    "baseValue": 150,
+    "multiplier": 2.2,
+    "energyCost": 2,
+    "description": "萬劍齊發，劍意縱橫"
+  },
+  {
+    "id": "card_blood_magic",
+    "name": "血魔大法",
+    "type": "法寶",
+    "baseValue": 250,
+    "multiplier": 2.8,
+    "energyCost": 2,
+    "description": "以血為媒，換取毀滅之力"
+  },
+  {
+    "id": "card_shield",
+    "name": "護體真氣",
+    "type": "增益",
+    "baseValue": 100,
+    "multiplier": 1.8,
+    "energyCost": 1,
+    "description": "真氣護體，攻守兼備"
+  }
+]
