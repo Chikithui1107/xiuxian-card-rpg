@@ -1,15 +1,6 @@
 import heroData from "@/data/hero.json";
-import equipmentData from "@/data/equipment.json";
 import type { Card } from "@/types/game";
-
-export interface Equipment {
-  id: string;
-  name: string;
-  slot: string;
-  attackBonus: number;
-  critRateBonus: number;
-  description: string;
-}
+import { getEquipmentList } from "@/lib/equipment";
 
 export interface Hero {
   id: string;
@@ -20,7 +11,7 @@ export interface Hero {
   critRate: number;
   critMultiplier: number;
   maxHp: number;
-  equippedIds: string[];
+  spiritStones: number;
 }
 
 export interface HeroStats {
@@ -30,6 +21,8 @@ export interface HeroStats {
   maxHp: number;
   equipmentAttackBonus: number;
   equipmentCritBonus: number;
+  equipmentMultiplierBonus: number;
+  equipmentHpBonus: number;
 }
 
 export interface DamageResult {
@@ -40,31 +33,22 @@ export interface DamageResult {
     equipmentBonus: number;
     cardBaseValue: number;
     cardMultiplier: number;
+    equipmentMultiplierBonus: number;
+    totalMultiplier: number;
     rawTotal: number;
     critMultiplier: number;
   };
 }
 
-const equipmentMap = new Map(
-  (equipmentData as Equipment[]).map((eq) => [eq.id, eq])
-);
-
 export function getHero(): Hero {
   return heroData as Hero;
 }
 
-export function getEquipment(id: string): Equipment | undefined {
-  return equipmentMap.get(id);
-}
-
-export function getEquippedItems(hero: Hero): Equipment[] {
-  return hero.equippedIds
-    .map((id) => equipmentMap.get(id))
-    .filter((eq): eq is Equipment => eq !== undefined);
-}
-
-export function calculateHeroStats(hero: Hero): HeroStats {
-  const equipped = getEquippedItems(hero);
+export function calculateHeroStats(
+  hero: Hero,
+  equippedIds: string[]
+): HeroStats {
+  const equipped = getEquipmentList(equippedIds);
   const equipmentAttackBonus = equipped.reduce(
     (sum, eq) => sum + eq.attackBonus,
     0
@@ -73,18 +57,28 @@ export function calculateHeroStats(hero: Hero): HeroStats {
     (sum, eq) => sum + eq.critRateBonus,
     0
   );
+  const equipmentMultiplierBonus = equipped.reduce(
+    (sum, eq) => sum + eq.cardMultiplierBonus,
+    0
+  );
+  const equipmentHpBonus = equipped.reduce((sum, eq) => sum + eq.hpBonus, 0);
 
   return {
     attack: hero.baseAttack + equipmentAttackBonus,
     critRate: Math.min(hero.critRate + equipmentCritBonus, 1),
     critMultiplier: hero.critMultiplier,
-    maxHp: hero.maxHp,
+    maxHp: hero.maxHp + equipmentHpBonus,
     equipmentAttackBonus,
     equipmentCritBonus,
+    equipmentMultiplierBonus,
+    equipmentHpBonus,
   };
 }
 
-/** 傷害公式：(基礎攻擊 + 裝備加成 + 卡牌基礎值) × 卡牌倍率 × (暴擊倍率) */
+/**
+ * 傷害公式：
+ * (基礎攻擊 + 裝備攻擊 + 卡牌基礎值) × (卡牌倍率 + 裝備倍率加成) × 暴擊倍率
+ */
 export function calculateCardDamage(
   heroStats: HeroStats,
   card: Card,
@@ -94,9 +88,11 @@ export function calculateCardDamage(
   const equipmentBonus = heroStats.equipmentAttackBonus;
   const cardBaseValue = card.baseValue;
   const cardMultiplier = card.multiplier;
+  const equipmentMultiplierBonus = heroStats.equipmentMultiplierBonus;
+  const totalMultiplier = cardMultiplier + equipmentMultiplierBonus;
 
   const rawTotal =
-    (baseAttack + equipmentBonus + cardBaseValue) * cardMultiplier;
+    (baseAttack + equipmentBonus + cardBaseValue) * totalMultiplier;
 
   const isCrit = forceCrit || Math.random() < heroStats.critRate;
   const critMultiplier = isCrit ? heroStats.critMultiplier : 1;
@@ -110,6 +106,8 @@ export function calculateCardDamage(
       equipmentBonus,
       cardBaseValue,
       cardMultiplier,
+      equipmentMultiplierBonus,
+      totalMultiplier,
       rawTotal: Math.floor(rawTotal),
       critMultiplier,
     },

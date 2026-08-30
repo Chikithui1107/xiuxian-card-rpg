@@ -1,3 +1,38 @@
+export type EquipmentSlot = "weapon" | "armor" | "accessory" | "treasure";
+
+export interface Equipment {
+  id: string;
+  name: string;
+  slot: EquipmentSlot;
+  rarity: string;
+  attackBonus: number;
+  critRateBonus: number;
+  cardMultiplierBonus: number;
+  hpBonus: number;
+  description: string;
+  specialEffect: string | null;
+}
+
+export interface InventoryState {
+  ownedIds: string[];
+  equippedIds: string[];
+}
+
+export const SLOT_LABELS: Record<EquipmentSlot, string> = {
+  weapon: "武器",
+  armor: "防具",
+  accessory: "飾品",
+  treasure: "法寶",
+};
+
+export const RARITY_COLORS: Record<string, string> = {
+  普通: "text-[#9a958a]",
+  精良: "text-[#5a9a88]",
+  稀有: "text-[#6a8fc9]",
+  史詩: "text-[#b06ad4]",
+  傳說: "text-[#ffd700]",
+};
+
 export interface Card {
   id: string;
   name: string;
@@ -17,7 +52,32 @@ export interface Enemy {
   description: string;
 }
 
+export interface DungeonTier {
+  id: string;
+  name: string;
+  difficulty: string;
+  recommendedPower: string;
+  floors: number;
+  hpMultiplier: number;
+  attackMultiplier: number;
+  rewardMultiplier: number;
+  bonusSpiritStones: number;
+  achievementId: string;
+  achievementName: string;
+  description: string;
+  passiveDescription: string | null;
+  enemyPassive: "regen" | "burn" | null;
+  accent: "cyan" | "purple" | "amber";
+}
+
+export type CombatScreen = "tier-select" | "battle";
+
 export type CombatPhase = "playing" | "victory" | "defeat";
+
+export type AppTab = "lobby" | "combat" | "inventory";
+
+/** @deprecated use AppTab */
+export type GameView = "lobby" | "combat";
 
 export interface DamagePopup {
   id: string;
@@ -30,6 +90,11 @@ export interface DamagePopup {
 
 export interface CombatEnemy extends Enemy {
   currentHp: number;
+  tierName?: string;
+  floorInTier?: number;
+  totalFloors?: number;
+  passive?: "regen" | "burn" | null;
+  passiveLabel?: string | null;
 }
 
 export const HIGH_DAMAGE_THRESHOLD = 500;

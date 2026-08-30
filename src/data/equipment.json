@@ -1,26 +1,74 @@
 [
   {
-    "id": "eq_sword_01",
-    "name": "青锋剑",
+    "id": "eq_bamboo_sword",
+    "name": "青竹蜂雲劍",
     "slot": "weapon",
-    "attackBonus": 85,
-    "critRateBonus": 0.05,
-    "description": "一柄凡铁所铸，却蕴含一丝剑意"
+    "rarity": "稀有",
+    "attackBonus": 120,
+    "critRateBonus": 0.06,
+    "cardMultiplierBonus": 0.3,
+    "hpBonus": 0,
+    "description": "竹影化劍，蜂雲齊至，劍意凌厲",
+    "specialEffect": "劍氣縱橫：基礎攻擊大幅加成"
   },
   {
-    "id": "eq_robe_01",
-    "name": "玄阴道袍",
-    "slot": "armor",
-    "attackBonus": 30,
-    "critRateBonus": 0.02,
-    "description": "以玄阴丝织就，护体兼增威"
+    "id": "eq_thunder_mirror",
+    "name": "太乙雷神鏡",
+    "slot": "treasure",
+    "rarity": "史詩",
+    "attackBonus": 40,
+    "critRateBonus": 0.03,
+    "cardMultiplierBonus": 0.5,
+    "hpBonus": 0,
+    "description": "映雷光於鏡，引天雷附於術法",
+    "specialEffect": "雷劫共鳴：卡牌倍率 +0.5"
   },
   {
-    "id": "eq_ring_01",
-    "name": "聚灵戒",
+    "id": "eq_spring_autumn",
+    "name": "春秋蟬殘片",
     "slot": "accessory",
-    "attackBonus": 45,
-    "critRateBonus": 0.08,
-    "description": "聚集天地灵气，增幅术法威力"
+    "rarity": "傳說",
+    "attackBonus": 25,
+    "critRateBonus": 0.12,
+    "cardMultiplierBonus": 0.2,
+    "hpBonus": 50,
+    "description": "光陰蟬蛻，殘留一絲逆轉因果之力",
+    "specialEffect": "光陰逆流：暴擊率大幅提升"
+  },
+  {
+    "id": "eq_yin_robe",
+    "name": "玄陰道袍",
+    "slot": "armor",
+    "rarity": "精良",
+    "attackBonus": 35,
+    "critRateBonus": 0.02,
+    "cardMultiplierBonus": 0.15,
+    "hpBonus": 120,
+    "description": "玄陰絲織就，護體兼增威",
+    "specialEffect": "陰氣護體：氣血上限 +120"
+  },
+  {
+    "id": "eq_spirit_ring",
+    "name": "聚靈戒",
+    "slot": "accessory",
+    "rarity": "精良",
+    "attackBonus": 55,
+    "critRateBonus": 0.05,
+    "cardMultiplierBonus": 0.1,
+    "hpBonus": 0,
+    "description": "聚集天地靈氣，增幅術法威力",
+    "specialEffect": "靈氣匯聚：攻擊與倍率雙修"
+  },
+  {
+    "id": "eq_iron_sword",
+    "name": "青鋒劍",
+    "slot": "weapon",
+    "rarity": "普通",
+    "attackBonus": 65,
+    "critRateBonus": 0.04,
+    "cardMultiplierBonus": 0,
+    "hpBonus": 0,
+    "description": "凡鐵所鑄，卻蘊含一絲劍意",
+    "specialEffect": null
   }
 ]

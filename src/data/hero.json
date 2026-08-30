@@ -7,5 +7,5 @@
   "critRate": 0.15,
   "critMultiplier": 2.0,
   "maxHp": 800,
-  "equippedIds": ["eq_sword_01", "eq_robe_01", "eq_ring_01"]
+  "spiritStones": 1280
 }

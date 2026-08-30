@@ -8,6 +8,7 @@ interface EnemyPanelProps {
   damagePopups: DamagePopup[];
   isShaking: boolean;
   lastEnemyDamage?: number | null;
+  lastPassiveHeal?: number | null;
 }
 
 export function EnemyPanel({
@@ -15,55 +16,65 @@ export function EnemyPanel({
   damagePopups,
   isShaking,
   lastEnemyDamage,
+  lastPassiveHeal,
 }: EnemyPanelProps) {
   const hpPercent = Math.max(0, (enemy.currentHp / enemy.maxHp) * 100);
   const isDefeated = enemy.currentHp <= 0;
 
   return (
-    <div className="relative flex flex-col items-center">
-      <div className="mb-2 text-center">
-        <p className="text-xs tracking-widest text-[#8a7340]">副本敵人</p>
+    <div className="glass-panel-danger overflow-hidden">
+      <div className="border-b border-[#8b3a3a]/20 bg-black/20 px-4 py-2.5 text-center">
+        <p className="zone-label text-[#a85555]/80">妖邪</p>
         <h2
-          className={`text-2xl font-bold tracking-widest ${isDefeated ? "text-[#5a5550] line-through" : "text-[#c45c5c]"}`}
+          className={`text-lg font-bold tracking-wider ${isDefeated ? "text-stone-600 line-through" : "text-[#c48888]"}`}
         >
           {enemy.name}
         </h2>
-        <p className="text-xs text-[#5a5550]">
-          {enemy.realm} · {enemy.description}
-        </p>
+        <p className="text-[10px] text-stone-500">{enemy.realm}</p>
+        {enemy.passiveLabel && (
+          <p className="mt-1 text-[10px] italic text-[#9a9ab8]">
+            ◈ {enemy.passiveLabel}
+          </p>
+        )}
       </div>
 
       <div
-        className={`relative w-full max-w-md rounded-lg border-2 border-[#3a3530] bg-[#1a1814] p-6 transition-all ${isShaking ? "animate-shake" : ""} ${isDefeated ? "opacity-50" : "animate-pulse-glow"}`}
+        className={`relative px-4 py-4 transition-all ${isShaking ? "animate-shake" : ""} ${!isDefeated ? "animate-qi-breathe rounded" : "opacity-60"}`}
       >
-        {/* Enemy silhouette */}
-        <div className="mx-auto mb-4 flex h-32 w-32 items-center justify-center rounded-full border-2 border-[#8b2020]/40 bg-[#0a0a0a]">
-          <span className="text-5xl opacity-60">妖</span>
+        <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-full border-2 border-[#8b3a3a]/35 bg-gradient-to-br from-stone-900/70 to-black/60">
+          <span className="text-3xl font-black text-[#8b3a3a]/60">妖</span>
         </div>
 
-        {/* HP Bar */}
-        <div className="mb-1 flex justify-between text-xs">
-          <span className="text-[#8a7340]">氣血</span>
-          <span className="stat-value font-bold text-[#c45c5c]">
+        <div className="mb-1 flex justify-between text-[10px]">
+          <span className="text-[#a85555]/80">氣血</span>
+          <span className="stat-value font-bold text-[#c48888]">
             {formatNumber(Math.max(0, enemy.currentHp))} /{" "}
             {formatNumber(enemy.maxHp)}
           </span>
         </div>
-        <div className="h-3 overflow-hidden rounded-full border border-[#3a3530] bg-[#0a0a0a]">
+        <div className="h-3 overflow-hidden rounded-full bg-black/40">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#8b2020] to-[#c45c5c] transition-all duration-300"
+            className="enemy-hp-fill h-full rounded-full transition-all duration-300"
             style={{ width: `${hpPercent}%` }}
           />
         </div>
 
-        {/* Damage popups */}
         {damagePopups.map((popup) => (
           <DamageNumber key={popup.id} popup={popup} />
         ))}
 
         {lastEnemyDamage != null && lastEnemyDamage > 0 && (
-          <p className="mt-2 text-center text-xs text-[#c45c5c]">
-            敵人反擊造成 {lastEnemyDamage} 點傷害
+          <p className="mt-2 text-center text-[10px] text-[#a85555]">
+            反噬 -{lastEnemyDamage}
+            {enemy.passive === "burn" && (
+              <span className="text-[#c48888]">（灼燒）</span>
+            )}
+          </p>
+        )}
+
+        {lastPassiveHeal != null && lastPassiveHeal > 0 && (
+          <p className="mt-1 text-center text-[10px] text-[#7aab9a]">
+            妖法回復 +{lastPassiveHeal}
           </p>
         )}
       </div>
@@ -81,20 +92,15 @@ function DamageNumber({ popup }: { popup: DamagePopup }) {
       style={{
         left: `${popup.x}%`,
         top: `${popup.y}%`,
-        fontSize: isCrit ? "2.5rem" : isHigh ? "2rem" : "1.5rem",
-        color: isCrit ? "#ffd700" : isHigh ? "#ff6b35" : "#f0e6d3",
+        fontSize: isCrit ? "2rem" : isHigh ? "1.6rem" : "1.2rem",
+        color: isCrit ? "#c9a84c" : isHigh ? "#c48888" : "#e8e0d4",
         textShadow: isCrit
-          ? "0 0 12px #ffd700, 0 0 24px #ff4500, 2px 2px 0 #8b2020"
-          : isHigh
-            ? "0 0 8px #ff6b35, 2px 2px 0 #8b2020"
-            : "2px 2px 0 #3a3530",
-        WebkitTextStroke: isCrit ? "1px #8b4513" : undefined,
+          ? "1px 1px 0 #3a3530, -1px -1px 0 #3a3530"
+          : "2px 2px 0 #3a3530",
       }}
     >
       {isCrit && (
-        <span className="mr-1 block text-center text-sm tracking-widest text-[#ffd700]">
-          暴擊
-        </span>
+        <span className="block text-center text-[10px] text-[#c9a84c]">暴擊</span>
       )}
       -{popup.value.toLocaleString()}
     </div>

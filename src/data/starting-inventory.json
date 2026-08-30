@@ -1,0 +1,11 @@
+{
+  "ownedIds": [
+    "eq_bamboo_sword",
+    "eq_thunder_mirror",
+    "eq_spring_autumn",
+    "eq_yin_robe",
+    "eq_spirit_ring",
+    "eq_iron_sword"
+  ],
+  "equippedIds": ["eq_bamboo_sword", "eq_yin_robe", "eq_spirit_ring"]
+}

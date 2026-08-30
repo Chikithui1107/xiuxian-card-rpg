@@ -2,8 +2,16 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "修仙卡牌 · 戰鬥沙盒",
-  description: "傳統修仙風格 RPG 卡牌副本戰鬥",
+  title: "修仙卡牌錄 · 國風仙俠",
+  description: "水墨仙俠風格 RPG 卡牌祕境試煉",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

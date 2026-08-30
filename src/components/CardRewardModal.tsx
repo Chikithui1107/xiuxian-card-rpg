@@ -7,56 +7,81 @@ interface CardRewardModalProps {
   rewardCards: Card[];
   onSelect: (card: Card) => void;
   enemyName: string;
+  floorReward?: number;
+  isTierComplete?: boolean;
+  tierName?: string;
+  tierFloor?: number;
+  totalFloors?: number;
 }
 
 export function CardRewardModal({
   rewardCards,
   onSelect,
   enemyName,
+  floorReward = 0,
+  isTierComplete = false,
+  tierName,
+  tierFloor,
+  totalFloors,
 }: CardRewardModalProps) {
+  const progressLabel =
+    tierName && tierFloor && totalFloors
+      ? `${tierName} · 第 ${tierFloor}/${totalFloors} 重`
+      : null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/85 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-2xl rounded-xl border-2 border-[#c9a84c]/50 bg-[#1a1814] p-6 shadow-2xl">
-        <div className="mb-6 text-center">
-          <p className="text-sm tracking-[0.4em] text-[#8a7340]">戰鬥勝利</p>
-          <h2 className="mt-1 text-2xl font-bold tracking-widest text-[#c9a84c]">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 backdrop-blur-sm sm:items-center">
+      <div className="glass-panel-gold mx-auto w-full max-w-md rounded-t-lg p-5 sm:rounded-lg">
+        <div className="mb-4 text-center">
+          <p className="zone-label text-[#8a7340]">
+            {isTierComplete ? "試煉圓滿 · 三選一" : "過關 · 三選一"}
+          </p>
+          <h2 className="mt-1 text-lg font-bold text-[#c9a84c]">
             斬殺 {enemyName}
           </h2>
-          <p className="mt-2 text-xs text-[#5a5550]">
-            選擇一張卡牌，永久加入你的牌庫
+          {progressLabel && (
+            <p className="mt-1 text-[10px] text-[#7aab9a]">{progressLabel}</p>
+          )}
+          {floorReward > 0 && (
+            <p className="mt-1 text-xs text-[#c9a84c]">
+              +{floorReward} 靈石
+              {isTierComplete && " · 通關獎賞另計"}
+            </p>
+          )}
+          <p className="mt-1 text-[10px] text-stone-500">
+            擇一法訣，永久納入牌庫
+            {!isTierComplete && tierFloor && totalFloors && tierFloor < totalFloors
+              ? "，續闖下一重"
+              : ""}
           </p>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-4">
+        <div className="space-y-3">
           {rewardCards.map((card) => (
             <button
               key={card.id}
               onClick={() => onSelect(card)}
-              className={`card-hover w-44 rounded-lg border-2 p-4 text-left transition-all duration-200 ${CARD_TYPE_COLORS[card.type]}`}
+              className={`card-hover flex w-full items-center gap-3 rounded border-2 p-3 text-left hover:border-[#7aab9a]/45 active:scale-[0.98] ${CARD_TYPE_COLORS[card.type]}`}
             >
-              <div className="mb-1 flex items-center justify-between">
-                <span
-                  className={`text-[10px] font-semibold tracking-wider ${CARD_TYPE_ACCENT[card.type]}`}
-                >
-                  {card.type}
-                </span>
-                <span className="text-[10px] text-[#5a9a88]">
-                  ⚡{card.energyCost}
-                </span>
+              <div className="flex-1">
+                <div className="mb-0.5 flex items-center gap-2">
+                  <span
+                    className={`text-[10px] font-semibold ${CARD_TYPE_ACCENT[card.type]}`}
+                  >
+                    {card.type}
+                  </span>
+                  <span className="text-[10px] text-[#7aab9a]">
+                    真元{card.energyCost}
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-stone-200">{card.name}</h3>
+                <p className="text-[10px] text-stone-500">{card.description}</p>
               </div>
-              <h3 className="mb-2 text-base font-bold text-[#f0e6d3]">
-                {card.name}
-              </h3>
-              <p className="mb-3 text-[10px] leading-relaxed text-[#5a5550]">
-                {card.description}
-              </p>
-              <div className="flex items-center justify-between border-t border-[#2a2824] pt-2">
-                <span className="text-[10px] text-[#8a7340]">
-                  ×{card.multiplier}
-                </span>
-                <span className="stat-value text-sm font-bold text-[#c9a84c]">
+              <div className="text-right">
+                <p className="text-[10px] text-[#8a7340]/80">×{card.multiplier}</p>
+                <p className="stat-value text-sm font-bold text-[#c9a84c]">
                   +{card.baseValue}
-                </span>
+                </p>
               </div>
             </button>
           ))}

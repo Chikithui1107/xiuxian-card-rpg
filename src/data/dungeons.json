@@ -1,0 +1,53 @@
+[
+  {
+    "id": "tier_qi",
+    "name": "煉氣期祕境",
+    "difficulty": "低",
+    "recommendedPower": "低",
+    "floors": 3,
+    "hpMultiplier": 1,
+    "attackMultiplier": 1,
+    "rewardMultiplier": 1,
+    "bonusSpiritStones": 150,
+    "achievementId": "ach_qi_clear",
+    "achievementName": "煉氣試煉",
+    "description": "適合新手歷練，妖獸實力有限。",
+    "passiveDescription": null,
+    "enemyPassive": null,
+    "accent": "cyan"
+  },
+  {
+    "id": "tier_foundation",
+    "name": "築基期洞府",
+    "difficulty": "中",
+    "recommendedPower": "中",
+    "floors": 4,
+    "hpMultiplier": 2,
+    "attackMultiplier": 1.5,
+    "rewardMultiplier": 1.5,
+    "bonusSpiritStones": 400,
+    "achievementId": "ach_foundation_clear",
+    "achievementName": "築基破境",
+    "description": "敵人擁有強力被動，需謹慎應對。",
+    "passiveDescription": "敵人每回合結束恢復 2% 最大生命",
+    "enemyPassive": "regen",
+    "accent": "purple"
+  },
+  {
+    "id": "tier_golden",
+    "name": "金丹期禁地",
+    "difficulty": "高",
+    "recommendedPower": "高",
+    "floors": 5,
+    "hpMultiplier": 3.5,
+    "attackMultiplier": 2,
+    "rewardMultiplier": 2.5,
+    "bonusSpiritStones": 1000,
+    "achievementId": "ach_golden_clear",
+    "achievementName": "金丹禁地征服者",
+    "description": "極限挑戰，稀有獎勵豐厚。",
+    "passiveDescription": "敵人攻擊附加灼燒，額外造成 10% 傷害",
+    "enemyPassive": "burn",
+    "accent": "amber"
+  }
+]
