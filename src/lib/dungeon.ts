@@ -1,5 +1,6 @@
 import dungeonsData from "@/data/dungeons.json";
 import type { CombatEnemy, DungeonTier, Enemy } from "@/types/game";
+import type { MapNode } from "@/types/map";
 
 const tiers = dungeonsData as DungeonTier[];
 
@@ -43,6 +44,54 @@ export function getEnemyForTierFloor(
 ): CombatEnemy {
   const index = (floorInTier - 1) % pool.length;
   return createScaledEnemy(pool[index], tier, floorInTier);
+}
+
+/** 依地圖節點生成敵人（含精英 / Boss 加成） */
+export function getEnemyForMapNode(
+  tier: DungeonTier,
+  node: MapNode,
+  pool: Enemy[]
+): CombatEnemy {
+  const floorInTier = node.tier + 1;
+  const index = node.tier % pool.length;
+  const enemy = createScaledEnemy(pool[index], tier, floorInTier);
+
+  if (node.type === "elite") {
+    const maxHp = Math.floor(enemy.maxHp * 1.5);
+    return {
+      ...enemy,
+      maxHp,
+      attackDamage: Math.floor(enemy.attackDamage * 1.35),
+      currentHp: maxHp,
+    };
+  }
+
+  if (node.type === "boss") {
+    const maxHp = Math.floor(enemy.maxHp * 2.5);
+    return {
+      ...enemy,
+      maxHp,
+      attackDamage: Math.floor(enemy.attackDamage * 1.8),
+      currentHp: maxHp,
+      passive: tier.enemyPassive,
+      passiveLabel: tier.passiveDescription,
+    };
+  }
+
+  return enemy;
+}
+
+/** 地圖節點靈石獎勵 */
+export function getMapNodeSpiritReward(
+  tier: DungeonTier,
+  node: MapNode
+): number {
+  const base = Math.floor(
+    (tier.bonusSpiritStones / 10) * tier.rewardMultiplier
+  );
+  if (node.type === "elite") return Math.floor(base * 1.5);
+  if (node.type === "boss") return getCompletionSpiritReward(tier);
+  return base;
 }
 
 /** 單層通關靈石獎勵 */

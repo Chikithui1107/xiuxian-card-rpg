@@ -80,7 +80,7 @@ export interface DungeonTier {
   accent: "cyan" | "purple" | "amber";
 }
 
-export type CombatScreen = "tier-select" | "battle";
+export type CombatScreen = "tier-select" | "map" | "battle";
 
 export type CombatPhase = "playing" | "victory" | "defeat";
 
