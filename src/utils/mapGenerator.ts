@@ -1,6 +1,21 @@
 import type { MapNode, NodeType } from "@/types/map";
 
 const NUM_TIERS = 10;
+const MOON_NIGHT_STEPS = 8;
+
+export const NODE_NAMES: Record<NodeType, string[]> = {
+  combat: ["荒山野徑：遭遇野狼", "迷霧林：低階妖獸", "溪畔：攔路劫修"],
+  elite: ["上古密林：妖王出沒", "血月荒原：宗門叛徒", "廢棄洞府：守護靈獸"],
+  rest: ["靈泉打坐", "荒廢道觀：調息養傷", "古樹下：吐納靈氣"],
+  shop: ["雲遊坊市", "散修擺攤", "宗門外門寶庫"],
+  event: ["神祕石碑", "神祕前輩的遺骸", "靈氣灌頂奇遇"],
+  boss: ["通天塔決戰：迎戰大魔頭"],
+};
+
+function pickNodeTitle(type: NodeType): string {
+  const names = NODE_NAMES[type];
+  return names[Math.floor(Math.random() * names.length)];
+}
 
 function pickNodeType(tier: number): NodeType {
   if (tier >= 7) return Math.random() < 0.35 ? "elite" : "combat";
@@ -56,11 +71,14 @@ export function generateSlayTheSpireMap(): MapNode[][] {
     const tierNodes: MapNode[] = [];
 
     for (let col = 0; col < count; col++) {
+      const type = tier === NUM_TIERS - 1 ? "boss" : pickNodeType(tier);
       tierNodes.push({
         id: tier === NUM_TIERS - 1 ? "t9_boss" : `t${tier}_c${col}`,
         tier,
         col,
-        type: tier === NUM_TIERS - 1 ? "boss" : pickNodeType(tier),
+        chapter: 1,
+        type,
+        title: pickNodeTitle(type),
         nextNodes: [],
         status: tier === 0 ? "available" : "locked",
       });
@@ -71,6 +89,53 @@ export function generateSlayTheSpireMap(): MapNode[][] {
 
   for (let i = 0; i < map.length - 1; i++) {
     wireConnections(map[i], map[i + 1]);
+  }
+
+  return map;
+}
+
+function pickMoonNightType(step: number, totalSteps: number): NodeType {
+  if (step === totalSteps - 1) return "boss";
+  if (step === 0) return "combat";
+  const rand = Math.random();
+  if (rand < 0.4) return "combat";
+  if (rand < 0.55) return "event";
+  if (rand < 0.68) return "rest";
+  if (rand < 0.8) return "shop";
+  if (rand < 0.92) return "elite";
+  return "combat";
+}
+
+/** 月圓之夜式分支地圖：每層雙岔路，節點帶修仙風格名稱 */
+export function generateMoonNightMap(chapter = 1): MapNode[][] {
+  const map: MapNode[][] = [];
+
+  for (let step = 0; step < MOON_NIGHT_STEPS; step++) {
+    const stepNodes: MapNode[] = [];
+    const numNodes = step === MOON_NIGHT_STEPS - 1 ? 1 : 2;
+
+    for (let col = 0; col < numNodes; col++) {
+      const type = pickMoonNightType(step, MOON_NIGHT_STEPS);
+      stepNodes.push({
+        id: `ch${chapter}-step-${step}-col-${col}`,
+        tier: step,
+        col,
+        chapter,
+        type,
+        title: pickNodeTitle(type),
+        nextNodes: [],
+        status: step === 0 ? "available" : "locked",
+      });
+    }
+    map.push(stepNodes);
+  }
+
+  for (let step = 0; step < MOON_NIGHT_STEPS - 1; step++) {
+    const currentStep = map[step];
+    const nextStep = map[step + 1];
+    for (const node of currentStep) {
+      node.nextNodes = nextStep.map((nextNode) => nextNode.id);
+    }
   }
 
   return map;
