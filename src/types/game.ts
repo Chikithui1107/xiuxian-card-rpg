@@ -5,12 +5,21 @@ export interface Equipment {
   name: string;
   slot: EquipmentSlot;
   rarity: string;
+  requiredRealm?: string | null;
   attackBonus: number;
   critRateBonus: number;
   cardMultiplierBonus: number;
   hpBonus: number;
+  defenseBonus?: number;
+  dodgeRate?: number;
+  damageReduction?: number;
+  durability?: { current: number; max: number } | null;
   description: string;
   specialEffect: string | null;
+  counterOnDodge?: boolean;
+  comboOnAttack?: boolean;
+  reflectOnHit?: boolean;
+  schemaVersion?: string;
 }
 
 export interface InventoryState {
@@ -26,6 +35,7 @@ export const SLOT_LABELS: Record<EquipmentSlot, string> = {
 };
 
 export const RARITY_COLORS: Record<string, string> = {
+  凡鐵: "text-[#8a8580]",
   普通: "text-[#9a958a]",
   精良: "text-[#5a9a88]",
   稀有: "text-[#6a8fc9]",
@@ -70,7 +80,7 @@ export interface DungeonTier {
   accent: "cyan" | "purple" | "amber";
 }
 
-export type CombatScreen = "tier-select" | "battle";
+export type CombatScreen = "tier-select" | "map" | "battle";
 
 export type CombatPhase = "playing" | "victory" | "defeat";
 

@@ -1,0 +1,12 @@
+{
+  "id": "wpn_prajna_sword",
+  "name": "慧劍",
+  "type": "武器",
+  "rarity": "傳說",
+  "description": "慧劍斬情絲，心中已無心中人。",
+  "stats": {
+    "attack": 360,
+    "critRate": 0.15
+  },
+  "effect": "攻擊時有機率觸發連擊"
+}

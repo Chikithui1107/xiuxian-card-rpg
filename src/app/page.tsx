@@ -10,16 +10,21 @@ import { BottomNav } from "@/components/BottomNav";
 import { LobbyView } from "@/components/LobbyView";
 import { CombatView } from "@/components/CombatView";
 import { TierSelectionView } from "@/components/TierSelectionView";
+import { MapView } from "@/components/MapView";
 import { InventoryView } from "@/components/InventoryView";
 import { CardRewardModal } from "@/components/CardRewardModal";
 import {
   calculateCardDamage,
   calculateHeroStats,
+  applyIncomingDamage,
   getHero,
 } from "@/lib/stats";
 import {
   createInitialInventory,
   equipItem,
+  hasComboOnAttack,
+  hasCounterOnDodge,
+  hasReflectOnHit,
   unequipItem,
 } from "@/lib/equipment";
 import {
@@ -41,9 +46,16 @@ import {
   getAllDungeonTiers,
   getCompletionSpiritReward,
   getDungeonTier,
-  getEnemyForTierFloor,
+  getEnemyForMapNode,
   getFloorSpiritReward,
+  getMapNodeSpiritReward,
 } from "@/lib/dungeon";
+import {
+  completeMapNode,
+  getMapNode,
+  isBossCleared,
+} from "@/lib/map";
+import { generateSlayTheSpireMap } from "@/utils/mapGenerator";
 import type {
   AppTab,
   Card,
@@ -55,6 +67,7 @@ import type {
   Enemy,
   InventoryState,
 } from "@/types/game";
+import type { MapNode } from "@/types/map";
 import { HIGH_DAMAGE_THRESHOLD } from "@/types/game";
 
 const CARD_POOL = cardsData as Card[];
@@ -116,12 +129,23 @@ export default function GamePage() {
     typeof calculateCardDamage
   > | null>(null);
   const [lastEnemyDamage, setLastEnemyDamage] = useState<number | null>(null);
+  const [lastDodge, setLastDodge] = useState(false);
+  const [lastCounterDamage, setLastCounterDamage] = useState<number | null>(
+    null
+  );
+  const [lastComboDamage, setLastComboDamage] = useState<number | null>(null);
+  const [lastReflectDamage, setLastReflectDamage] = useState<number | null>(
+    null
+  );
   const [lastPassiveHeal, setLastPassiveHeal] = useState<number | null>(null);
   const [totalDamage, setTotalDamage] = useState(0);
   const [rewardCards, setRewardCards] = useState<Card[]>([]);
   const [defeatedEnemyName, setDefeatedEnemyName] = useState("");
   const [pendingFloorReward, setPendingFloorReward] = useState(0);
   const [pendingTierComplete, setPendingTierComplete] = useState(false);
+  const [dungeonMap, setDungeonMap] = useState<MapNode[][]>([]);
+  const [currentMapNodeId, setCurrentMapNodeId] = useState<string | null>(null);
+  const [mapMessage, setMapMessage] = useState<string | null>(null);
 
   const heroStats = useMemo(
     () => calculateHeroStats(hero, inventory.equippedIds),
@@ -145,6 +169,10 @@ export default function GamePage() {
     setDamagePopups([]);
     setLastDamage(null);
     setLastEnemyDamage(null);
+    setLastDodge(false);
+    setLastCounterDamage(null);
+    setLastComboDamage(null);
+    setLastReflectDamage(null);
     setLastPassiveHeal(null);
     setTotalDamage(0);
     setRewardCards([]);
@@ -161,6 +189,9 @@ export default function GamePage() {
       setCombatScreen("tier-select");
       setSelectedTier(null);
       setTierFloor(1);
+      setDungeonMap([]);
+      setCurrentMapNodeId(null);
+      setMapMessage(null);
       resetCombatState();
       if (message) setLastRunMessage(message);
       if (healPlayer) setPlayerHp(heroStats.maxHp);
@@ -175,6 +206,9 @@ export default function GamePage() {
       setCombatScreen("tier-select");
       setSelectedTier(null);
       setTierFloor(1);
+      setDungeonMap([]);
+      setCurrentMapNodeId(null);
+      setMapMessage(null);
       resetCombatState();
       if (message) setLastRunMessage(message);
       if (healPlayer) setPlayerHp(heroStats.maxHp);
@@ -182,10 +216,12 @@ export default function GamePage() {
     [heroStats.maxHp, resetCombatState]
   );
 
-  const startBattleForFloor = useCallback(
-    (tier: DungeonTier, floorInTier: number) => {
-      const scaledEnemy = getEnemyForTierFloor(tier, floorInTier, ENEMY_LIST);
+  const startBattleForMapNode = useCallback(
+    (tier: DungeonTier, node: MapNode) => {
+      const scaledEnemy = getEnemyForMapNode(tier, node, ENEMY_LIST);
       setEnemy(scaledEnemy);
+      setTierFloor(node.tier + 1);
+      setCurrentMapNodeId(node.id);
       setDeckState(initBattleDeck(permanentDeck));
       setEnergy(MAX_ENERGY);
       setPhase("playing");
@@ -195,11 +231,71 @@ export default function GamePage() {
       setLastPassiveHeal(null);
       setTotalDamage(0);
       setLastRunMessage(null);
+      setMapMessage(null);
       setIsInCombat(true);
       setCombatScreen("battle");
       setActiveTab("combat");
     },
     [permanentDeck]
+  );
+
+  const returnToMap = useCallback(
+    (message: string | null = null) => {
+      setIsInCombat(false);
+      setCombatScreen("map");
+      setActiveTab("combat");
+      resetCombatState();
+      if (message) setMapMessage(message);
+    },
+    [resetCombatState]
+  );
+
+  const finishMapNode = useCallback(
+    (nodeId: string, message: string) => {
+      setDungeonMap((prev) => completeMapNode(prev, nodeId));
+      setCurrentMapNodeId(null);
+      returnToMap(message);
+    },
+    [returnToMap]
+  );
+
+  const handleMapNodeSelect = useCallback(
+    (node: MapNode) => {
+      if (!selectedTier || node.status !== "available") return;
+
+      switch (node.type) {
+        case "combat":
+        case "elite":
+        case "boss":
+          startBattleForMapNode(selectedTier, node);
+          break;
+        case "rest": {
+          const heal = Math.floor(heroStats.maxHp * 0.3);
+          setPlayerHp((hp) => Math.min(heroStats.maxHp, hp + heal));
+          finishMapNode(node.id, `休整恢復 ${heal} 氣血`);
+          break;
+        }
+        case "shop": {
+          const stones = 80;
+          setSpiritStones((s) => s + stones);
+          finishMapNode(node.id, `坊市購得靈物，獲得 ${stones} 靈石`);
+          break;
+        }
+        case "event": {
+          if (Math.random() < 0.5) {
+            const heal = Math.floor(heroStats.maxHp * 0.15);
+            setPlayerHp((hp) => Math.min(heroStats.maxHp, hp + heal));
+            finishMapNode(node.id, `機緣巧合，恢復 ${heal} 氣血`);
+          } else {
+            const stones = 50;
+            setSpiritStones((s) => s + stones);
+            finishMapNode(node.id, `路遇散修饋贈 ${stones} 靈石`);
+          }
+          break;
+        }
+      }
+    },
+    [selectedTier, startBattleForMapNode, finishMapNode, heroStats.maxHp]
   );
 
   const enterTierSelect = useCallback(() => {
@@ -217,14 +313,23 @@ export default function GamePage() {
       if (!tier) return;
       setSelectedTier(tier);
       setTierFloor(1);
-      startBattleForFloor(tier, 1);
+      setDungeonMap(generateSlayTheSpireMap());
+      setCurrentMapNodeId(null);
+      setMapMessage(null);
+      setIsInCombat(false);
+      setCombatScreen("map");
+      setActiveTab("combat");
+      resetCombatState();
     },
-    [startBattleForFloor]
+    [resetCombatState]
   );
 
-  const handleEquip = useCallback((equipmentId: string) => {
-    setInventory((prev) => equipItem(prev, equipmentId));
-  }, []);
+  const handleEquip = useCallback(
+    (equipmentId: string) => {
+      setInventory((prev) => equipItem(prev, equipmentId, hero.realm));
+    },
+    [hero.realm]
+  );
 
   const handleUnequip = useCallback((equipmentId: string) => {
     setInventory((prev) => unequipItem(prev, equipmentId));
@@ -252,14 +357,23 @@ export default function GamePage() {
   );
 
   const checkVictory = useCallback(
-    (newHp: number, enemyName: string, tier: DungeonTier | null, floorInTier: number) => {
-      if (newHp <= 0 && tier) {
+    (
+      newHp: number,
+      enemyName: string,
+      tier: DungeonTier | null,
+      mapNodeId: string | null,
+      mapNodes: MapNode[][]
+    ) => {
+      if (newHp <= 0 && tier && mapNodeId) {
+        const node = getMapNode(mapNodes, mapNodeId);
         setPhase("victory");
         setDefeatedEnemyName(enemyName);
         setRewardCards(pickRandomCards(CARD_POOL, 3));
-        const floorReward = getFloorSpiritReward(tier);
+        const floorReward = node
+          ? getMapNodeSpiritReward(tier, node)
+          : getFloorSpiritReward(tier);
         setPendingFloorReward(floorReward);
-        setPendingTierComplete(floorInTier >= tier.floors);
+        setPendingTierComplete(node?.type === "boss");
       }
     },
     []
@@ -278,15 +392,38 @@ export default function GamePage() {
 
       const result = calculateCardDamage(heroStats, played.card);
       setLastDamage(result);
+      setLastComboDamage(null);
       setEnergy((e) => e - played.card.energyCost);
 
-      const newHp = Math.max(0, enemy.currentHp - result.damage);
+      let totalHit = result.damage;
+      let comboDmg = 0;
+      if (hasComboOnAttack(inventory.equippedIds) && Math.random() < 0.35) {
+        comboDmg = Math.floor(result.damage * 0.5);
+        totalHit += comboDmg;
+        setLastComboDamage(comboDmg);
+      }
+
+      const newHp = Math.max(0, enemy.currentHp - totalHit);
       setEnemy((prev) => ({ ...prev, currentHp: newHp }));
-      setTotalDamage((prev) => prev + result.damage);
+      setTotalDamage((prev) => prev + totalHit);
       addDamagePopup(result);
+      if (comboDmg > 0) {
+        popupIdRef.current += 1;
+        setDamagePopups((prev) => [
+          ...prev,
+          {
+            id: `popup_${popupIdRef.current}`,
+            value: comboDmg,
+            isCrit: false,
+            isHighDamage: comboDmg >= HIGH_DAMAGE_THRESHOLD,
+            x: 45 + Math.random() * 20,
+            y: 30 + Math.random() * 15,
+          },
+        ]);
+      }
 
       setDeckState(drawToHandSize(afterPlay, HAND_SIZE));
-      checkVictory(newHp, enemy.name, selectedTier, tierFloor);
+      checkVictory(newHp, enemy.name, selectedTier, currentMapNodeId, dungeonMap);
     },
     [
       phase,
@@ -294,10 +431,12 @@ export default function GamePage() {
       energy,
       deckState,
       heroStats,
+      inventory.equippedIds,
       addDamagePopup,
       checkVictory,
       selectedTier,
-      tierFloor,
+      currentMapNodeId,
+      dungeonMap,
     ]
   );
 
@@ -307,14 +446,78 @@ export default function GamePage() {
     let newDeck = discardAllHand(deckState);
     setEnergy(MAX_ENERGY);
     setLastPassiveHeal(null);
+    setLastDodge(false);
+    setLastCounterDamage(null);
+    setLastReflectDamage(null);
 
     let dmg = enemy.attackDamage;
     if (enemy.passive === "burn") {
       dmg = applyBurnPassive(dmg);
     }
+    dmg = applyIncomingDamage(
+      dmg,
+      heroStats.equipmentDefenseBonus,
+      heroStats.equipmentDamageReduction
+    );
+
+    const dodged = Math.random() < heroStats.equipmentDodgeRate;
+    let counterKilled = false;
+    let reflectKilled = false;
+    if (dodged) {
+      dmg = 0;
+      setLastDodge(true);
+
+      if (hasCounterOnDodge(inventory.equippedIds)) {
+        const counterDmg = Math.floor(heroStats.attack * 0.5);
+        setLastCounterDamage(counterDmg);
+        const newHp = Math.max(0, enemy.currentHp - counterDmg);
+        counterKilled = newHp <= 0;
+        setEnemy((prev) => ({ ...prev, currentHp: newHp }));
+        setTotalDamage((prev) => prev + counterDmg);
+        if (counterKilled && selectedTier && currentMapNodeId) {
+          setPhase("victory");
+          setDefeatedEnemyName(enemy.name);
+          setRewardCards(pickRandomCards(CARD_POOL, 3));
+          const node = getMapNode(dungeonMap, currentMapNodeId);
+          setPendingFloorReward(
+            node
+              ? getMapNodeSpiritReward(selectedTier, node)
+              : getFloorSpiritReward(selectedTier)
+          );
+          setPendingTierComplete(node?.type === "boss");
+        }
+      }
+    }
+
     setLastEnemyDamage(dmg);
     const newPlayerHp = Math.max(0, playerHp - dmg);
     setPlayerHp(newPlayerHp);
+
+    if (!dodged && dmg > 0 && hasReflectOnHit(inventory.equippedIds) && Math.random() < 0.45) {
+      const reflectDmg = Math.floor(dmg * 0.5);
+      setLastReflectDamage(reflectDmg);
+      const newHp = Math.max(0, enemy.currentHp - reflectDmg);
+      reflectKilled = newHp <= 0;
+      setEnemy((prev) => ({ ...prev, currentHp: newHp }));
+      setTotalDamage((prev) => prev + reflectDmg);
+      if (reflectKilled && selectedTier && currentMapNodeId) {
+        setPhase("victory");
+        setDefeatedEnemyName(enemy.name);
+        setRewardCards(pickRandomCards(CARD_POOL, 3));
+        const node = getMapNode(dungeonMap, currentMapNodeId);
+        setPendingFloorReward(
+          node
+            ? getMapNodeSpiritReward(selectedTier, node)
+            : getFloorSpiritReward(selectedTier)
+        );
+        setPendingTierComplete(node?.type === "boss");
+      }
+    }
+
+    if (counterKilled || reflectKilled) {
+      setDeckState(newDeck);
+      return;
+    }
 
     if (newPlayerHp <= 0) {
       setDeckState(newDeck);
@@ -334,7 +537,17 @@ export default function GamePage() {
     newDeck = drawCards(newDeck, HAND_SIZE);
     setDeckState(newDeck);
     setLastDamage(null);
-  }, [phase, enemy, deckState, playerHp]);
+  }, [
+    phase,
+    enemy,
+    deckState,
+    playerHp,
+    heroStats,
+    inventory.equippedIds,
+    selectedTier,
+    currentMapNodeId,
+    dungeonMap,
+  ]);
 
   useEffect(() => {
     if (phase !== "defeat") return;
@@ -350,38 +563,37 @@ export default function GamePage() {
 
   const handleRewardSelect = useCallback(
     (card: Card) => {
-      if (!selectedTier) return;
+      if (!selectedTier || !currentMapNodeId) return;
 
       setPermanentDeck((prev) => [...prev, card]);
       setSpiritStones((s) => s + pendingFloorReward);
 
-      const isLastFloor = tierFloor >= selectedTier.floors;
+      const updatedMap = completeMapNode(dungeonMap, currentMapNodeId);
+      setDungeonMap(updatedMap);
 
-      if (!isLastFloor) {
-        const nextFloor = tierFloor + 1;
-        setTierFloor(nextFloor);
-        startBattleForFloor(selectedTier, nextFloor);
+      if (pendingTierComplete || isBossCleared(updatedMap)) {
+        const completionBonus = getCompletionSpiritReward(selectedTier);
+        setSpiritStones((s) => s + completionBonus);
+        setTotalClears((c) => c + 1);
+        setUnlockedAchievements((prev) => {
+          if (prev.includes(selectedTier.achievementId)) return prev;
+          return [...prev, selectedTier.achievementId];
+        });
+        returnToTierSelect(
+          `通關【${selectedTier.name}】！斬殺魔首，獲得「${card.name}」、${pendingFloorReward + completionBonus} 靈石，解鎖成就「${selectedTier.achievementName}」。`
+        );
         return;
       }
 
-      const completionBonus = getCompletionSpiritReward(selectedTier);
-      setSpiritStones((s) => s + completionBonus);
-      setTotalClears((c) => c + 1);
-
-      setUnlockedAchievements((prev) => {
-        if (prev.includes(selectedTier.achievementId)) return prev;
-        return [...prev, selectedTier.achievementId];
-      });
-
-      returnToTierSelect(
-        `通關【${selectedTier.name}】！獲得「${card.name}」、${pendingFloorReward + completionBonus} 靈石，解鎖成就「${selectedTier.achievementName}」。`
-      );
+      returnToMap(`擊敗敵人，獲得「${card.name}」。選擇下一節點繼續。`);
     },
     [
       selectedTier,
-      tierFloor,
+      currentMapNodeId,
+      dungeonMap,
       pendingFloorReward,
-      startBattleForFloor,
+      pendingTierComplete,
+      returnToMap,
       returnToTierSelect,
     ]
   );
@@ -414,12 +626,13 @@ export default function GamePage() {
         return (
           <InventoryView
             inventory={inventory}
+            heroRealm={hero.realm}
             onEquip={handleEquip}
             onUnequip={handleUnequip}
           />
         );
       case "combat":
-        if (!isInCombat || combatScreen === "tier-select") {
+        if (combatScreen === "tier-select") {
           return (
             <div className="flex flex-col gap-3">
               {lastRunMessage && (
@@ -437,6 +650,31 @@ export default function GamePage() {
             </div>
           );
         }
+        if (combatScreen === "map" && selectedTier) {
+          return (
+            <div className="flex flex-col gap-3">
+              {mapMessage && (
+                <div className="mx-3 mt-3 glass-panel-gold px-3 py-2.5 text-center text-xs text-[#c9a84c]">
+                  {mapMessage}
+                </div>
+              )}
+              <MapView
+                map={dungeonMap}
+                tierName={selectedTier.name}
+                playerHp={playerHp}
+                maxHp={heroStats.maxHp}
+                currentNodeId={currentMapNodeId}
+                onSelectNode={handleMapNodeSelect}
+                onAbandon={() =>
+                  returnToTierSelect("已放棄本次試煉。", false)
+                }
+              />
+            </div>
+          );
+        }
+        if (!isInCombat) {
+          return null;
+        }
         return (
           <CombatView
             hero={hero}
@@ -444,7 +682,7 @@ export default function GamePage() {
             enemy={enemy}
             tierName={selectedTier?.name}
             tierFloor={tierFloor}
-            totalFloors={selectedTier?.floors}
+            totalFloors={10}
             playerHp={playerHp}
             energy={energy}
             phase={phase}
@@ -456,6 +694,10 @@ export default function GamePage() {
             isShaking={isShaking}
             lastDamage={lastDamage}
             lastEnemyDamage={lastEnemyDamage}
+            lastDodge={lastDodge}
+            lastCounterDamage={lastCounterDamage}
+            lastComboDamage={lastComboDamage}
+            lastReflectDamage={lastReflectDamage}
             lastPassiveHeal={lastPassiveHeal}
             totalDamage={totalDamage}
             onPlayCard={playCard}
@@ -481,7 +723,10 @@ export default function GamePage() {
         <BottomNav
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          inCombat={isInCombat && phase === "playing"}
+          inCombat={
+            (isInCombat && phase === "playing") ||
+            (selectedTier !== null && combatScreen === "map")
+          }
           combatLocked={isInCombat && phase === "playing"}
         />
       }
@@ -497,7 +742,7 @@ export default function GamePage() {
           isTierComplete={pendingTierComplete}
           tierName={selectedTier?.name}
           tierFloor={tierFloor}
-          totalFloors={selectedTier?.floors}
+          totalFloors={10}
         />
       )}
 

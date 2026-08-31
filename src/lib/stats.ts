@@ -23,6 +23,9 @@ export interface HeroStats {
   equipmentCritBonus: number;
   equipmentMultiplierBonus: number;
   equipmentHpBonus: number;
+  equipmentDefenseBonus: number;
+  equipmentDodgeRate: number;
+  equipmentDamageReduction: number;
 }
 
 export interface DamageResult {
@@ -62,6 +65,18 @@ export function calculateHeroStats(
     0
   );
   const equipmentHpBonus = equipped.reduce((sum, eq) => sum + eq.hpBonus, 0);
+  const equipmentDefenseBonus = equipped.reduce(
+    (sum, eq) => sum + (eq.defenseBonus ?? 0),
+    0
+  );
+  const equipmentDodgeRate = Math.min(
+    equipped.reduce((sum, eq) => sum + (eq.dodgeRate ?? 0), 0),
+    0.75
+  );
+  const equipmentDamageReduction = Math.min(
+    equipped.reduce((sum, eq) => sum + (eq.damageReduction ?? 0), 0),
+    0.75
+  );
 
   return {
     attack: hero.baseAttack + equipmentAttackBonus,
@@ -72,7 +87,20 @@ export function calculateHeroStats(
     equipmentCritBonus,
     equipmentMultiplierBonus,
     equipmentHpBonus,
+    equipmentDefenseBonus,
+    equipmentDodgeRate,
+    equipmentDamageReduction,
   };
+}
+
+/** 敵人傷害經防禦與減傷後的實際值 */
+export function applyIncomingDamage(
+  rawDamage: number,
+  defense: number,
+  damageReduction: number
+): number {
+  const afterDefense = Math.max(1, rawDamage - defense);
+  return Math.max(1, Math.floor(afterDefense * (1 - damageReduction)));
 }
 
 /**

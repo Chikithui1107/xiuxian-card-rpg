@@ -1,0 +1,27 @@
+{
+  "$schema": "https://artifact.spirit-code.dao/schemas/weapon.v1.json",
+  "metadata": {
+    "id": "wpn_iron_sword_001",
+    "name": "基礎鐵劍",
+    "rarity": "凡鐵",
+    "requiredRealm": "煉氣一層",
+    "description": "由凡間精鐵鍛造而成的入門飛劍，雖然毫無靈性，但對於剛踏入修仙界的小友來說，已足夠禦敵。"
+  },
+  "stats": {
+    "attack": 10,
+    "critRate": 0.0,
+    "durability": {
+      "current": 100,
+      "max": 100
+    }
+  },
+  "effects": [
+    {
+      "type": "STAT_BUFF",
+      "target": "player.stats.attack",
+      "value": 10,
+      "operator": "ADD"
+    }
+  ],
+  "equipmentSlots": ["MAIN_HAND"]
+}

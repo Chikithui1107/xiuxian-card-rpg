@@ -32,6 +32,25 @@ export function CombatPlayerBar({
           <p className="stat-value text-sm font-bold text-[#c9a84c]">
             {formatNumber(stats.attack)}
           </p>
+          {(stats.equipmentDefenseBonus > 0 ||
+            stats.equipmentDodgeRate > 0 ||
+            stats.equipmentDamageReduction > 0) && (
+            <p className="text-[9px] text-[#7aab9a]">
+              {stats.equipmentDefenseBonus > 0 &&
+                `防 ${stats.equipmentDefenseBonus}`}
+              {stats.equipmentDefenseBonus > 0 &&
+                (stats.equipmentDodgeRate > 0 ||
+                  stats.equipmentDamageReduction > 0) &&
+                " · "}
+              {stats.equipmentDodgeRate > 0 &&
+                `閃 ${(stats.equipmentDodgeRate * 100).toFixed(0)}%`}
+              {stats.equipmentDodgeRate > 0 &&
+                stats.equipmentDamageReduction > 0 &&
+                " · "}
+              {stats.equipmentDamageReduction > 0 &&
+                `減 ${(stats.equipmentDamageReduction * 100).toFixed(0)}%`}
+            </p>
+          )}
         </div>
       </div>
 

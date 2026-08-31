@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  canEquipItem,
   formatAffixes,
   getEquippedBySlot,
   getEquipmentList,
@@ -11,12 +12,14 @@ import { RARITY_COLORS, SLOT_LABELS } from "@/types/game";
 
 interface InventoryPanelProps {
   inventory: InventoryState;
+  heroRealm: string;
   onEquip: (equipmentId: string) => void;
   onUnequip: (equipmentId: string) => void;
 }
 
 export function InventoryPanel({
   inventory,
+  heroRealm,
   onEquip,
   onUnequip,
 }: InventoryPanelProps) {
@@ -52,6 +55,8 @@ export function InventoryPanel({
         {owned.map((eq) => {
           const equipped = isEquipped(inventory, eq.id);
           const affixes = formatAffixes(eq);
+          const equipCheck = canEquipItem(inventory, eq.id, heroRealm);
+          const canEquip = equipCheck.ok;
 
           return (
             <div
@@ -72,6 +77,11 @@ export function InventoryPanel({
                   >
                     {eq.rarity}
                   </span>
+                  {eq.requiredRealm && (
+                    <p className="text-[9px] text-stone-500">
+                      需 {eq.requiredRealm}
+                    </p>
+                  )}
                 </div>
                 {equipped ? (
                   <button
@@ -83,7 +93,9 @@ export function InventoryPanel({
                 ) : (
                   <button
                     onClick={() => onEquip(eq.id)}
-                    className="btn-cyber shrink-0 px-2 py-0.5 text-[10px]"
+                    disabled={!canEquip}
+                    title={!canEquip && !equipCheck.ok ? equipCheck.reason : undefined}
+                    className="btn-cyber shrink-0 px-2 py-0.5 text-[10px] disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     裝備
                   </button>

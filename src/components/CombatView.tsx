@@ -29,6 +29,10 @@ interface CombatViewProps {
   isShaking: boolean;
   lastDamage: DamageResult | null;
   lastEnemyDamage: number | null;
+  lastDodge?: boolean;
+  lastCounterDamage?: number | null;
+  lastComboDamage?: number | null;
+  lastReflectDamage?: number | null;
   lastPassiveHeal?: number | null;
   totalDamage: number;
   onPlayCard: (instance: CardInstance) => void;
@@ -53,6 +57,10 @@ export function CombatView({
   isShaking,
   lastDamage,
   lastEnemyDamage,
+  lastDodge,
+  lastCounterDamage,
+  lastComboDamage,
+  lastReflectDamage,
   lastPassiveHeal,
   totalDamage,
   onPlayCard,
@@ -84,6 +92,10 @@ export function CombatView({
           damagePopups={damagePopups}
           isShaking={isShaking}
           lastEnemyDamage={lastEnemyDamage}
+          lastDodge={lastDodge}
+          lastCounterDamage={lastCounterDamage}
+          lastComboDamage={lastComboDamage}
+          lastReflectDamage={lastReflectDamage}
           lastPassiveHeal={lastPassiveHeal}
         />
         <CombatPlayerBar

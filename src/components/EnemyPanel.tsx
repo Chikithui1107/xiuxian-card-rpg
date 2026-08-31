@@ -8,6 +8,10 @@ interface EnemyPanelProps {
   damagePopups: DamagePopup[];
   isShaking: boolean;
   lastEnemyDamage?: number | null;
+  lastDodge?: boolean;
+  lastCounterDamage?: number | null;
+  lastComboDamage?: number | null;
+  lastReflectDamage?: number | null;
   lastPassiveHeal?: number | null;
 }
 
@@ -16,6 +20,10 @@ export function EnemyPanel({
   damagePopups,
   isShaking,
   lastEnemyDamage,
+  lastDodge,
+  lastCounterDamage,
+  lastComboDamage,
+  lastReflectDamage,
   lastPassiveHeal,
 }: EnemyPanelProps) {
   const hpPercent = Math.max(0, (enemy.currentHp / enemy.maxHp) * 100);
@@ -69,20 +77,30 @@ export function EnemyPanel({
         <DamageNumber key={popup.id} popup={popup} />
       ))}
 
-      {(lastEnemyDamage != null && lastEnemyDamage > 0) ||
-      (lastPassiveHeal != null && lastPassiveHeal > 0) ? (
-        <div className="mt-2 flex justify-center gap-3 text-[10px]">
-          {lastEnemyDamage != null && lastEnemyDamage > 0 && (
-            <span className="text-[#a85555]">
-              反噬 -{lastEnemyDamage}
-              {enemy.passive === "burn" ? "（灼燒）" : ""}
-            </span>
-          )}
-          {lastPassiveHeal != null && lastPassiveHeal > 0 && (
-            <span className="text-[#7aab9a]">回復 +{lastPassiveHeal}</span>
-          )}
-        </div>
-      ) : null}
+      <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[10px]">
+        {lastComboDamage != null && lastComboDamage > 0 && (
+          <span className="text-[#c9a84c]">慧劍連擊 -{lastComboDamage}</span>
+        )}
+        {lastReflectDamage != null && lastReflectDamage > 0 && (
+          <span className="text-[#7aab9a]">逆流反彈 -{lastReflectDamage}</span>
+        )}
+        {lastDodge && <span className="text-[#7aab9a]">閃避成功</span>}
+        {lastCounterDamage != null && lastCounterDamage > 0 && (
+          <span className="text-[#c9a84c]">玄鐵反擊 -{lastCounterDamage}</span>
+        )}
+        {lastEnemyDamage != null && lastEnemyDamage > 0 && (
+          <span className="text-[#a85555]">
+            反噬 -{lastEnemyDamage}
+            {enemy.passive === "burn" ? "（灼燒）" : ""}
+          </span>
+        )}
+        {lastEnemyDamage === 0 && lastDodge && (
+          <span className="text-stone-500">完全閃避</span>
+        )}
+        {lastPassiveHeal != null && lastPassiveHeal > 0 && (
+          <span className="text-[#7aab9a]">回復 +{lastPassiveHeal}</span>
+        )}
+      </div>
     </div>
   );
 }
