@@ -5,12 +5,14 @@ import type { InventoryState } from "@/types/game";
 
 interface InventoryViewProps {
   inventory: InventoryState;
+  heroRealm: string;
   onEquip: (id: string) => void;
   onUnequip: (id: string) => void;
 }
 
 export function InventoryView({
   inventory,
+  heroRealm,
   onEquip,
   onUnequip,
 }: InventoryViewProps) {
@@ -26,6 +28,7 @@ export function InventoryView({
 
       <InventoryPanel
         inventory={inventory}
+        heroRealm={heroRealm}
         onEquip={onEquip}
         onUnequip={onUnequip}
       />

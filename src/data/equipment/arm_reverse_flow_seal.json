@@ -1,0 +1,12 @@
+{
+  "id": "arm_reverse_flow_seal",
+  "name": "逆流護身印",
+  "type": "防具",
+  "rarity": "史詩",
+  "description": "以天地祕境逆流河水所煉：逆水行舟，萬法不沾",
+  "stats": {
+    "defense": 250,
+    "damageReduction": 0.3
+  },
+  "effect": "受到攻擊時高機率反彈傷害與異常狀態；意志越高減傷越多。"
+}

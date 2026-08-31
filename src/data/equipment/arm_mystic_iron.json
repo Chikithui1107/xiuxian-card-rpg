@@ -1,0 +1,10 @@
+{
+  "id": "arm_mystic_iron",
+  "name": "玄鐵甲",
+  "type": "防具",
+  "stats": {
+    "defense": 20,
+    "dodgeRate": 0.05
+  },
+  "effect": "閃避成功時觸發反擊"
+}

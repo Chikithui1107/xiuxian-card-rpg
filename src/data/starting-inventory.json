@@ -1,11 +1,12 @@
 {
   "ownedIds": [
-    "eq_bamboo_sword",
+    "wpn_iron_sword_001",
+    "wpn_prajna_sword",
+    "arm_mystic_iron",
+    "arm_reverse_flow_seal",
     "eq_thunder_mirror",
     "eq_spring_autumn",
-    "eq_yin_robe",
-    "eq_spirit_ring",
-    "eq_iron_sword"
+    "eq_spirit_ring"
   ],
-  "equippedIds": ["eq_bamboo_sword", "eq_yin_robe", "eq_spirit_ring"]
+  "equippedIds": ["wpn_iron_sword_001", "arm_mystic_iron", "eq_spirit_ring"]
 }

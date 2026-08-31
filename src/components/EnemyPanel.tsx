@@ -8,6 +8,10 @@ interface EnemyPanelProps {
   damagePopups: DamagePopup[];
   isShaking: boolean;
   lastEnemyDamage?: number | null;
+  lastDodge?: boolean;
+  lastCounterDamage?: number | null;
+  lastComboDamage?: number | null;
+  lastReflectDamage?: number | null;
   lastPassiveHeal?: number | null;
 }
 
@@ -16,6 +20,10 @@ export function EnemyPanel({
   damagePopups,
   isShaking,
   lastEnemyDamage,
+  lastDodge,
+  lastCounterDamage,
+  lastComboDamage,
+  lastReflectDamage,
   lastPassiveHeal,
 }: EnemyPanelProps) {
   const hpPercent = Math.max(0, (enemy.currentHp / enemy.maxHp) * 100);
@@ -63,12 +71,42 @@ export function EnemyPanel({
           <DamageNumber key={popup.id} popup={popup} />
         ))}
 
+        {lastComboDamage != null && lastComboDamage > 0 && (
+          <p className="mt-1 text-center text-[10px] text-[#c9a84c]">
+            慧劍連擊 -{lastComboDamage}
+          </p>
+        )}
+
+        {lastReflectDamage != null && lastReflectDamage > 0 && (
+          <p className="mt-1 text-center text-[10px] text-[#7aab9a]">
+            逆流反彈 -{lastReflectDamage}
+          </p>
+        )}
+
+        {lastDodge && (
+          <p className="mt-2 text-center text-[10px] text-[#7aab9a]">
+            閃避成功！
+          </p>
+        )}
+
+        {lastCounterDamage != null && lastCounterDamage > 0 && (
+          <p className="mt-1 text-center text-[10px] text-[#c9a84c]">
+            玄鐵反擊 -{lastCounterDamage}
+          </p>
+        )}
+
         {lastEnemyDamage != null && lastEnemyDamage > 0 && (
           <p className="mt-2 text-center text-[10px] text-[#a85555]">
             反噬 -{lastEnemyDamage}
             {enemy.passive === "burn" && (
               <span className="text-[#c48888]">（灼燒）</span>
             )}
+          </p>
+        )}
+
+        {lastEnemyDamage === 0 && lastDodge && (
+          <p className="mt-1 text-center text-[10px] text-stone-500">
+            完全閃避，未受傷害
           </p>
         )}
 
