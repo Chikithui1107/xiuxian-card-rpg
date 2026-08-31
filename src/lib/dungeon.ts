@@ -77,3 +77,22 @@ export function getRecommendedPowerLabel(tier: DungeonTier): string {
   const hpEstimate = Math.floor(2500 * tier.hpMultiplier);
   return `攻 ~${attackEstimate} · HP ~${hpEstimate.toLocaleString()}`;
 }
+
+const CHAPTER_META: Record<
+  string,
+  { stage: number; chapterLabel: string; realmLabel: string }
+> = {
+  tier_qi: { stage: 1, chapterLabel: "新手試煉", realmLabel: "煉氣期" },
+  tier_foundation: { stage: 2, chapterLabel: "進階試煉", realmLabel: "築基期" },
+  tier_golden: { stage: 3, chapterLabel: "極限挑戰", realmLabel: "金丹期" },
+};
+
+export function getDungeonChapterMeta(tier: DungeonTier) {
+  return (
+    CHAPTER_META[tier.id] ?? {
+      stage: 1,
+      chapterLabel: "祕境試煉",
+      realmLabel: tier.recommendedPower,
+    }
+  );
+}

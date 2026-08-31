@@ -1,7 +1,10 @@
 "use client";
 
 import type { DungeonTier } from "@/types/game";
-import { getRecommendedPowerLabel } from "@/lib/dungeon";
+import {
+  getDungeonChapterMeta,
+  getRecommendedPowerLabel,
+} from "@/lib/dungeon";
 
 interface TierSelectionViewProps {
   tiers: DungeonTier[];
@@ -13,24 +16,29 @@ interface TierSelectionViewProps {
 
 const ACCENT_STYLES: Record<
   DungeonTier["accent"],
-  { border: string; badge: string; text: string }
+  { border: string; badge: string; text: string; line: string }
 > = {
   cyan: {
     border: "border-[#4a7c6f]/35 hover:border-[#7aab9a]/50",
     badge: "bg-stone-900/60 text-[#7aab9a]",
     text: "text-[#7aab9a]",
+    line: "bg-[#4a7c6f]/40",
   },
   purple: {
     border: "border-[#5a5a7a]/35 hover:border-[#8a8aaa]/45",
     badge: "bg-stone-900/60 text-[#9a9ab8]",
     text: "text-[#9a9ab8]",
+    line: "bg-[#5a5a7a]/40",
   },
   amber: {
     border: "border-[#8a7340]/35 hover:border-[#c9a84c]/50",
     badge: "bg-stone-900/60 text-[#c9a84c]",
     text: "text-[#c9a84c]",
+    line: "bg-[#8a7340]/40",
   },
 };
+
+const STAGE_MARKS = ["①", "②", "③"];
 
 export function TierSelectionView({
   tiers,
@@ -40,26 +48,37 @@ export function TierSelectionView({
   onBack,
 }: TierSelectionViewProps) {
   return (
-    <div className="flex flex-col gap-4 px-3 pt-3 pb-4">
-      <div className="text-center">
-        <p className="zone-label">祕境試煉</p>
-        <h2 className="title-ink mt-1 text-lg font-bold">選擇試煉難度</h2>
-        <p className="mt-1 text-[10px] text-stone-500">
-          當前攻伐 {playerAttack.toLocaleString()} · 擇境而入
-        </p>
+    <div className="flex flex-col gap-3 px-3 pt-3 pb-4">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="zone-label">天下祕境</p>
+          <h2 className="title-ink mt-1 text-lg font-bold">祕境試煉</h2>
+          <p className="mt-1 text-[11px] tracking-wide text-stone-400">
+            選擇本次修行的關卡
+          </p>
+          <p className="mt-0.5 text-[10px] text-stone-500">
+            當前攻伐 {playerAttack.toLocaleString()}
+          </p>
+        </div>
+        {onBack && (
+          <button onClick={onBack} className="btn-cyber shrink-0 px-3 py-1 text-xs">
+            ← 山門
+          </button>
+        )}
       </div>
 
-      {onBack && (
-        <button onClick={onBack} className="btn-cyber self-start px-3 py-1 text-xs">
-          ← 返回山門
-        </button>
-      )}
-
       <div className="space-y-3">
-        {tiers.map((tier) => {
+        {tiers.map((tier, index) => {
           const styles = ACCENT_STYLES[tier.accent];
           const cleared = unlockedAchievements.includes(tier.achievementId);
           const powerHint = getRecommendedPowerLabel(tier);
+          const chapter = getDungeonChapterMeta(tier);
+          const stageMark = STAGE_MARKS[index] ?? `${chapter.stage}`;
+          const floorPath = Array.from(
+            { length: tier.floors },
+            (_, i) => i + 1
+          ).join(" → ");
+
 
           return (
             <button
@@ -69,13 +88,16 @@ export function TierSelectionView({
             >
               <div className="mb-2 flex items-start justify-between gap-2">
                 <div>
-                  <h3 className={`text-base font-bold ${styles.text}`}>
-                    {tier.name}
+                  <p className="text-[10px] tracking-[0.18em] text-stone-500">
+                    第 {chapter.stage} 階段
+                  </p>
+                  <h3 className={`mt-0.5 text-base font-bold ${styles.text}`}>
+                    {stageMark} {tier.name}
                   </h3>
                   <span
                     className={`mt-1 inline-block rounded border border-stone-700/40 px-2 py-0.5 text-[10px] font-semibold ${styles.badge}`}
                   >
-                    建議修為 · {tier.recommendedPower}
+                    {chapter.chapterLabel}
                   </span>
                 </div>
                 {cleared && (
@@ -85,23 +107,28 @@ export function TierSelectionView({
                 )}
               </div>
 
-              <p className="mb-2 text-xs leading-relaxed text-stone-400">
+              <p className="mb-3 text-xs leading-relaxed text-stone-400">
                 {tier.description}
               </p>
 
-              <div className="mb-2 flex flex-wrap gap-2 text-[10px]">
+              <FloorTrack
+                floors={tier.floors}
+                cleared={cleared}
+                lineClass={styles.line}
+                floorPath={floorPath}
+              />
+
+              <div className="mt-2 mb-1 flex flex-wrap gap-2 text-[10px]">
                 <span className="rounded border border-stone-700/40 bg-black/30 px-2 py-0.5 text-stone-400">
-                  {tier.floors} 重關卡
-                </span>
-                <span className="rounded border border-stone-700/40 bg-black/30 px-2 py-0.5 text-stone-400">
-                  難度 {tier.difficulty}
+                  推薦修為：{chapter.realmLabel}
                 </span>
                 <span className="rounded border border-[#8a7340]/30 bg-black/30 px-2 py-0.5 text-[#c9a84c]/90">
-                  +{tier.bonusSpiritStones} 靈石
+                  獎勵：+{tier.bonusSpiritStones} 靈石
+                </span>
+                <span className="rounded border border-stone-700/40 bg-black/30 px-2 py-0.5 text-stone-500">
+                  {powerHint}
                 </span>
               </div>
-
-              <p className="text-[10px] text-stone-500">{powerHint}</p>
 
               {tier.passiveDescription && (
                 <p className="mt-2 text-[10px] italic text-[#9a9ab8]">
@@ -114,10 +141,75 @@ export function TierSelectionView({
                   功業：{tier.achievementName}
                 </p>
               )}
+
+              <div className="mt-3 flex items-center justify-end border-t border-stone-700/30 pt-2.5">
+                <span
+                  className={`text-xs font-bold tracking-[0.2em] ${styles.text}`}
+                >
+                  開始挑戰 →
+                </span>
+              </div>
             </button>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function FloorTrack({
+  floors,
+  cleared,
+  lineClass,
+  floorPath,
+}: {
+  floors: number;
+  cleared: boolean;
+  lineClass: string;
+  floorPath: string;
+}) {
+  return (
+    <div className="mb-1">
+      <div className="flex items-center gap-1">
+        {Array.from({ length: floors }, (_, i) => {
+          const floor = i + 1;
+          const state = cleared
+            ? "done"
+            : floor === 1
+              ? "current"
+              : "locked";
+          return (
+            <div key={floor} className="flex flex-1 items-center last:flex-none">
+              <div
+                className={`floor-node ${
+                  state === "done"
+                    ? "floor-node-done"
+                    : state === "current"
+                      ? "floor-node-current"
+                      : "floor-node-locked"
+                }`}
+                title={
+                  state === "done"
+                    ? `關卡 ${floor} 已完成`
+                    : state === "current"
+                      ? `當前關卡 ${floor}`
+                      : `關卡 ${floor} 未解鎖`
+                }
+              >
+                {state === "done" ? "✓" : floor}
+              </div>
+              {floor < floors && (
+                <div className={`mx-1 h-px flex-1 ${lineClass}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-1.5 text-[10px] tracking-wide text-stone-500">
+        {cleared
+          ? `已通關 · 關卡 ${floors} / ${floors}`
+          : `關卡 ${floorPath} · 從第 1 關開始`}
+      </p>
     </div>
   );
 }

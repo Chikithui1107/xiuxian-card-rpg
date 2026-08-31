@@ -482,6 +482,7 @@ export default function GamePage() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           inCombat={isInCombat && phase === "playing"}
+          combatLocked={isInCombat && phase === "playing"}
         />
       }
     >
@@ -509,7 +510,7 @@ export default function GamePage() {
             </h2>
             <p className="mt-2 text-xs text-stone-500">
               {selectedTier
-                ? `【${selectedTier.name}】第 ${tierFloor} 重`
+                ? `【${selectedTier.name}】關卡 ${tierFloor}`
                 : "祕境試煉"}
               · 返回試煉選擇…
             </p>

@@ -27,18 +27,12 @@ export function LobbyView({
   onEnterDungeon,
 }: LobbyViewProps) {
   return (
-    <div className="flex flex-col gap-4 px-3 pt-3">
+    <div className="flex flex-col gap-3 px-3 pt-3">
       {lastRunMessage && (
         <div className="glass-panel-gold px-3 py-2.5 text-center text-xs text-[#c9a84c]">
           {lastRunMessage}
         </div>
       )}
-
-      <div className="text-center">
-        <p className="zone-label">宗門洞府</p>
-        <h2 className="title-ink mt-1 text-xl font-bold">青雲宗 · 外門弟子居</h2>
-        <p className="mt-1 text-[10px] text-stone-500">靜修悟道，待時而動</p>
-      </div>
 
       <CultivatorPanel
         hero={hero}
@@ -50,12 +44,21 @@ export function LobbyView({
         deckCount={deckCount}
       />
 
-      <div className="glass-panel p-4">
-        <button onClick={onEnterDungeon} className="btn-cyber-gold w-full py-4 text-base">
-          前往祕境試煉
+      <div className="glass-panel-gold p-3">
+        <button
+          onClick={onEnterDungeon}
+          className="btn-start-game"
+          aria-label="開始遊戲，前往祕境試煉"
+        >
+          <span className="relative block text-xl font-bold tracking-[0.32em]">
+            開始遊戲
+          </span>
+          <span className="relative mt-1.5 block text-[11px] font-semibold tracking-[0.22em] text-[#8a7340]">
+            前往祕境試煉
+          </span>
         </button>
-        <p className="mt-2 text-center text-[10px] text-stone-500">
-          或點底部「祕境」標籤選擇試煉難度
+        <p className="mt-2.5 text-center text-[10px] tracking-wide text-stone-500">
+          選擇祕境，開始本次修行
         </p>
       </div>
     </div>

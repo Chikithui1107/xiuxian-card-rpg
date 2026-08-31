@@ -26,7 +26,7 @@ export function CardRewardModal({
 }: CardRewardModalProps) {
   const progressLabel =
     tierName && tierFloor && totalFloors
-      ? `${tierName} · 第 ${tierFloor}/${totalFloors} 重`
+      ? `${tierName} · 關卡 ${tierFloor}/${totalFloors}`
       : null;
 
   return (
@@ -51,7 +51,7 @@ export function CardRewardModal({
           <p className="mt-1 text-[10px] text-stone-500">
             擇一法訣，永久納入牌庫
             {!isTierComplete && tierFloor && totalFloors && tierFloor < totalFloors
-              ? "，續闖下一重"
+              ? "，續闖下一關"
               : ""}
           </p>
         </div>
@@ -61,7 +61,7 @@ export function CardRewardModal({
             <button
               key={card.id}
               onClick={() => onSelect(card)}
-              className={`card-hover flex w-full items-center gap-3 rounded border-2 p-3 text-left hover:border-[#7aab9a]/45 active:scale-[0.98] ${CARD_TYPE_COLORS[card.type]}`}
+              className={`card-hover flex w-full items-center gap-3 rounded border-2 p-3 text-left ink-card hover:border-[#c9a84c]/40 active:scale-[0.98] ${CARD_TYPE_COLORS[card.type]}`}
             >
               <div className="flex-1">
                 <div className="mb-0.5 flex items-center gap-2">
