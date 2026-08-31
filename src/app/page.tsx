@@ -55,7 +55,7 @@ import {
   getMapNode,
   isBossCleared,
 } from "@/lib/map";
-import { generateSlayTheSpireMap } from "@/utils/mapGenerator";
+import { generateMoonNightMap } from "@/utils/mapGenerator";
 import type {
   AppTab,
   Card,
@@ -313,7 +313,7 @@ export default function GamePage() {
       if (!tier) return;
       setSelectedTier(tier);
       setTierFloor(1);
-      setDungeonMap(generateSlayTheSpireMap());
+      setDungeonMap(generateMoonNightMap());
       setCurrentMapNodeId(null);
       setMapMessage(null);
       setIsInCombat(false);
@@ -652,24 +652,18 @@ export default function GamePage() {
         }
         if (combatScreen === "map" && selectedTier) {
           return (
-            <div className="flex flex-col gap-3">
-              {mapMessage && (
-                <div className="mx-3 mt-3 glass-panel-gold px-3 py-2.5 text-center text-xs text-[#c9a84c]">
-                  {mapMessage}
-                </div>
-              )}
               <MapView
                 map={dungeonMap}
                 tierName={selectedTier.name}
                 playerHp={playerHp}
                 maxHp={heroStats.maxHp}
                 currentNodeId={currentMapNodeId}
+                mapMessage={mapMessage}
                 onSelectNode={handleMapNodeSelect}
                 onAbandon={() =>
                   returnToTierSelect("已放棄本次試煉。", false)
                 }
               />
-            </div>
           );
         }
         if (!isInCombat) {

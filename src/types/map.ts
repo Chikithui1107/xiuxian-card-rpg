@@ -12,7 +12,9 @@ export interface MapNode {
   id: string;
   tier: number;
   col: number;
+  chapter: number;
   type: NodeType;
+  title: string;
   nextNodes: string[];
   status: NodeStatus;
 }
