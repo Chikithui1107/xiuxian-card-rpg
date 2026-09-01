@@ -76,12 +76,12 @@ export function CombatView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center justify-between border-b border-[#4a7c6f]/15 bg-stone-950/80 px-3 py-1.5">
-        <p className="zone-label">戰鬥中</p>
-        <p className="max-w-[50%] truncate text-center text-[10px] text-[#7aab9a]">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#4a7c6f]/15 bg-stone-950/80 px-3 py-1.5">
+        <p className="zone-label shrink-0">戰鬥中</p>
+        <p className="min-w-0 flex-1 truncate text-center text-[10px] text-[#7aab9a]">
           {floorLabel}
         </p>
-        <p className="stat-value text-[11px] font-bold text-[#c9a84c]">
+        <p className="stat-value shrink-0 text-[11px] font-bold text-[#c9a84c]">
           {totalDamage.toLocaleString()}
         </p>
       </div>

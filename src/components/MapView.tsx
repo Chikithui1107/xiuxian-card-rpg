@@ -37,7 +37,6 @@ interface MapViewProps {
   currentNodeId?: string | null;
   mapMessage?: string | null;
   onSelectNode: (node: MapNode) => void;
-  onAbandon?: () => void;
 }
 
 export function MapView({
@@ -48,7 +47,6 @@ export function MapView({
   currentNodeId,
   mapMessage,
   onSelectNode,
-  onAbandon,
 }: MapViewProps) {
   const hpPercent = Math.max(0, (playerHp / maxHp) * 100);
   const chapter = map[0]?.[0]?.chapter ?? 1;
@@ -81,15 +79,6 @@ export function MapView({
           />
         </div>
       </div>
-
-      {onAbandon && (
-        <button
-          onClick={onAbandon}
-          className="mb-4 self-start rounded-lg border border-stone-700 px-3 py-1 text-xs text-stone-400 transition-colors hover:border-stone-500 hover:text-stone-200"
-        >
-          ← 放棄試煉
-        </button>
-      )}
 
       <div className="w-full max-w-md rounded-2xl border border-stone-800 bg-stone-900/60 p-5 shadow-2xl backdrop-blur">
         <div className="flex flex-col-reverse gap-4">

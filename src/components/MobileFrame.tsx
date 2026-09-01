@@ -5,6 +5,7 @@ interface MobileFrameProps {
   bottomNav?: React.ReactNode;
   title?: string;
   subtitle?: string;
+  inGameMenu?: React.ReactNode;
 }
 
 export function MobileFrame({
@@ -12,13 +13,15 @@ export function MobileFrame({
   bottomNav,
   title,
   subtitle,
+  inGameMenu,
 }: MobileFrameProps) {
   return (
     <div className="mobile-shell">
       <div className="mobile-shell-mist pointer-events-none" aria-hidden />
       <div className="mobile-frame">
+        {inGameMenu}
         {(title || subtitle) && (
-          <header className="mobile-header shrink-0">
+          <header className={`mobile-header shrink-0${inGameMenu ? " has-in-game-menu" : ""}`}>
             {title && (
               <h1 className="title-ink text-lg font-bold">{title}</h1>
             )}

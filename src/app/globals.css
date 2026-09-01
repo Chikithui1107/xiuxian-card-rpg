@@ -125,6 +125,74 @@ body {
   text-align: center;
   box-shadow: inset 0 -1px 0 rgba(201, 168, 76, 0.08);
 }
+.mobile-header.has-in-game-menu {
+  padding-left: 2.85rem;
+  padding-right: 2.85rem;
+}
+
+.in-game-menu-btn {
+  position: absolute;
+  top: 0.62rem;
+  right: 0.75rem;
+  z-index: 40;
+  display: flex;
+  height: 2.05rem;
+  width: 2.05rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.3rem;
+  border: 1px solid rgba(201, 168, 76, 0.45);
+  background: rgba(22, 20, 16, 0.96);
+  color: var(--color-gold);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    0 0 0 1px rgba(201, 168, 76, 0.06),
+    inset 0 1px 0 rgba(201, 168, 76, 0.12);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+.in-game-menu-btn:hover {
+  border-color: rgba(201, 168, 76, 0.75);
+  background: rgba(40, 32, 22, 0.98);
+}
+.in-game-menu-btn:active {
+  transform: scale(0.94);
+}
+.in-game-menu-btn-bars {
+  display: block;
+  width: 0.85rem;
+  height: 0.72rem;
+  background:
+    linear-gradient(currentColor, currentColor) 0 0 / 100% 1.5px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 50% / 100% 1.5px no-repeat,
+    linear-gradient(currentColor, currentColor) 0 100% / 100% 1.5px no-repeat;
+}
+
+.in-game-menu-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+.in-game-menu-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(6, 5, 4, 0.72);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+.in-game-menu-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 16.5rem;
+  padding: 1.25rem 1rem 1rem;
+  text-align: center;
+}
 
 .mobile-content {
   flex: 1;
@@ -352,6 +420,28 @@ body {
 .btn-start-game:active {
   transform: scale(0.985);
   box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.btn-abandon {
+  width: 100%;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(139, 58, 58, 0.45);
+  background: rgba(22, 17, 17, 0.92);
+  padding: 0.7rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #c48888;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.2s ease, border-color 0.25s ease, background 0.25s ease;
+}
+.btn-abandon:hover {
+  border-color: rgba(168, 85, 85, 0.65);
+  background: rgba(36, 22, 22, 0.95);
+}
+.btn-abandon:active {
+  transform: scale(0.985);
 }
 
 .floor-node {
