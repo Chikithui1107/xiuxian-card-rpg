@@ -13,6 +13,8 @@ import { MapView } from "@/components/MapView";
 import { InventoryView } from "@/components/InventoryView";
 import { CardRewardModal } from "@/components/CardRewardModal";
 import { InGameMenu } from "@/components/InGameMenu";
+import { VictoryAnimOverlay } from "@/components/VictoryAnimOverlay";
+import { StageClearOverlay } from "@/components/StageClearOverlay";
 import {
   calculateHeroStats,
   getHero,
@@ -62,6 +64,7 @@ import type { BattleDeckState } from "@/types/battle";
 import type { Card } from "@/types/battle";
 import type {
   AppTab,
+  BattlePhase,
   CombatEnemy,
   CombatPhase,
   CombatScreen,
@@ -129,6 +132,12 @@ export default function GamePage() {
   const popupIdRef = useRef(0);
   const [energy, setEnergy] = useState(MAX_ENERGY);
   const [phase, setPhase] = useState<CombatPhase>("playing");
+  const [battlePhase, setBattlePhase] = useState<BattlePhase>("IN_BATTLE");
+  const victoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const victoryStartedRef = useRef(false);
+  const [stageClearMessage, setStageClearMessage] = useState<string | null>(
+    null
+  );
   const [damagePopups, setDamagePopups] = useState<DamagePopup[]>([]);
   const [isShaking, setIsShaking] = useState(false);
   const [lastDamage, setLastDamage] = useState<number | null>(null);
@@ -166,8 +175,21 @@ export default function GamePage() {
     setPlayerHp((hp) => Math.min(hp, heroStats.maxHp));
   }, [heroStats.maxHp]);
 
+  useEffect(() => {
+    return () => {
+      if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
+    };
+  }, []);
+
   const resetCombatState = useCallback(() => {
+    if (victoryTimerRef.current) {
+      clearTimeout(victoryTimerRef.current);
+      victoryTimerRef.current = null;
+    }
+    victoryStartedRef.current = false;
     setPhase("playing");
+    setBattlePhase("IN_BATTLE");
+    setStageClearMessage(null);
     setDamagePopups([]);
     setLastDamage(null);
     setLastEnemyDamage(null);
@@ -225,6 +247,8 @@ export default function GamePage() {
       setDeckState(initBattleDeck(permanentDeck));
       setEnergy(MAX_ENERGY);
       setPhase("playing");
+      setBattlePhase("IN_BATTLE");
+      victoryStartedRef.current = false;
       setDamagePopups([]);
       setLastDamage(null);
       setLastEnemyDamage(null);
@@ -375,6 +399,36 @@ export default function GamePage() {
     }, 1100);
   }, []);
 
+  const beginVictorySequence = useCallback(
+    (
+      enemyName: string,
+      tier: DungeonTier,
+      mapNodeId: string,
+      mapNodes: MapNode[][]
+    ) => {
+      if (victoryStartedRef.current) return;
+      victoryStartedRef.current = true;
+
+      const node = getMapNode(mapNodes, mapNodeId);
+      setDefeatedEnemyName(enemyName);
+      setRewardTemplateIds(pickRandomTemplateIds(3));
+      const floorReward = node
+        ? getMapNodeSpiritReward(tier, node)
+        : getFloorSpiritReward(tier);
+      setPendingFloorReward(floorReward);
+      setPendingTierComplete(node?.type === "boss");
+      setBattlePhase("VICTORY_ANIM");
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 500);
+
+      victoryTimerRef.current = setTimeout(() => {
+        setBattlePhase("REWARD");
+        victoryTimerRef.current = null;
+      }, 1500);
+    },
+    []
+  );
+
   const checkVictory = useCallback(
     (
       newHp: number,
@@ -383,24 +437,22 @@ export default function GamePage() {
       mapNodeId: string | null,
       mapNodes: MapNode[][]
     ) => {
-      if (newHp <= 0 && tier && mapNodeId) {
-        const node = getMapNode(mapNodes, mapNodeId);
-        setPhase("victory");
-        setDefeatedEnemyName(enemyName);
-        setRewardTemplateIds(pickRandomTemplateIds(3));
-        const floorReward = node
-          ? getMapNodeSpiritReward(tier, node)
-          : getFloorSpiritReward(tier);
-        setPendingFloorReward(floorReward);
-        setPendingTierComplete(node?.type === "boss");
+      if (
+        newHp <= 0 &&
+        tier &&
+        mapNodeId &&
+        battlePhase === "IN_BATTLE"
+      ) {
+        beginVictorySequence(enemyName, tier, mapNodeId, mapNodes);
       }
     },
-    []
+    [battlePhase, beginVictorySequence]
   );
 
   const playCard = useCallback(
     (card: Card) => {
-      if (phase !== "playing" || enemy.currentHp <= 0) return;
+      if (phase !== "playing" || battlePhase !== "IN_BATTLE" || enemy.currentHp <= 0)
+        return;
       if (energy < card.cost) return;
 
       const template = getCardTemplate(card);
@@ -452,6 +504,7 @@ export default function GamePage() {
     },
     [
       phase,
+      battlePhase,
       enemy,
       energy,
       deckState,
@@ -466,7 +519,8 @@ export default function GamePage() {
   );
 
   const endTurn = useCallback(() => {
-    if (phase !== "playing" || enemy.currentHp <= 0) return;
+    if (phase !== "playing" || battlePhase !== "IN_BATTLE" || enemy.currentHp <= 0)
+      return;
 
     let newDeck = discardHand(deckState);
     setEnergy(MAX_ENERGY);
@@ -509,7 +563,7 @@ export default function GamePage() {
     newDeck = drawCards(newDeck, COMBAT_HAND_SIZE);
     setDeckState(newDeck);
     setLastDamage(null);
-  }, [phase, enemy, deckState, playerHp, combatBuffs]);
+  }, [phase, battlePhase, enemy, deckState, playerHp, combatBuffs]);
 
   useEffect(() => {
     if (phase !== "defeat") return;
@@ -535,17 +589,15 @@ export default function GamePage() {
       const updatedMap = completeMapNode(dungeonMap, currentMapNodeId);
       setDungeonMap(updatedMap);
 
-      if (pendingTierComplete || isBossCleared(updatedMap)) {
+      const tierComplete =
+        pendingTierComplete || isBossCleared(updatedMap);
+
+      if (tierComplete) {
         const completionBonus = getCompletionSpiritReward(selectedTier);
-        setSpiritStones((s) => s + completionBonus);
-        setTotalClears((c) => c + 1);
-        setUnlockedAchievements((prev) => {
-          if (prev.includes(selectedTier.achievementId)) return prev;
-          return [...prev, selectedTier.achievementId];
-        });
-        returnToTierSelect(
+        setStageClearMessage(
           `通關【${selectedTier.name}】！斬殺魔首，獲得「${cardName}」、${pendingFloorReward + completionBonus} 靈石，解鎖成就「${selectedTier.achievementName}」。`
         );
+        setBattlePhase("STAGE_CLEAR");
         return;
       }
 
@@ -558,9 +610,21 @@ export default function GamePage() {
       pendingFloorReward,
       pendingTierComplete,
       returnToMap,
-      returnToTierSelect,
     ]
   );
+
+  const handleStageClearContinue = useCallback(() => {
+    if (!selectedTier || !stageClearMessage) return;
+
+    const completionBonus = getCompletionSpiritReward(selectedTier);
+    setSpiritStones((s) => s + completionBonus);
+    setTotalClears((c) => c + 1);
+    setUnlockedAchievements((prev) => {
+      if (prev.includes(selectedTier.achievementId)) return prev;
+      return [...prev, selectedTier.achievementId];
+    });
+    returnToTierSelect(stageClearMessage);
+  }, [selectedTier, stageClearMessage, returnToTierSelect]);
 
   const deckInfo = useMemo(
     () => ({
@@ -651,6 +715,7 @@ export default function GamePage() {
             energy={energy}
             combatBuffs={combatBuffs}
             phase={phase}
+            battlePhase={battlePhase}
             hand={deckState.hand}
             drawPileCount={deckInfo.draw}
             discardPileCount={deckInfo.discard}
@@ -685,7 +750,9 @@ export default function GamePage() {
       inGameMenu={
         activeTab === "combat" &&
         ((combatScreen === "map" && selectedTier !== null) ||
-          (isInCombat && phase === "playing")) ? (
+          (isInCombat &&
+            phase === "playing" &&
+            battlePhase === "IN_BATTLE")) ? (
           <InGameMenu onQuit={quitRun} />
         ) : null
       }
@@ -694,18 +761,25 @@ export default function GamePage() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           inCombat={
-            (isInCombat && phase === "playing") ||
+            (isInCombat &&
+              phase === "playing" &&
+              battlePhase === "IN_BATTLE") ||
             (selectedTier !== null && combatScreen === "map")
           }
           combatLocked={
-            isInCombat && (phase === "victory" || phase === "defeat")
+            isInCombat &&
+            (phase === "defeat" || battlePhase !== "IN_BATTLE")
           }
         />
       }
     >
       {renderContent()}
 
-      {isInCombat && phase === "victory" && (
+      {isInCombat && battlePhase === "VICTORY_ANIM" && (
+        <VictoryAnimOverlay enemyName={defeatedEnemyName} />
+      )}
+
+      {isInCombat && battlePhase === "REWARD" && (
         <CardRewardModal
           rewardTemplateIds={rewardTemplateIds}
           onSelect={handleRewardSelect}
@@ -715,6 +789,13 @@ export default function GamePage() {
           tierName={selectedTier?.name}
           tierFloor={tierFloor}
           totalFloors={10}
+        />
+      )}
+
+      {isInCombat && battlePhase === "STAGE_CLEAR" && (
+        <StageClearOverlay
+          tierName={selectedTier?.name}
+          onContinue={handleStageClearContinue}
         />
       )}
 

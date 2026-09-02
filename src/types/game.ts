@@ -74,7 +74,13 @@ export interface DungeonTier {
 
 export type CombatScreen = "tier-select" | "map" | "battle";
 
-export type CombatPhase = "playing" | "victory" | "defeat";
+export type CombatPhase = "playing" | "defeat";
+
+export type BattlePhase =
+  | "IN_BATTLE"
+  | "VICTORY_ANIM"
+  | "REWARD"
+  | "STAGE_CLEAR";
 
 export type AppTab = "lobby" | "combat" | "inventory";
 

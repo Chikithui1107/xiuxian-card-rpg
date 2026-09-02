@@ -7,6 +7,7 @@ import type { Card } from "@/types/battle";
 import type { Hero, HeroStats } from "@/lib/stats";
 import type { CombatBuffs } from "@/lib/battle-resolve";
 import type {
+  BattlePhase,
   CombatEnemy,
   CombatPhase,
   DamagePopup,
@@ -23,6 +24,7 @@ interface CombatViewProps {
   energy: number;
   combatBuffs: CombatBuffs;
   phase: CombatPhase;
+  battlePhase: BattlePhase;
   hand: Card[];
   drawPileCount: number;
   discardPileCount: number;
@@ -50,6 +52,7 @@ export function CombatView({
   energy,
   combatBuffs,
   phase,
+  battlePhase,
   hand,
   drawPileCount,
   discardPileCount,
@@ -65,7 +68,7 @@ export function CombatView({
   onPlayCard,
   onEndTurn,
 }: CombatViewProps) {
-  const isPlaying = phase === "playing";
+  const isPlaying = phase === "playing" && battlePhase === "IN_BATTLE";
   const floorLabel =
     tierName && tierFloor && totalFloors
       ? `${tierName} · 關卡 ${tierFloor}/${totalFloors}`
