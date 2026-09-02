@@ -39,6 +39,11 @@ export function EnemyPanel({
           {enemy.name}
         </h2>
         <p className="text-[10px] text-stone-500">{enemy.realm}</p>
+        {enemy.attackPatternLabel && (
+          <p className="mt-1 text-[10px] text-[#c48888]">
+            ⚔ {enemy.attackPatternLabel}
+          </p>
+        )}
         {enemy.passiveLabel && (
           <p className="mt-1 text-[10px] italic text-[#9a9ab8]">
             ◈ {enemy.passiveLabel}

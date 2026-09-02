@@ -1,5 +1,4 @@
 import heroData from "@/data/hero.json";
-import type { Card } from "@/types/game";
 import { getEquipmentList } from "@/lib/equipment";
 
 export interface Hero {
@@ -31,16 +30,6 @@ export interface HeroStats {
 export interface DamageResult {
   damage: number;
   isCrit: boolean;
-  breakdown: {
-    baseAttack: number;
-    equipmentBonus: number;
-    cardBaseValue: number;
-    cardMultiplier: number;
-    equipmentMultiplierBonus: number;
-    totalMultiplier: number;
-    rawTotal: number;
-    critMultiplier: number;
-  };
 }
 
 export function getHero(): Hero {
@@ -90,55 +79,6 @@ export function calculateHeroStats(
     equipmentDefenseBonus,
     equipmentDodgeRate,
     equipmentDamageReduction,
-  };
-}
-
-/** 敵人傷害經防禦與減傷後的實際值 */
-export function applyIncomingDamage(
-  rawDamage: number,
-  defense: number,
-  damageReduction: number
-): number {
-  const afterDefense = Math.max(1, rawDamage - defense);
-  return Math.max(1, Math.floor(afterDefense * (1 - damageReduction)));
-}
-
-/**
- * 傷害公式：
- * (基礎攻擊 + 裝備攻擊 + 卡牌基礎值) × (卡牌倍率 + 裝備倍率加成) × 暴擊倍率
- */
-export function calculateCardDamage(
-  heroStats: HeroStats,
-  card: Card,
-  forceCrit = false
-): DamageResult {
-  const baseAttack = heroStats.attack - heroStats.equipmentAttackBonus;
-  const equipmentBonus = heroStats.equipmentAttackBonus;
-  const cardBaseValue = card.baseValue;
-  const cardMultiplier = card.multiplier;
-  const equipmentMultiplierBonus = heroStats.equipmentMultiplierBonus;
-  const totalMultiplier = cardMultiplier + equipmentMultiplierBonus;
-
-  const rawTotal =
-    (baseAttack + equipmentBonus + cardBaseValue) * totalMultiplier;
-
-  const isCrit = forceCrit || Math.random() < heroStats.critRate;
-  const critMultiplier = isCrit ? heroStats.critMultiplier : 1;
-  const damage = Math.floor(rawTotal * critMultiplier);
-
-  return {
-    damage,
-    isCrit,
-    breakdown: {
-      baseAttack,
-      equipmentBonus,
-      cardBaseValue,
-      cardMultiplier,
-      equipmentMultiplierBonus,
-      totalMultiplier,
-      rawTotal: Math.floor(rawTotal),
-      critMultiplier,
-    },
   };
 }
 

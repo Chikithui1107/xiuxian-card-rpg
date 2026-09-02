@@ -43,15 +43,7 @@ export const RARITY_COLORS: Record<string, string> = {
   傳說: "text-[#ffd700]",
 };
 
-export interface Card {
-  id: string;
-  name: string;
-  type: "招式" | "法寶" | "增益";
-  baseValue: number;
-  multiplier: number;
-  energyCost: number;
-  description: string;
-}
+export type { Card, CardCategory, CombatBuffs } from "@/types/card";
 
 export interface Enemy {
   id: string;
@@ -105,18 +97,26 @@ export interface CombatEnemy extends Enemy {
   totalFloors?: number;
   passive?: "regen" | "burn" | null;
   passiveLabel?: string | null;
+  attackPattern?: "triple_slash" | null;
+  attackPatternLabel?: string | null;
 }
 
 export const HIGH_DAMAGE_THRESHOLD = 500;
 
-export const CARD_TYPE_COLORS: Record<Card["type"], string> = {
-  招式: "border-[#8a7340] bg-[#1a1814]",
-  法寶: "border-[#3d6b5e] bg-[#141a18]",
-  增益: "border-[#8b2020] bg-[#1a1414]",
+export const CARD_TYPE_COLORS: Record<string, string> = {
+  基礎劍招: "border-[#8a7340] bg-[#1a1814]",
+  劍步身法: "border-[#4a7c9a] bg-[#141820]",
+  劍道悟性: "border-[#6a5a8a] bg-[#18141f]",
+  劍道蓄勢: "border-[#8a7340]/70 bg-[#1a1810]",
+  劍意增幅: "border-[#8b2020] bg-[#1a1414]",
+  絕技終結: "border-[#c9a84c]/60 bg-[#1a1810]",
 };
 
-export const CARD_TYPE_ACCENT: Record<Card["type"], string> = {
-  招式: "text-[#c9a84c]",
-  法寶: "text-[#5a9a88]",
-  增益: "text-[#c45c5c]",
+export const CARD_TYPE_ACCENT: Record<string, string> = {
+  基礎劍招: "text-[#c9a84c]",
+  劍步身法: "text-[#7aabce]",
+  劍道悟性: "text-[#b8a8d8]",
+  劍道蓄勢: "text-[#c9a84c]",
+  劍意增幅: "text-[#c45c5c]",
+  絕技終結: "text-[#ffd700]",
 };

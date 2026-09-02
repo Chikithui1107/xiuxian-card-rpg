@@ -14,17 +14,12 @@ import { MapView } from "@/components/MapView";
 import { InventoryView } from "@/components/InventoryView";
 import { CardRewardModal } from "@/components/CardRewardModal";
 import {
-  calculateCardDamage,
   calculateHeroStats,
-  applyIncomingDamage,
   getHero,
 } from "@/lib/stats";
 import {
   createInitialInventory,
   equipItem,
-  hasComboOnAttack,
-  hasCounterOnDodge,
-  hasReflectOnHit,
   unequipItem,
 } from "@/lib/equipment";
 import {
@@ -56,9 +51,13 @@ import {
   isBossCleared,
 } from "@/lib/map";
 import { generateMoonNightMap } from "@/utils/mapGenerator";
+import { INITIAL_COMBAT_BUFFS, type Card } from "@/types/card";
+import {
+  resolveCardPlay,
+  rollStackDodge,
+} from "@/lib/sword-combat";
 import type {
   AppTab,
-  Card,
   CombatEnemy,
   CombatPhase,
   CombatScreen,
@@ -67,6 +66,7 @@ import type {
   Enemy,
   InventoryState,
 } from "@/types/game";
+import type { CombatBuffs } from "@/types/card";
 import type { MapNode } from "@/types/map";
 import { HIGH_DAMAGE_THRESHOLD } from "@/types/game";
 
@@ -75,7 +75,12 @@ const ENEMY_LIST = enemiesData as Enemy[];
 const DUNGEON_TIERS = getAllDungeonTiers();
 const INITIAL_DECK_IDS = startingDeckIds as string[];
 const INITIAL_INVENTORY = createInitialInventory(startingInventoryData);
-const EMPTY_DECK: DeckState = { drawPile: [], hand: [], discardPile: [] };
+const EMPTY_DECK: DeckState = {
+  drawPile: [],
+  hand: [],
+  discardPile: [],
+  exhaustPile: [],
+};
 
 const TAB_LABELS: Record<AppTab, string> = {
   lobby: "青雲宗 · 山門",
@@ -125,9 +130,7 @@ export default function GamePage() {
   const [phase, setPhase] = useState<CombatPhase>("playing");
   const [damagePopups, setDamagePopups] = useState<DamagePopup[]>([]);
   const [isShaking, setIsShaking] = useState(false);
-  const [lastDamage, setLastDamage] = useState<ReturnType<
-    typeof calculateCardDamage
-  > | null>(null);
+  const [lastDamage, setLastDamage] = useState<number | null>(null);
   const [lastEnemyDamage, setLastEnemyDamage] = useState<number | null>(null);
   const [lastDodge, setLastDodge] = useState(false);
   const [lastCounterDamage, setLastCounterDamage] = useState<number | null>(
@@ -146,6 +149,9 @@ export default function GamePage() {
   const [dungeonMap, setDungeonMap] = useState<MapNode[][]>([]);
   const [currentMapNodeId, setCurrentMapNodeId] = useState<string | null>(null);
   const [mapMessage, setMapMessage] = useState<string | null>(null);
+  const [combatBuffs, setCombatBuffs] = useState<CombatBuffs>(
+    INITIAL_COMBAT_BUFFS
+  );
 
   const heroStats = useMemo(
     () => calculateHeroStats(hero, inventory.equippedIds),
@@ -180,6 +186,7 @@ export default function GamePage() {
     setPendingFloorReward(0);
     setPendingTierComplete(false);
     setDeckState(EMPTY_DECK);
+    setCombatBuffs(INITIAL_COMBAT_BUFFS);
   }, []);
 
   const returnToLobby = useCallback(
@@ -230,6 +237,7 @@ export default function GamePage() {
       setLastEnemyDamage(null);
       setLastPassiveHeal(null);
       setTotalDamage(0);
+      setCombatBuffs(INITIAL_COMBAT_BUFFS);
       setLastRunMessage(null);
       setMapMessage(null);
       setIsInCombat(true);
@@ -335,26 +343,23 @@ export default function GamePage() {
     setInventory((prev) => unequipItem(prev, equipmentId));
   }, []);
 
-  const addDamagePopup = useCallback(
-    (result: ReturnType<typeof calculateCardDamage>) => {
-      popupIdRef.current += 1;
-      const popup: DamagePopup = {
-        id: `popup_${popupIdRef.current}`,
-        value: result.damage,
-        isCrit: result.isCrit,
-        isHighDamage: result.damage >= HIGH_DAMAGE_THRESHOLD,
-        x: 30 + Math.random() * 40,
-        y: 20 + Math.random() * 20,
-      };
-      setDamagePopups((prev) => [...prev, popup]);
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 350);
-      setTimeout(() => {
-        setDamagePopups((prev) => prev.filter((p) => p.id !== popup.id));
-      }, 1100);
-    },
-    []
-  );
+  const addDamagePopup = useCallback((damage: number) => {
+    popupIdRef.current += 1;
+    const popup: DamagePopup = {
+      id: `popup_${popupIdRef.current}`,
+      value: damage,
+      isCrit: false,
+      isHighDamage: damage >= HIGH_DAMAGE_THRESHOLD,
+      x: 30 + Math.random() * 40,
+      y: 20 + Math.random() * 20,
+    };
+    setDamagePopups((prev) => [...prev, popup]);
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 350);
+    setTimeout(() => {
+      setDamagePopups((prev) => prev.filter((p) => p.id !== popup.id));
+    }, 1100);
+  }, []);
 
   const checkVictory = useCallback(
     (
@@ -386,52 +391,41 @@ export default function GamePage() {
 
       const { state: afterPlay, played } = playCardFromHand(
         deckState,
-        instance.instanceId
+        instance.instanceId,
+        { exhaust: instance.card.exhaust }
       );
       if (!played) return;
 
-      const result = calculateCardDamage(heroStats, played.card);
-      setLastDamage(result);
+      const result = resolveCardPlay(played.card, combatBuffs);
+      setCombatBuffs(result.buffs);
+      setLastDamage(result.totalDamage > 0 ? result.totalDamage : null);
       setLastComboDamage(null);
-      setEnergy((e) => e - played.card.energyCost);
+      setEnergy((e) => Math.min(MAX_ENERGY, e + result.energyDelta));
 
-      let totalHit = result.damage;
-      let comboDmg = 0;
-      if (hasComboOnAttack(inventory.equippedIds) && Math.random() < 0.35) {
-        comboDmg = Math.floor(result.damage * 0.5);
-        totalHit += comboDmg;
-        setLastComboDamage(comboDmg);
+      let newDeck = afterPlay;
+      if (result.drawCount > 0) {
+        newDeck = drawCards(newDeck, result.drawCount);
       }
 
-      const newHp = Math.max(0, enemy.currentHp - totalHit);
-      setEnemy((prev) => ({ ...prev, currentHp: newHp }));
-      setTotalDamage((prev) => prev + totalHit);
-      addDamagePopup(result);
-      if (comboDmg > 0) {
-        popupIdRef.current += 1;
-        setDamagePopups((prev) => [
-          ...prev,
-          {
-            id: `popup_${popupIdRef.current}`,
-            value: comboDmg,
-            isCrit: false,
-            isHighDamage: comboDmg >= HIGH_DAMAGE_THRESHOLD,
-            x: 45 + Math.random() * 20,
-            y: 30 + Math.random() * 15,
-          },
-        ]);
+      const totalHit = result.totalDamage;
+      if (totalHit > 0) {
+        const newHp = Math.max(0, enemy.currentHp - totalHit);
+        setEnemy((prev) => ({ ...prev, currentHp: newHp }));
+        setTotalDamage((prev) => prev + totalHit);
+        addDamagePopup(totalHit);
+        setDeckState(drawToHandSize(newDeck, HAND_SIZE));
+        checkVictory(newHp, enemy.name, selectedTier, currentMapNodeId, dungeonMap);
+        return;
       }
 
-      setDeckState(drawToHandSize(afterPlay, HAND_SIZE));
-      checkVictory(newHp, enemy.name, selectedTier, currentMapNodeId, dungeonMap);
+      setDeckState(drawToHandSize(newDeck, HAND_SIZE));
     },
     [
       phase,
       enemy,
       energy,
       deckState,
-      heroStats,
-      inventory.equippedIds,
+      combatBuffs,
       addDamagePopup,
       checkVictory,
       selectedTier,
@@ -449,75 +443,24 @@ export default function GamePage() {
     setLastDodge(false);
     setLastCounterDamage(null);
     setLastReflectDamage(null);
+    setLastComboDamage(null);
 
     let dmg = enemy.attackDamage;
     if (enemy.passive === "burn") {
       dmg = applyBurnPassive(dmg);
     }
-    dmg = applyIncomingDamage(
-      dmg,
-      heroStats.equipmentDefenseBonus,
-      heroStats.equipmentDamageReduction
-    );
 
-    const dodged = Math.random() < heroStats.equipmentDodgeRate;
-    let counterKilled = false;
-    let reflectKilled = false;
-    if (dodged) {
-      dmg = 0;
-      setLastDodge(true);
-
-      if (hasCounterOnDodge(inventory.equippedIds)) {
-        const counterDmg = Math.floor(heroStats.attack * 0.5);
-        setLastCounterDamage(counterDmg);
-        const newHp = Math.max(0, enemy.currentHp - counterDmg);
-        counterKilled = newHp <= 0;
-        setEnemy((prev) => ({ ...prev, currentHp: newHp }));
-        setTotalDamage((prev) => prev + counterDmg);
-        if (counterKilled && selectedTier && currentMapNodeId) {
-          setPhase("victory");
-          setDefeatedEnemyName(enemy.name);
-          setRewardCards(pickRandomCards(CARD_POOL, 3));
-          const node = getMapNode(dungeonMap, currentMapNodeId);
-          setPendingFloorReward(
-            node
-              ? getMapNodeSpiritReward(selectedTier, node)
-              : getFloorSpiritReward(selectedTier)
-          );
-          setPendingTierComplete(node?.type === "boss");
-        }
-      }
+    let dodged = false;
+    if (combatBuffs.dodgeStacks > 0) {
+      dodged = rollStackDodge(combatBuffs.dodgeStacks);
+      setCombatBuffs((prev) => ({ ...prev, dodgeStacks: 0 }));
+      if (dodged) dmg = 0;
+      setLastDodge(dodged);
     }
 
     setLastEnemyDamage(dmg);
     const newPlayerHp = Math.max(0, playerHp - dmg);
     setPlayerHp(newPlayerHp);
-
-    if (!dodged && dmg > 0 && hasReflectOnHit(inventory.equippedIds) && Math.random() < 0.45) {
-      const reflectDmg = Math.floor(dmg * 0.5);
-      setLastReflectDamage(reflectDmg);
-      const newHp = Math.max(0, enemy.currentHp - reflectDmg);
-      reflectKilled = newHp <= 0;
-      setEnemy((prev) => ({ ...prev, currentHp: newHp }));
-      setTotalDamage((prev) => prev + reflectDmg);
-      if (reflectKilled && selectedTier && currentMapNodeId) {
-        setPhase("victory");
-        setDefeatedEnemyName(enemy.name);
-        setRewardCards(pickRandomCards(CARD_POOL, 3));
-        const node = getMapNode(dungeonMap, currentMapNodeId);
-        setPendingFloorReward(
-          node
-            ? getMapNodeSpiritReward(selectedTier, node)
-            : getFloorSpiritReward(selectedTier)
-        );
-        setPendingTierComplete(node?.type === "boss");
-      }
-    }
-
-    if (counterKilled || reflectKilled) {
-      setDeckState(newDeck);
-      return;
-    }
 
     if (newPlayerHp <= 0) {
       setDeckState(newDeck);
@@ -537,17 +480,7 @@ export default function GamePage() {
     newDeck = drawCards(newDeck, HAND_SIZE);
     setDeckState(newDeck);
     setLastDamage(null);
-  }, [
-    phase,
-    enemy,
-    deckState,
-    playerHp,
-    heroStats,
-    inventory.equippedIds,
-    selectedTier,
-    currentMapNodeId,
-    dungeonMap,
-  ]);
+  }, [phase, enemy, deckState, playerHp, combatBuffs]);
 
   useEffect(() => {
     if (phase !== "defeat") return;
@@ -679,6 +612,7 @@ export default function GamePage() {
             totalFloors={10}
             playerHp={playerHp}
             energy={energy}
+            combatBuffs={combatBuffs}
             phase={phase}
             hand={deckState.hand}
             drawPileCount={deckInfo.draw}

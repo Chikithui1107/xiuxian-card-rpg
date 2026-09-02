@@ -4,7 +4,8 @@ import { EnemyPanel } from "@/components/EnemyPanel";
 import { CardHand } from "@/components/CardHand";
 import { CombatPlayerBar } from "@/components/CombatPlayerBar";
 import type { CardInstance } from "@/lib/deck";
-import type { Hero, HeroStats, DamageResult } from "@/lib/stats";
+import type { Hero, HeroStats } from "@/lib/stats";
+import type { CombatBuffs } from "@/types/card";
 import type {
   CombatEnemy,
   CombatPhase,
@@ -20,6 +21,7 @@ interface CombatViewProps {
   totalFloors?: number;
   playerHp: number;
   energy: number;
+  combatBuffs: CombatBuffs;
   phase: CombatPhase;
   hand: CardInstance[];
   drawPileCount: number;
@@ -27,7 +29,7 @@ interface CombatViewProps {
   deckCount: number;
   damagePopups: DamagePopup[];
   isShaking: boolean;
-  lastDamage: DamageResult | null;
+  lastDamage: number | null;
   lastEnemyDamage: number | null;
   lastDodge?: boolean;
   lastCounterDamage?: number | null;
@@ -48,6 +50,7 @@ export function CombatView({
   totalFloors,
   playerHp,
   energy,
+  combatBuffs,
   phase,
   hand,
   drawPileCount,
@@ -109,6 +112,7 @@ export function CombatView({
           stats={heroStats}
           currentHp={playerHp}
           energy={energy}
+          combatBuffs={combatBuffs}
         />
 
         <div className="px-3 pb-2">

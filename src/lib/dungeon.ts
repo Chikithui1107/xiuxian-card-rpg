@@ -1,8 +1,21 @@
 import dungeonsData from "@/data/dungeons.json";
 import type { CombatEnemy, DungeonTier, Enemy } from "@/types/game";
-import type { MapNode } from "@/types/map";
+import type { MapNode, NodeType } from "@/types/map";
 
 const tiers = dungeonsData as DungeonTier[];
+
+/** 煉氣期基準血量（× tier.hpMultiplier 縮放） */
+const NODE_BASE_HP: Record<"combat" | "elite" | "boss", number> = {
+  combat: 45,
+  elite: 80,
+  boss: 180,
+};
+
+const NODE_BASE_ATTACK: Record<"combat" | "elite" | "boss", number> = {
+  combat: 7,
+  elite: 11,
+  boss: 13,
+};
 
 export function getAllDungeonTiers(): DungeonTier[] {
   return tiers;
@@ -12,13 +25,35 @@ export function getDungeonTier(id: string): DungeonTier | undefined {
   return tiers.find((t) => t.id === id);
 }
 
-/** 依副本級別與層數生成縮放後的敵人 */
+function isCombatNodeType(
+  type: NodeType
+): type is keyof typeof NODE_BASE_HP {
+  return type === "combat" || type === "elite" || type === "boss";
+}
+
+function pickEnemyTemplate(
+  node: MapNode,
+  pool: Enemy[]
+): Enemy {
+  if (node.type === "boss") {
+    return pool.find((e) => e.id === "enemy_elder") ?? pool[pool.length - 1];
+  }
+  if (node.type === "elite") {
+    return pool.find((e) => e.id === "enemy_traitor") ?? pool[0];
+  }
+  const normals = pool.filter(
+    (e) => e.id !== "enemy_elder" && e.id !== "enemy_traitor"
+  );
+  return normals[node.tier % normals.length] ?? normals[0];
+}
+
+/** 依副本級別與層數生成縮放後的敵人（線性關卡用） */
 export function createScaledEnemy(
   base: Enemy,
   tier: DungeonTier,
   floorInTier: number
 ): CombatEnemy {
-  const floorScale = 1 + (floorInTier - 1) * 0.15;
+  const floorScale = 1 + (floorInTier - 1) * 0.08;
   const maxHp = Math.floor(base.maxHp * tier.hpMultiplier * floorScale);
   const attackDamage = Math.floor(
     base.attackDamage * tier.attackMultiplier * floorScale
@@ -46,39 +81,39 @@ export function getEnemyForTierFloor(
   return createScaledEnemy(pool[index], tier, floorInTier);
 }
 
-/** 依地圖節點生成敵人（含精英 / Boss 加成） */
+/** 依地圖節點生成敵人（血量：普通 45 / 精英 80 / Boss 180 @ 煉氣倍率） */
 export function getEnemyForMapNode(
   tier: DungeonTier,
   node: MapNode,
   pool: Enemy[]
 ): CombatEnemy {
-  const floorInTier = node.tier + 1;
-  const index = node.tier % pool.length;
-  const enemy = createScaledEnemy(pool[index], tier, floorInTier);
-
-  if (node.type === "elite") {
-    const maxHp = Math.floor(enemy.maxHp * 1.5);
-    return {
-      ...enemy,
-      maxHp,
-      attackDamage: Math.floor(enemy.attackDamage * 1.35),
-      currentHp: maxHp,
-    };
+  if (!isCombatNodeType(node.type)) {
+    return createScaledEnemy(pool[0], tier, node.tier + 1);
   }
 
-  if (node.type === "boss") {
-    const maxHp = Math.floor(enemy.maxHp * 2.5);
-    return {
-      ...enemy,
-      maxHp,
-      attackDamage: Math.floor(enemy.attackDamage * 1.8),
-      currentHp: maxHp,
-      passive: tier.enemyPassive,
-      passiveLabel: tier.passiveDescription,
-    };
-  }
+  const template = pickEnemyTemplate(node, pool);
+  const stepScale = 1 + node.tier * 0.04;
+  const maxHp = Math.floor(
+    NODE_BASE_HP[node.type] * tier.hpMultiplier * stepScale
+  );
+  const attackDamage = Math.floor(
+    NODE_BASE_ATTACK[node.type] * tier.attackMultiplier
+  );
 
-  return enemy;
+  return {
+    ...template,
+    maxHp,
+    attackDamage,
+    currentHp: maxHp,
+    tierName: tier.name,
+    floorInTier: node.tier + 1,
+    totalFloors: tier.floors,
+    passive: node.type === "boss" ? tier.enemyPassive : null,
+    passiveLabel: node.type === "boss" ? tier.passiveDescription : null,
+    attackPattern: node.type === "elite" ? "triple_slash" : null,
+    attackPatternLabel:
+      node.type === "elite" ? "三連斬（單次攻擊判定閃避）" : null,
+  };
 }
 
 /** 地圖節點靈石獎勵 */
@@ -122,7 +157,7 @@ export function applyRegenPassive(enemy: CombatEnemy): CombatEnemy {
 }
 
 export function getRecommendedPowerLabel(tier: DungeonTier): string {
-  const attackEstimate = Math.floor(280 * tier.attackMultiplier);
-  const hpEstimate = Math.floor(2500 * tier.hpMultiplier);
-  return `攻 ~${attackEstimate} · HP ~${hpEstimate.toLocaleString()}`;
+  const hpEstimate = Math.floor(45 * tier.hpMultiplier);
+  const bossEstimate = Math.floor(180 * tier.hpMultiplier);
+  return `小怪 ~${hpEstimate} HP · 魔首 ~${bossEstimate} HP`;
 }

@@ -1,74 +1,62 @@
 [
   {
-    "id": "card_slash",
-    "name": "裂空斩",
-    "type": "招式",
-    "baseValue": 50,
-    "multiplier": 1.2,
+    "id": "card_qingyuan",
+    "name": "青元劍招",
+    "type": "基礎劍招",
     "energyCost": 1,
-    "description": "以剑气撕裂虚空，造成基础伤害"
+    "description": "造成 6 點劍氣傷害。獲得 1 層【劍意】。",
+    "tags": ["劍法"],
+    "effects": [
+      { "kind": "damage", "amount": 6 },
+      { "kind": "gain_sword_intent", "amount": 1 }
+    ]
   },
   {
-    "id": "card_thunder",
-    "name": "雷劫术",
-    "type": "招式",
-    "baseValue": 80,
-    "multiplier": 1.5,
+    "id": "card_yujian",
+    "name": "幻影身法",
+    "type": "劍步身法",
     "energyCost": 1,
-    "description": "引天雷降世，威力惊人"
+    "description": "獲得 1 層【閃避】（1 層 50%、2 層 100% 免疫下次攻擊）。",
+    "effects": [{ "kind": "gain_dodge", "amount": 1 }]
   },
   {
-    "id": "card_talisman",
-    "name": "焚天符",
-    "type": "法寶",
-    "baseValue": 120,
-    "multiplier": 2.0,
-    "energyCost": 2,
-    "description": "上古符箓，焚尽万物"
+    "id": "card_jianxin",
+    "name": "神念推演",
+    "type": "劍道悟性",
+    "energyCost": 1,
+    "description": "抽 2 張牌。若目前【劍意】≥2 層，返還 1 點真元。",
+    "effects": [
+      { "kind": "draw", "amount": 2 },
+      { "kind": "refund_energy_if_sword_intent_gte", "threshold": 2, "amount": 1 }
+    ]
   },
   {
-    "id": "card_buff",
-    "name": "真元灌注",
-    "type": "增益",
-    "baseValue": 200,
-    "multiplier": 2.5,
-    "energyCost": 2,
-    "description": "灌注真元，下一击威力倍增"
+    "id": "card_cangjian",
+    "name": "藏劍勢",
+    "type": "劍道蓄勢",
+    "energyCost": 0,
+    "description": "立即獲得 1 點真元。打出後【消耗】（本場戰鬥除外）。",
+    "exhaust": true,
+    "effects": [{ "kind": "gain_energy", "amount": 1 }]
   },
   {
-    "id": "card_dragon",
-    "name": "龙吟诀",
-    "type": "招式",
-    "baseValue": 300,
-    "multiplier": 3.0,
-    "energyCost": 3,
-    "description": "龙吟震天，毁天灭地之一击"
+    "id": "card_yangjian",
+    "name": "養劍術",
+    "type": "劍意增幅",
+    "energyCost": 1,
+    "description": "獲得 2 層【劍意】，且下一張劍法傷害提升 50%。",
+    "effects": [
+      { "kind": "gain_sword_intent", "amount": 2 },
+      { "kind": "buff_next_sword", "percent": 0.5 }
+    ]
   },
   {
-    "id": "card_sword_rain",
+    "id": "card_wanjian",
     "name": "萬劍歸宗",
-    "type": "招式",
-    "baseValue": 150,
-    "multiplier": 2.2,
+    "type": "絕技終結",
     "energyCost": 2,
-    "description": "萬劍齊發，劍意縱橫"
-  },
-  {
-    "id": "card_blood_magic",
-    "name": "血魔大法",
-    "type": "法寶",
-    "baseValue": 250,
-    "multiplier": 2.8,
-    "energyCost": 2,
-    "description": "以血為媒，換取毀滅之力"
-  },
-  {
-    "id": "card_shield",
-    "name": "護體真氣",
-    "type": "增益",
-    "baseValue": 100,
-    "multiplier": 1.8,
-    "energyCost": 1,
-    "description": "真氣護體，攻守兼備"
+    "description": "造成 15 點傷害。清空所有【劍意】，每層額外追加 6 點傷害。",
+    "tags": ["劍法"],
+    "effects": [{ "kind": "damage_consume_sword_intent", "base": 15, "perStack": 6 }]
   }
 ]

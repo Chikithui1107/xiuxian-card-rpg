@@ -1,6 +1,6 @@
 "use client";
 
-import type { Card } from "@/types/game";
+import type { Card } from "@/types/card";
 import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
 
 interface CardRewardModalProps {
@@ -49,7 +49,7 @@ export function CardRewardModal({
             </p>
           )}
           <p className="mt-1 text-[10px] text-stone-500">
-            擇一法訣，永久納入牌庫
+            擇一劍訣，永久納入牌庫
             {!isTierComplete && tierFloor && totalFloors && tierFloor < totalFloors
               ? "，續闖下一重"
               : ""}
@@ -57,34 +57,35 @@ export function CardRewardModal({
         </div>
 
         <div className="space-y-3">
-          {rewardCards.map((card) => (
-            <button
-              key={card.id}
-              onClick={() => onSelect(card)}
-              className={`card-hover flex w-full items-center gap-3 rounded border-2 p-3 text-left hover:border-[#7aab9a]/45 active:scale-[0.98] ${CARD_TYPE_COLORS[card.type]}`}
-            >
-              <div className="flex-1">
-                <div className="mb-0.5 flex items-center gap-2">
-                  <span
-                    className={`text-[10px] font-semibold ${CARD_TYPE_ACCENT[card.type]}`}
-                  >
-                    {card.type}
-                  </span>
-                  <span className="text-[10px] text-[#7aab9a]">
-                    真元{card.energyCost}
-                  </span>
+          {rewardCards.map((card) => {
+            const typeStyle =
+              CARD_TYPE_COLORS[card.type] ?? "border-[#8a7340] bg-[#1a1814]";
+            const typeAccent =
+              CARD_TYPE_ACCENT[card.type] ?? "text-[#c9a84c]";
+
+            return (
+              <button
+                key={card.id}
+                onClick={() => onSelect(card)}
+                className={`card-hover flex w-full items-center gap-3 rounded border-2 p-3 text-left hover:border-[#7aab9a]/45 active:scale-[0.98] ${typeStyle}`}
+              >
+                <div className="flex-1">
+                  <div className="mb-0.5 flex items-center gap-2">
+                    <span className={`text-[10px] font-semibold ${typeAccent}`}>
+                      {card.type}
+                    </span>
+                    <span className="text-[10px] text-[#7aab9a]">
+                      真元{card.energyCost}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-stone-200">
+                    {card.name}
+                  </h3>
+                  <p className="text-[10px] text-stone-500">{card.description}</p>
                 </div>
-                <h3 className="text-sm font-bold text-stone-200">{card.name}</h3>
-                <p className="text-[10px] text-stone-500">{card.description}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-[#8a7340]/80">×{card.multiplier}</p>
-                <p className="stat-value text-sm font-bold text-[#c9a84c]">
-                  +{card.baseValue}
-                </p>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

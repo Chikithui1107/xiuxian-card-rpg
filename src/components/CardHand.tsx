@@ -2,7 +2,6 @@
 
 import type { CardInstance } from "@/lib/deck";
 import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
-import type { DamageResult } from "@/lib/stats";
 
 interface CardHandProps {
   hand: CardInstance[];
@@ -12,7 +11,7 @@ interface CardHandProps {
   deckCount: number;
   onPlayCard: (instance: CardInstance) => void;
   onEndTurn: () => void;
-  lastDamage: DamageResult | null;
+  lastDamage: number | null;
   disabled: boolean;
 }
 
@@ -30,15 +29,15 @@ export function CardHand({
   return (
     <div className="space-y-3">
       <div className="glass-panel p-3">
-        <p className="zone-label mb-2">法訣牌庫</p>
+        <p className="zone-label mb-2">劍訣牌庫</p>
         <div className="flex justify-between text-center">
           <MiniStat label="牌庫" value={String(drawPileCount)} color="jade" />
           <MiniStat label="棄牌" value={String(discardPileCount)} color="stone" />
           <MiniStat label="牌組" value={`${deckCount}`} color="gold" />
-          {lastDamage && (
+          {lastDamage !== null && (
             <MiniStat
               label="上式"
-              value={lastDamage.damage.toLocaleString()}
+              value={lastDamage.toLocaleString()}
               color="gold"
             />
           )}
@@ -57,17 +56,22 @@ export function CardHand({
               const card = instance.card;
               const canAfford = energy >= card.energyCost;
               const cardDisabled = disabled || !canAfford;
+              const typeStyle =
+                CARD_TYPE_COLORS[card.type] ??
+                "border-[#8a7340] bg-[#1a1814]";
+              const typeAccent =
+                CARD_TYPE_ACCENT[card.type] ?? "text-[#c9a84c]";
 
               return (
                 <button
                   key={instance.instanceId}
                   onClick={() => onPlayCard(instance)}
                   disabled={cardDisabled}
-                  className={`card-hover w-[7.2rem] rounded border-2 p-2.5 text-left disabled:cursor-not-allowed disabled:opacity-40 ${CARD_TYPE_COLORS[card.type]} hover:border-[#7aab9a]/45 active:scale-95`}
+                  className={`card-hover w-[7.8rem] rounded border-2 p-2.5 text-left disabled:cursor-not-allowed disabled:opacity-40 ${typeStyle} hover:border-[#7aab9a]/45 active:scale-95`}
                 >
                   <div className="mb-0.5 flex items-center justify-between">
                     <span
-                      className={`text-[9px] font-semibold ${CARD_TYPE_ACCENT[card.type]}`}
+                      className={`text-[9px] font-semibold ${typeAccent}`}
                     >
                       {card.type}
                     </span>
@@ -80,14 +84,12 @@ export function CardHand({
                   <h3 className="mb-1 text-xs font-bold text-stone-200">
                     {card.name}
                   </h3>
-                  <div className="flex items-center justify-between border-t border-stone-700/50 pt-1.5">
-                    <span className="text-[9px] text-[#8a7340]/80">
-                      ×{card.multiplier}
-                    </span>
-                    <span className="stat-value text-xs font-bold text-[#c9a84c]">
-                      +{card.baseValue}
-                    </span>
-                  </div>
+                  <p className="line-clamp-3 text-[9px] leading-snug text-stone-500">
+                    {card.description}
+                  </p>
+                  {card.exhaust && (
+                    <p className="mt-1 text-[8px] text-amber-500/80">消耗</p>
+                  )}
                 </button>
               );
             })
@@ -103,14 +105,6 @@ export function CardHand({
         >
           收功結束
         </button>
-        {lastDamage && (
-          <p className="mt-2 text-center text-[9px] leading-relaxed text-stone-500">
-            ({lastDamage.breakdown.baseAttack}+{lastDamage.breakdown.equipmentBonus}+{lastDamage.breakdown.cardBaseValue})×
-            {lastDamage.breakdown.totalMultiplier.toFixed(1)}
-            {lastDamage.isCrit ? " 暴擊" : ""} ={" "}
-            <span className="text-[#c9a84c]">{lastDamage.damage.toLocaleString()}</span>
-          </p>
-        )}
       </div>
     </div>
   );

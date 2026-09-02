@@ -1,4 +1,4 @@
-import type { Card } from "@/types/game";
+import type { Card } from "@/types/card";
 
 export interface CardInstance {
   instanceId: string;
@@ -9,6 +9,7 @@ export interface DeckState {
   drawPile: CardInstance[];
   hand: CardInstance[];
   discardPile: CardInstance[];
+  exhaustPile: CardInstance[];
 }
 
 export const HAND_SIZE = 4;
@@ -46,6 +47,7 @@ export function createDeckState(templates: Card[]): DeckState {
     drawPile: shuffle(createInstancesFromTemplates(templates)),
     hand: [],
     discardPile: [],
+    exhaustPile: [],
   };
 }
 
@@ -79,19 +81,33 @@ export function drawCards(state: DeckState, count: number): DeckState {
   };
 }
 
-/** 打出卡牌：從手牌移除並放入棄牌堆 */
+/** 打出卡牌：從手牌移除，放入棄牌堆或消耗堆 */
 export function playCardFromHand(
   state: DeckState,
-  instanceId: string
+  instanceId: string,
+  options?: { exhaust?: boolean }
 ): { state: DeckState; played: CardInstance | null } {
   const index = state.hand.findIndex((c) => c.instanceId === instanceId);
   if (index === -1) return { state, played: null };
 
   const played = state.hand[index];
+  const nextHand = state.hand.filter((_, i) => i !== index);
+
+  if (options?.exhaust) {
+    return {
+      state: {
+        ...state,
+        hand: nextHand,
+        exhaustPile: [...state.exhaustPile, played],
+      },
+      played,
+    };
+  }
+
   return {
     state: {
       ...state,
-      hand: state.hand.filter((_, i) => i !== index),
+      hand: nextHand,
       discardPile: [...state.discardPile, played],
     },
     played,

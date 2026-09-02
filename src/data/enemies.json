@@ -2,25 +2,33 @@
   {
     "id": "enemy_wolf",
     "name": "妖狼",
-    "realm": "练气圆满",
-    "maxHp": 2500,
-    "attackDamage": 40,
-    "description": "盘踞灵山的妖兽，皮糙肉厚"
+    "realm": "練氣圓滿",
+    "maxHp": 45,
+    "attackDamage": 7,
+    "description": "盤踞山道的低階妖獸，適合熱身"
   },
   {
-    "id": "enemy_spider",
-    "name": "毒蛛精",
-    "realm": "筑基初期",
-    "maxHp": 8000,
-    "attackDamage": 80,
-    "description": "吐丝结网，剧毒无比"
+    "id": "enemy_bandit",
+    "name": "劫修",
+    "realm": "練氣後期",
+    "maxHp": 45,
+    "attackDamage": 8,
+    "description": "散修惡徒，劍招粗淺但兇狠"
+  },
+  {
+    "id": "enemy_traitor",
+    "name": "叛劍客",
+    "realm": "築基初期",
+    "maxHp": 80,
+    "attackDamage": 11,
+    "description": "精英敵手，善使三連斬壓制對手"
   },
   {
     "id": "enemy_elder",
-    "name": "血魔长老",
-    "realm": "筑基后期",
-    "maxHp": 25000,
-    "attackDamage": 150,
-    "description": "血魔宗长老，手段阴毒"
+    "name": "血魔長老",
+    "realm": "築基圓滿",
+    "maxHp": 180,
+    "attackDamage": 13,
+    "description": "章節魔首，需在殘血拉扯中尋找核爆時機"
   }
 ]
