@@ -42,6 +42,7 @@ export function EnemyPanel({
   }, [enemy.currentHp]);
 
   const shaking = isShaking || hitShake;
+  const spriteAnimClass = getSpriteAnimClass(intent.id, isDefeated);
 
   return (
     <div className="relative bg-transparent">
@@ -54,8 +55,10 @@ export function EnemyPanel({
           <img
             src={monster.image}
             alt={monster.name}
-            className={`enemy-sprite max-h-full w-auto object-contain transition-all duration-500 ${
-              isDefeated ? "scale-90 opacity-40 grayscale" : ""
+            className={`enemy-sprite max-h-full w-auto object-contain ${
+              isDefeated
+                ? "scale-90 opacity-40 grayscale transition-all duration-500"
+                : spriteAnimClass
             }`}
             draggable={false}
           />
@@ -158,6 +161,23 @@ export function EnemyPanel({
       </div>
     </div>
   );
+}
+
+function getSpriteAnimClass(
+  intentId: (typeof ENEMY_INTENT_CYCLE)[number]["id"],
+  isDefeated: boolean
+): string {
+  if (isDefeated) return "";
+  switch (intentId) {
+    case "charge":
+      return "enemy-sprite-charge";
+    case "attack":
+      return "enemy-sprite-threat";
+    case "heavy":
+      return "enemy-sprite-heavy";
+    default:
+      return "enemy-sprite-idle";
+  }
 }
 
 function DamageNumber({ popup }: { popup: DamagePopup }) {
