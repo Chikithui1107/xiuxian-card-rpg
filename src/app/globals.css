@@ -58,18 +58,17 @@
 .animate-seal-pulse { animation: seal-pulse 4s ease-in-out infinite; }
 
 .enemy-sprite-stage {
-  background: transparent !important;
+  background: transparent;
   border: none;
   box-shadow: none;
   overflow: visible;
 }
 
 .enemy-sprite {
-  background: transparent !important;
+  display: block;
+  background: transparent;
   border: none;
   box-shadow: none;
-  mix-blend-mode: screen;
-  filter: drop-shadow(0 0 20px rgba(6, 182, 212, 0.45));
 }
 
 @keyframes fade-in {
