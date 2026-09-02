@@ -55,16 +55,16 @@ export function HandUI({
               type="button"
               disabled={cardDisabled}
               onClick={() => onPlayCard(card)}
-              className={`ink-card relative origin-bottom transform transition-all duration-200 hover:z-30 hover:-translate-y-6 hover:scale-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:scale-100 ${typeStyle}`}
+              className={`ink-card group relative origin-bottom transform transition-all duration-200 hover:z-30 hover:-translate-y-8 hover:scale-110 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 disabled:hover:scale-100 ${typeStyle}`}
               style={{ zIndex: index }}
             >
-              <div className="flex h-32 w-20 flex-col justify-between rounded-lg border-2 p-2 shadow-lg shadow-black/40 sm:h-36 sm:w-24">
-                <div className="flex items-start justify-between gap-1">
-                  <span className="line-clamp-2 text-left text-[10px] font-bold leading-tight text-[#f0e6d3]">
+              <div className="group/card flex h-[8.75rem] w-[5.25rem] flex-col rounded-lg border-2 p-1.5 shadow-lg shadow-black/40 sm:h-[9.5rem] sm:w-24 sm:p-2">
+                <div className="flex items-start justify-between gap-0.5">
+                  <span className="line-clamp-2 text-left text-[9px] font-bold leading-tight text-[#f0e6d3] sm:text-[10px]">
                     {card.name}
                   </span>
                   <span
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
+                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-extrabold sm:h-5 sm:w-5 sm:text-[10px] ${
                       canAfford
                         ? "bg-[#7aab9a] text-stone-950"
                         : "bg-[#a85555] text-stone-100"
@@ -73,12 +73,15 @@ export function HandUI({
                     {card.cost}
                   </span>
                 </div>
-                <div>
-                  <p className={`text-[8px] font-semibold ${typeAccent}`}>
+                <p className="mt-1 line-clamp-4 flex-1 overflow-hidden text-left text-[7px] leading-snug text-stone-400 group-hover/card:line-clamp-none sm:text-[8px]">
+                  {template?.description}
+                </p>
+                <div className="mt-1 shrink-0">
+                  <p className={`text-[7px] font-semibold sm:text-[8px] ${typeAccent}`}>
                     {template?.type}
                   </p>
                   {card.isExhaust && (
-                    <p className="text-[8px] text-amber-500/80">消耗</p>
+                    <p className="text-[7px] text-amber-500/80 sm:text-[8px]">消耗</p>
                   )}
                 </div>
               </div>
