@@ -16,10 +16,11 @@ export const DEMON_WOLF: MonsterConfig = {
 
 const MONSTER_BY_ID: Record<string, MonsterConfig> = {
   demon_wolf: DEMON_WOLF,
-  enemy_wolf: DEMON_WOLF,
 };
 
-export function getMonsterConfig(enemy: { id: string; monsterId?: string }): MonsterConfig | undefined {
-  if (enemy.monsterId) return MONSTER_BY_ID[enemy.monsterId];
-  return MONSTER_BY_ID[enemy.id];
+export function getMonsterConfig(enemy: {
+  monsterSprite?: string;
+}): MonsterConfig | undefined {
+  if (!enemy.monsterSprite) return undefined;
+  return MONSTER_BY_ID[enemy.monsterSprite];
 }

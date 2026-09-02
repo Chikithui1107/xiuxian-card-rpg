@@ -49,6 +49,12 @@ function isCombatNodeType(
   return type === "combat" || type === "elite" || type === "boss";
 }
 
+const WOLF_ENCOUNTER_SNIPPET = "遭遇野狼";
+
+function isWolfEncounter(node: MapNode): boolean {
+  return node.title.includes(WOLF_ENCOUNTER_SNIPPET);
+}
+
 function pickEnemyTemplate(
   node: MapNode,
   pool: Enemy[]
@@ -109,7 +115,9 @@ export function getEnemyForMapNode(
     return createScaledEnemy(pool[0], tier, node.tier + 1);
   }
 
-  const template = pickEnemyTemplate(node, pool);
+  const template = isWolfEncounter(node)
+    ? pool.find((e) => e.id === "enemy_wolf") ?? pickEnemyTemplate(node, pool)
+    : pickEnemyTemplate(node, pool);
   const stepScale = 1 + node.tier * 0.04;
   const maxHp = Math.floor(
     NODE_BASE_HP[node.type] * tier.hpMultiplier * stepScale
@@ -132,6 +140,7 @@ export function getEnemyForMapNode(
     attackPatternLabel:
       node.type === "elite" ? "三連斬（單次攻擊判定閃避）" : null,
     intentIndex: 0,
+    monsterSprite: isWolfEncounter(node) ? "demon_wolf" : undefined,
   };
 }
 

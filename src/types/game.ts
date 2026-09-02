@@ -107,6 +107,8 @@ export interface CombatEnemy extends Enemy {
   attackPattern?: "triple_slash" | null;
   attackPatternLabel?: string | null;
   intentIndex?: number;
+  /** 僅特定遭遇（如「遭遇野狼」）顯示立繪 */
+  monsterSprite?: string;
 }
 
 export const HIGH_DAMAGE_THRESHOLD = 20;

@@ -57,6 +57,16 @@
 .animate-qi-breathe { animation: qi-breathe 3s ease-in-out infinite; }
 .animate-seal-pulse { animation: seal-pulse 4s ease-in-out infinite; }
 
+.enemy-sprite-stage {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.enemy-sprite {
+  background: transparent;
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
