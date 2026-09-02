@@ -48,6 +48,7 @@ export type { Card, CardCategory, CombatBuffs } from "@/types/card";
 export interface Enemy {
   id: string;
   name: string;
+  monsterId?: string;
   realm: string;
   maxHp: number;
   attackDamage: number;

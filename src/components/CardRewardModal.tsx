@@ -6,6 +6,7 @@ import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
 interface CardRewardModalProps {
   rewardTemplateIds: CardTemplateId[];
   onSelect: (templateId: CardTemplateId) => void;
+  onSkip: () => void;
   enemyName: string;
   floorReward?: number;
   isTierComplete?: boolean;
@@ -18,6 +19,7 @@ interface CardRewardModalProps {
 export function CardRewardModal({
   rewardTemplateIds,
   onSelect,
+  onSkip,
   enemyName,
   floorReward = 0,
   isTierComplete = false,
@@ -33,7 +35,7 @@ export function CardRewardModal({
 
   const rewardSummary = [
     floorReward > 0 ? `獲得靈石 +${floorReward}` : null,
-    "獲得隨機劍法殘頁",
+    "可擇一劍訣納入牌庫",
   ]
     .filter(Boolean)
     .join(" | ");
@@ -87,11 +89,22 @@ export function CardRewardModal({
       </div>
 
       <p className="mb-4 text-center text-[10px] text-stone-500">
-        擇一劍訣永久納入牌庫
+        擇一劍訣永久納入牌庫，或放棄以免污染牌組
         {!isTierComplete && tierFloor && totalFloors && tierFloor < totalFloors
           ? "，續闖下一關"
           : ""}
       </p>
+
+      <div className="flex flex-col items-center gap-2.5">
+        <button
+          type="button"
+          onClick={onSkip}
+          className="btn-abandon !px-6 !py-2.5 text-xs"
+        >
+          棄劍不入庫
+        </button>
+        <p className="text-[9px] text-stone-600">僅保留靈石，不增加牌組張數</p>
+      </div>
 
       {onContinue && (
         <button

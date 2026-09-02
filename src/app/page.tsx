@@ -93,12 +93,16 @@ const TAB_LABELS: Record<AppTab, string> = {
   inventory: "修士行囊",
 };
 
+function getInitialPermanentDeck(): CardTemplateId[] {
+  return [...INITIAL_DECK_IDS];
+}
+
 function initBattleDeck(templateIds: CardTemplateId[]): BattleDeckState {
   return createBattleDeck(templateIds, COMBAT_HAND_SIZE);
 }
 
 function createInitialMetaState() {
-  const permanentDeck = [...INITIAL_DECK_IDS];
+  const permanentDeck = getInitialPermanentDeck();
   const inventory = createInitialInventory(startingInventoryData);
   const hero = getHero();
   const stats = calculateHeroStats(hero, inventory.equippedIds);
@@ -202,6 +206,10 @@ export default function GamePage() {
     setPendingTierComplete(false);
     setDeckState(EMPTY_DECK);
     setCombatBuffs(INITIAL_COMBAT_BUFFS);
+  }, []);
+
+  const resetPermanentDeck = useCallback(() => {
+    setPermanentDeck(getInitialPermanentDeck());
   }, []);
 
   const returnToLobby = useCallback(
@@ -331,8 +339,9 @@ export default function GamePage() {
   }, []);
 
   const quitRun = useCallback(() => {
+    resetPermanentDeck();
     returnToLobby("已放棄本次修行。", true);
-  }, [returnToLobby]);
+  }, [returnToLobby, resetPermanentDeck]);
 
   const abandonGame = useCallback(() => {
     if (
@@ -365,9 +374,10 @@ export default function GamePage() {
       setIsInCombat(false);
       setCombatScreen("map");
       setActiveTab("combat");
+      resetPermanentDeck();
       resetCombatState();
     },
-    [resetCombatState]
+    [resetCombatState, resetPermanentDeck]
   );
 
   const handleEquip = useCallback(
@@ -569,21 +579,19 @@ export default function GamePage() {
     if (phase !== "defeat") return;
     const tierLabel = selectedTier?.name ?? "祕境";
     const timer = setTimeout(() => {
+      resetPermanentDeck();
       returnToTierSelect(
         `${tierLabel} 第 ${tierFloor} 重失敗，已返回試煉選擇。`,
         true
       );
     }, 1500);
     return () => clearTimeout(timer);
-  }, [phase, tierFloor, selectedTier, returnToTierSelect]);
+  }, [phase, tierFloor, selectedTier, returnToTierSelect, resetPermanentDeck]);
 
-  const handleRewardSelect = useCallback(
-    (templateId: CardTemplateId) => {
+  const completeRewardNode = useCallback(
+    (cardName: string | null) => {
       if (!selectedTier || !currentMapNodeId) return;
 
-      const cardName = CARD_TEMPLATES[templateId].name;
-
-      setPermanentDeck((prev) => [...prev, templateId]);
       setSpiritStones((s) => s + pendingFloorReward);
 
       const updatedMap = completeMapNode(dungeonMap, currentMapNodeId);
@@ -594,14 +602,19 @@ export default function GamePage() {
 
       if (tierComplete) {
         const completionBonus = getCompletionSpiritReward(selectedTier);
+        const cardPart = cardName ? `獲得「${cardName}」、` : "已放棄劍訣獎勵，";
         setStageClearMessage(
-          `通關【${selectedTier.name}】！斬殺魔首，獲得「${cardName}」、${pendingFloorReward + completionBonus} 靈石，解鎖成就「${selectedTier.achievementName}」。`
+          `通關【${selectedTier.name}】！斬殺魔首，${cardPart}${pendingFloorReward + completionBonus} 靈石，解鎖成就「${selectedTier.achievementName}」。`
         );
         setBattlePhase("STAGE_CLEAR");
         return;
       }
 
-      returnToMap(`擊敗敵人，獲得「${cardName}」。選擇下一節點繼續。`);
+      returnToMap(
+        cardName
+          ? `擊敗敵人，獲得「${cardName}」。選擇下一節點繼續。`
+          : "擊敗敵人，已放棄劍訣獎勵。選擇下一節點繼續。"
+      );
     },
     [
       selectedTier,
@@ -612,6 +625,18 @@ export default function GamePage() {
       returnToMap,
     ]
   );
+
+  const handleRewardSelect = useCallback(
+    (templateId: CardTemplateId) => {
+      setPermanentDeck((prev) => [...prev, templateId]);
+      completeRewardNode(CARD_TEMPLATES[templateId].name);
+    },
+    [completeRewardNode]
+  );
+
+  const handleRewardSkip = useCallback(() => {
+    completeRewardNode(null);
+  }, [completeRewardNode]);
 
   const handleStageClearContinue = useCallback(() => {
     if (!selectedTier || !stageClearMessage) return;
@@ -783,6 +808,7 @@ export default function GamePage() {
         <CardRewardModal
           rewardTemplateIds={rewardTemplateIds}
           onSelect={handleRewardSelect}
+          onSkip={handleRewardSkip}
           enemyName={defeatedEnemyName}
           floorReward={pendingFloorReward}
           isTierComplete={pendingTierComplete}

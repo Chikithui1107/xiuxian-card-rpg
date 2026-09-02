@@ -2,6 +2,7 @@
   {
     "id": "enemy_wolf",
     "name": "妖狼",
+    "monsterId": "demon_wolf",
     "realm": "練氣圓滿",
     "maxHp": 45,
     "attackDamage": 7,
