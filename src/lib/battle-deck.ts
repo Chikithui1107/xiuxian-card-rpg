@@ -149,24 +149,21 @@ export const drawCards = (
   let newDiscard = [...discardPile];
 
   for (let i = 0; i < count; i++) {
+    // 抽牌堆空了，把棄牌堆洗回抽牌堆
     if (newDraw.length === 0) {
-      if (newDiscard.length === 0) break;
+      if (newDiscard.length === 0) break; // 無牌可抽
       newDraw = shuffle(newDiscard);
       newDiscard = [];
     }
 
+    // 抽出一張卡放入手牌（手牌上限 MAX_HAND_SIZE 張）
     if (newHand.length < MAX_HAND_SIZE) {
       const drawnCard = newDraw.pop()!;
       newHand.push(drawnCard);
     }
   }
 
-  return {
-    ...state,
-    drawPile: newDraw,
-    hand: newHand,
-    discardPile: newDiscard,
-  };
+  return { ...state, drawPile: newDraw, hand: newHand, discardPile: newDiscard };
 };
 
 export function playCardFromHand(
@@ -199,4 +196,24 @@ export function discardHand(deck: BattleDeckState): BattleDeckState {
     hand: [],
     discardPile: [...deck.discardPile, ...deck.hand],
   };
+}
+
+export const ALL_TEMPLATE_IDS = Object.keys(
+  CARD_TEMPLATES
+) as CardTemplateId[];
+
+export const COMBAT_HAND_SIZE = 4;
+export const MAX_ENERGY = 3;
+
+export function pickRandomTemplateIds(count: number): CardTemplateId[] {
+  const pool = [...ALL_TEMPLATE_IDS];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const picked: CardTemplateId[] = [];
+  for (let i = 0; i < count; i++) {
+    picked.push(pool[i % pool.length]);
+  }
+  return picked;
 }

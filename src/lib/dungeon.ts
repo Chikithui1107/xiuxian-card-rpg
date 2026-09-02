@@ -17,6 +17,24 @@ const NODE_BASE_ATTACK: Record<"combat" | "elite" | "boss", number> = {
   boss: 13,
 };
 
+export const ENEMY_INTENT_CYCLE = [
+  { id: "attack", label: "斬擊", damage: 7, description: "造成 7 點傷害" },
+  { id: "charge", label: "蓄勢", damage: 0, description: "積蓄劍勢，下回合重擊" },
+  { id: "heavy", label: "重擊", damage: 12, description: "造成 12 點重擊傷害" },
+] as const;
+
+export function getEnemyIntent(enemy: CombatEnemy) {
+  const index = enemy.intentIndex ?? 0;
+  return ENEMY_INTENT_CYCLE[index % ENEMY_INTENT_CYCLE.length];
+}
+
+export function advanceEnemyIntent(enemy: CombatEnemy): CombatEnemy {
+  return {
+    ...enemy,
+    intentIndex: ((enemy.intentIndex ?? 0) + 1) % ENEMY_INTENT_CYCLE.length,
+  };
+}
+
 export function getAllDungeonTiers(): DungeonTier[] {
   return tiers;
 }
@@ -113,6 +131,7 @@ export function getEnemyForMapNode(
     attackPattern: node.type === "elite" ? "triple_slash" : null,
     attackPatternLabel:
       node.type === "elite" ? "三連斬（單次攻擊判定閃避）" : null,
+    intentIndex: 0,
   };
 }
 

@@ -13,6 +13,19 @@ export function rollStackDodge(stacks: number): boolean {
   return Math.random() < Math.min(1, stacks * 0.5);
 }
 
+export function getStackDodgeChance(stacks: number): number {
+  if (stacks <= 0) return 0;
+  return Math.min(1, stacks * 0.5);
+}
+
+export const INITIAL_COMBAT_BUFFS = {
+  swordIntent: 0,
+  dodge: 0,
+  nextSwordBonus: 0,
+};
+
+export type CombatBuffs = typeof INITIAL_COMBAT_BUFFS;
+
 export function resolveCardEffects(
   template: CardTemplate,
   player: PlayerBattleState

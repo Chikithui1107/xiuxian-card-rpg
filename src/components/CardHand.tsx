@@ -1,15 +1,21 @@
 "use client";
 
-import type { CardInstance } from "@/lib/deck";
+import {
+  CARD_TEMPLATES,
+  getCardTemplate,
+  type CardTemplateId,
+} from "@/lib/battle-deck";
+import type { Card } from "@/types/battle";
 import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
 
 interface CardHandProps {
-  hand: CardInstance[];
+  hand: Card[];
   energy: number;
   drawPileCount: number;
   discardPileCount: number;
+  exhaustPileCount: number;
   deckCount: number;
-  onPlayCard: (instance: CardInstance) => void;
+  onPlayCard: (card: Card) => void;
   onEndTurn: () => void;
   lastDamage: number | null;
   disabled: boolean;
@@ -20,6 +26,7 @@ export function CardHand({
   energy,
   drawPileCount,
   discardPileCount,
+  exhaustPileCount,
   deckCount,
   onPlayCard,
   onEndTurn,
@@ -29,10 +36,11 @@ export function CardHand({
   return (
     <div className="space-y-3">
       <div className="glass-panel p-3">
-        <p className="zone-label mb-2">劍訣牌庫</p>
+        <p className="zone-label mb-2">霜寒劍訣</p>
         <div className="flex justify-between text-center">
           <MiniStat label="牌庫" value={String(drawPileCount)} color="jade" />
           <MiniStat label="棄牌" value={String(discardPileCount)} color="stone" />
+          <MiniStat label="消耗" value={String(exhaustPileCount)} color="stone" />
           <MiniStat label="牌組" value={`${deckCount}`} color="gold" />
           {lastDamage !== null && (
             <MiniStat
@@ -52,42 +60,40 @@ export function CardHand({
               手牌已空
             </p>
           ) : (
-            hand.map((instance) => {
-              const card = instance.card;
-              const canAfford = energy >= card.energyCost;
+            hand.map((card) => {
+              const template = CARD_TEMPLATES[card.id as CardTemplateId];
+              const canAfford = energy >= card.cost;
               const cardDisabled = disabled || !canAfford;
               const typeStyle =
-                CARD_TYPE_COLORS[card.type] ??
+                CARD_TYPE_COLORS[template?.type ?? ""] ??
                 "border-[#8a7340] bg-[#1a1814]";
               const typeAccent =
-                CARD_TYPE_ACCENT[card.type] ?? "text-[#c9a84c]";
+                CARD_TYPE_ACCENT[template?.type ?? ""] ?? "text-[#c9a84c]";
 
               return (
                 <button
-                  key={instance.instanceId}
-                  onClick={() => onPlayCard(instance)}
+                  key={card.instanceId}
+                  onClick={() => onPlayCard(card)}
                   disabled={cardDisabled}
                   className={`card-hover w-[7.8rem] rounded border-2 p-2.5 text-left disabled:cursor-not-allowed disabled:opacity-40 ${typeStyle} hover:border-[#7aab9a]/45 active:scale-95`}
                 >
                   <div className="mb-0.5 flex items-center justify-between">
-                    <span
-                      className={`text-[9px] font-semibold ${typeAccent}`}
-                    >
-                      {card.type}
+                    <span className={`text-[9px] font-semibold ${typeAccent}`}>
+                      {template?.type}
                     </span>
                     <span
                       className={`text-[9px] font-bold ${canAfford ? "text-[#7aab9a]" : "text-[#a85555]"}`}
                     >
-                      真元{card.energyCost}
+                      真元{card.cost}
                     </span>
                   </div>
                   <h3 className="mb-1 text-xs font-bold text-stone-200">
                     {card.name}
                   </h3>
                   <p className="line-clamp-3 text-[9px] leading-snug text-stone-500">
-                    {card.description}
+                    {template?.description}
                   </p>
-                  {card.exhaust && (
+                  {card.isExhaust && (
                     <p className="mt-1 text-[8px] text-amber-500/80">消耗</p>
                   )}
                 </button>

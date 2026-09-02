@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import cardsData from "@/data/cards.json";
 import enemiesData from "@/data/enemies.json";
 import startingDeckIds from "@/data/starting-deck.json";
 import startingInventoryData from "@/data/starting-inventory.json";
@@ -23,25 +22,26 @@ import {
   unequipItem,
 } from "@/lib/equipment";
 import {
-  createDeckState,
-  discardAllHand,
+  CARD_TEMPLATES,
+  COMBAT_HAND_SIZE,
+  createBattleDeck,
+  discardHand,
   drawCards,
-  drawToHandSize,
-  expandDeckTemplates,
-  HAND_SIZE,
   MAX_ENERGY,
-  pickRandomCards,
+  pickRandomTemplateIds,
   playCardFromHand,
-  resetInstanceCounter,
-  type DeckState,
-} from "@/lib/deck";
+  getCardTemplate,
+  type CardTemplateId,
+} from "@/lib/battle-deck";
 import {
+  advanceEnemyIntent,
   applyBurnPassive,
   applyRegenPassive,
   getAllDungeonTiers,
   getCompletionSpiritReward,
   getDungeonTier,
   getEnemyForMapNode,
+  getEnemyIntent,
   getFloorSpiritReward,
   getMapNodeSpiritReward,
 } from "@/lib/dungeon";
@@ -51,11 +51,14 @@ import {
   isBossCleared,
 } from "@/lib/map";
 import { generateMoonNightMap } from "@/utils/mapGenerator";
-import { INITIAL_COMBAT_BUFFS, type Card } from "@/types/card";
 import {
-  resolveCardPlay,
+  INITIAL_COMBAT_BUFFS,
+  resolveCardEffects,
   rollStackDodge,
-} from "@/lib/sword-combat";
+  type CombatBuffs,
+} from "@/lib/battle-resolve";
+import type { BattleDeckState } from "@/types/battle";
+import type { Card } from "@/types/battle";
 import type {
   AppTab,
   CombatEnemy,
@@ -66,16 +69,14 @@ import type {
   Enemy,
   InventoryState,
 } from "@/types/game";
-import type { CombatBuffs } from "@/types/card";
 import type { MapNode } from "@/types/map";
 import { HIGH_DAMAGE_THRESHOLD } from "@/types/game";
 
-const CARD_POOL = cardsData as Card[];
 const ENEMY_LIST = enemiesData as Enemy[];
 const DUNGEON_TIERS = getAllDungeonTiers();
-const INITIAL_DECK_IDS = startingDeckIds as string[];
+const INITIAL_DECK_IDS = startingDeckIds as CardTemplateId[];
 const INITIAL_INVENTORY = createInitialInventory(startingInventoryData);
-const EMPTY_DECK: DeckState = {
+const EMPTY_DECK: BattleDeckState = {
   drawPile: [],
   hand: [],
   discardPile: [],
@@ -88,13 +89,12 @@ const TAB_LABELS: Record<AppTab, string> = {
   inventory: "修士行囊",
 };
 
-function initBattleDeck(permanentDeck: Card[]): DeckState {
-  resetInstanceCounter();
-  return drawCards(createDeckState(permanentDeck), HAND_SIZE);
+function initBattleDeck(templateIds: CardTemplateId[]): BattleDeckState {
+  return createBattleDeck(templateIds, COMBAT_HAND_SIZE);
 }
 
 function createInitialMetaState() {
-  const permanentDeck = expandDeckTemplates(INITIAL_DECK_IDS, CARD_POOL);
+  const permanentDeck = [...INITIAL_DECK_IDS];
   const inventory = createInitialInventory(startingInventoryData);
   const hero = getHero();
   const stats = calculateHeroStats(hero, inventory.equippedIds);
@@ -109,7 +109,7 @@ export default function GamePage() {
   const [combatScreen, setCombatScreen] = useState<CombatScreen>("tier-select");
   const [isInCombat, setIsInCombat] = useState(false);
   const [inventory, setInventory] = useState<InventoryState>(INITIAL_INVENTORY);
-  const [permanentDeck, setPermanentDeck] = useState<Card[]>([]);
+  const [permanentDeck, setPermanentDeck] = useState<CardTemplateId[]>([]);
   const [selectedTier, setSelectedTier] = useState<DungeonTier | null>(null);
   const [tierFloor, setTierFloor] = useState(1);
   const [totalClears, setTotalClears] = useState(0);
@@ -124,7 +124,7 @@ export default function GamePage() {
     ...ENEMY_LIST[0],
     currentHp: ENEMY_LIST[0].maxHp,
   }));
-  const [deckState, setDeckState] = useState<DeckState>(EMPTY_DECK);
+  const [deckState, setDeckState] = useState<BattleDeckState>(EMPTY_DECK);
   const popupIdRef = useRef(0);
   const [energy, setEnergy] = useState(MAX_ENERGY);
   const [phase, setPhase] = useState<CombatPhase>("playing");
@@ -133,16 +133,11 @@ export default function GamePage() {
   const [lastDamage, setLastDamage] = useState<number | null>(null);
   const [lastEnemyDamage, setLastEnemyDamage] = useState<number | null>(null);
   const [lastDodge, setLastDodge] = useState(false);
-  const [lastCounterDamage, setLastCounterDamage] = useState<number | null>(
-    null
-  );
-  const [lastComboDamage, setLastComboDamage] = useState<number | null>(null);
-  const [lastReflectDamage, setLastReflectDamage] = useState<number | null>(
-    null
-  );
   const [lastPassiveHeal, setLastPassiveHeal] = useState<number | null>(null);
   const [totalDamage, setTotalDamage] = useState(0);
-  const [rewardCards, setRewardCards] = useState<Card[]>([]);
+  const [rewardTemplateIds, setRewardTemplateIds] = useState<CardTemplateId[]>(
+    []
+  );
   const [defeatedEnemyName, setDefeatedEnemyName] = useState("");
   const [pendingFloorReward, setPendingFloorReward] = useState(0);
   const [pendingTierComplete, setPendingTierComplete] = useState(false);
@@ -176,12 +171,9 @@ export default function GamePage() {
     setLastDamage(null);
     setLastEnemyDamage(null);
     setLastDodge(false);
-    setLastCounterDamage(null);
-    setLastComboDamage(null);
-    setLastReflectDamage(null);
     setLastPassiveHeal(null);
     setTotalDamage(0);
-    setRewardCards([]);
+    setRewardTemplateIds([]);
     setDefeatedEnemyName("");
     setPendingFloorReward(0);
     setPendingTierComplete(false);
@@ -373,7 +365,7 @@ export default function GamePage() {
         const node = getMapNode(mapNodes, mapNodeId);
         setPhase("victory");
         setDefeatedEnemyName(enemyName);
-        setRewardCards(pickRandomCards(CARD_POOL, 3));
+        setRewardTemplateIds(pickRandomTemplateIds(3));
         const floorReward = node
           ? getMapNodeSpiritReward(tier, node)
           : getFloorSpiritReward(tier);
@@ -385,46 +377,63 @@ export default function GamePage() {
   );
 
   const playCard = useCallback(
-    (instance: { instanceId: string; card: Card }) => {
+    (card: Card) => {
       if (phase !== "playing" || enemy.currentHp <= 0) return;
-      if (energy < instance.card.energyCost) return;
+      if (energy < card.cost) return;
 
-      const { state: afterPlay, played } = playCardFromHand(
+      const template = getCardTemplate(card);
+      if (!template) return;
+
+      const { deck: afterPlay, played } = playCardFromHand(
         deckState,
-        instance.instanceId,
-        { exhaust: instance.card.exhaust }
+        card.instanceId
       );
       if (!played) return;
 
-      const result = resolveCardPlay(played.card, combatBuffs);
-      setCombatBuffs(result.buffs);
-      setLastDamage(result.totalDamage > 0 ? result.totalDamage : null);
-      setLastComboDamage(null);
-      setEnergy((e) => Math.min(MAX_ENERGY, e + result.energyDelta));
+      const { player: nextPlayer, damage, draw, energyDelta } =
+        resolveCardEffects(template, {
+          hp: playerHp,
+          energy,
+          swordIntent: combatBuffs.swordIntent,
+          dodge: combatBuffs.dodge,
+          nextSwordBonus: combatBuffs.nextSwordBonus,
+        });
 
-      let newDeck = afterPlay;
-      if (result.drawCount > 0) {
-        newDeck = drawCards(newDeck, result.drawCount);
-      }
+      setCombatBuffs({
+        swordIntent: nextPlayer.swordIntent,
+        dodge: nextPlayer.dodge,
+        nextSwordBonus: nextPlayer.nextSwordBonus,
+      });
+      setEnergy(Math.min(MAX_ENERGY, energy + energyDelta));
 
-      const totalHit = result.totalDamage;
-      if (totalHit > 0) {
-        const newHp = Math.max(0, enemy.currentHp - totalHit);
+      const newDeck = drawCards(afterPlay, draw);
+
+      if (damage > 0) {
+        const newHp = Math.max(0, enemy.currentHp - damage);
         setEnemy((prev) => ({ ...prev, currentHp: newHp }));
-        setTotalDamage((prev) => prev + totalHit);
-        addDamagePopup(totalHit);
-        setDeckState(drawToHandSize(newDeck, HAND_SIZE));
-        checkVictory(newHp, enemy.name, selectedTier, currentMapNodeId, dungeonMap);
+        setTotalDamage((prev) => prev + damage);
+        addDamagePopup(damage);
+        setLastDamage(damage);
+        setDeckState(newDeck);
+        checkVictory(
+          newHp,
+          enemy.name,
+          selectedTier,
+          currentMapNodeId,
+          dungeonMap
+        );
         return;
       }
 
-      setDeckState(drawToHandSize(newDeck, HAND_SIZE));
+      setLastDamage(null);
+      setDeckState(newDeck);
     },
     [
       phase,
       enemy,
       energy,
       deckState,
+      playerHp,
       combatBuffs,
       addDamagePopup,
       checkVictory,
@@ -437,23 +446,20 @@ export default function GamePage() {
   const endTurn = useCallback(() => {
     if (phase !== "playing" || enemy.currentHp <= 0) return;
 
-    let newDeck = discardAllHand(deckState);
+    let newDeck = discardHand(deckState);
     setEnergy(MAX_ENERGY);
     setLastPassiveHeal(null);
     setLastDodge(false);
-    setLastCounterDamage(null);
-    setLastReflectDamage(null);
-    setLastComboDamage(null);
 
-    let dmg = enemy.attackDamage;
-    if (enemy.passive === "burn") {
+    const intent = getEnemyIntent(enemy);
+    let dmg: number = intent.damage;
+    if (dmg > 0 && enemy.passive === "burn") {
       dmg = applyBurnPassive(dmg);
     }
 
-    let dodged = false;
-    if (combatBuffs.dodgeStacks > 0) {
-      dodged = rollStackDodge(combatBuffs.dodgeStacks);
-      setCombatBuffs((prev) => ({ ...prev, dodgeStacks: 0 }));
+    if (dmg > 0 && combatBuffs.dodge > 0) {
+      const dodged = rollStackDodge(combatBuffs.dodge);
+      setCombatBuffs((prev) => ({ ...prev, dodge: 0 }));
       if (dodged) dmg = 0;
       setLastDodge(dodged);
     }
@@ -477,7 +483,8 @@ export default function GamePage() {
       });
     }
 
-    newDeck = drawCards(newDeck, HAND_SIZE);
+    setEnemy((prev) => advanceEnemyIntent(prev));
+    newDeck = drawCards(newDeck, COMBAT_HAND_SIZE);
     setDeckState(newDeck);
     setLastDamage(null);
   }, [phase, enemy, deckState, playerHp, combatBuffs]);
@@ -495,10 +502,12 @@ export default function GamePage() {
   }, [phase, tierFloor, selectedTier, returnToTierSelect]);
 
   const handleRewardSelect = useCallback(
-    (card: Card) => {
+    (templateId: CardTemplateId) => {
       if (!selectedTier || !currentMapNodeId) return;
 
-      setPermanentDeck((prev) => [...prev, card]);
+      const cardName = CARD_TEMPLATES[templateId].name;
+
+      setPermanentDeck((prev) => [...prev, templateId]);
       setSpiritStones((s) => s + pendingFloorReward);
 
       const updatedMap = completeMapNode(dungeonMap, currentMapNodeId);
@@ -513,12 +522,12 @@ export default function GamePage() {
           return [...prev, selectedTier.achievementId];
         });
         returnToTierSelect(
-          `通關【${selectedTier.name}】！斬殺魔首，獲得「${card.name}」、${pendingFloorReward + completionBonus} 靈石，解鎖成就「${selectedTier.achievementName}」。`
+          `通關【${selectedTier.name}】！斬殺魔首，獲得「${cardName}」、${pendingFloorReward + completionBonus} 靈石，解鎖成就「${selectedTier.achievementName}」。`
         );
         return;
       }
 
-      returnToMap(`擊敗敵人，獲得「${card.name}」。選擇下一節點繼續。`);
+      returnToMap(`擊敗敵人，獲得「${cardName}」。選擇下一節點繼續。`);
     },
     [
       selectedTier,
@@ -535,6 +544,7 @@ export default function GamePage() {
     () => ({
       draw: deckState.drawPile.length,
       discard: deckState.discardPile.length,
+      exhaust: deckState.exhaustPile.length,
     }),
     [deckState]
   );
@@ -617,15 +627,13 @@ export default function GamePage() {
             hand={deckState.hand}
             drawPileCount={deckInfo.draw}
             discardPileCount={deckInfo.discard}
+            exhaustPileCount={deckInfo.exhaust}
             deckCount={permanentDeck.length}
             damagePopups={damagePopups}
             isShaking={isShaking}
             lastDamage={lastDamage}
             lastEnemyDamage={lastEnemyDamage}
             lastDodge={lastDodge}
-            lastCounterDamage={lastCounterDamage}
-            lastComboDamage={lastComboDamage}
-            lastReflectDamage={lastReflectDamage}
             lastPassiveHeal={lastPassiveHeal}
             totalDamage={totalDamage}
             onPlayCard={playCard}
@@ -662,7 +670,7 @@ export default function GamePage() {
 
       {isInCombat && phase === "victory" && (
         <CardRewardModal
-          rewardCards={rewardCards}
+          rewardTemplateIds={rewardTemplateIds}
           onSelect={handleRewardSelect}
           enemyName={defeatedEnemyName}
           floorReward={pendingFloorReward}

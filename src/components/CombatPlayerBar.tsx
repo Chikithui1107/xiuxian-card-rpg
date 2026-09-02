@@ -2,8 +2,8 @@
 
 import type { Hero, HeroStats } from "@/lib/stats";
 import { formatNumber } from "@/lib/stats";
-import type { CombatBuffs } from "@/types/card";
-import { getStackDodgeChance } from "@/lib/sword-combat";
+import type { CombatBuffs } from "@/lib/battle-resolve";
+import { getStackDodgeChance } from "@/lib/battle-resolve";
 
 interface CombatPlayerBarProps {
   hero: Hero;
@@ -24,16 +24,16 @@ export function CombatPlayerBar({
 }: CombatPlayerBarProps) {
   const hpPercent = Math.max(0, (currentHp / stats.maxHp) * 100);
   const energyPercent = (energy / maxEnergy) * 100;
-  const dodgeChance = getStackDodgeChance(combatBuffs.dodgeStacks);
+  const dodgeChance = getStackDodgeChance(combatBuffs.dodge);
 
   return (
     <div className="glass-panel-gold mx-3 shrink-0 p-3">
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex items-start justify-between gap-2">
         <div>
           <p className="text-sm font-bold text-[#c9a84c]">{hero.name}</p>
           <p className="text-[10px] text-[#7aab9a]">{hero.realm}</p>
         </div>
-        <div className="flex gap-2 text-right text-[9px]">
+        <div className="flex flex-wrap justify-end gap-1 text-[9px]">
           <BuffPill
             label="劍意"
             value={String(combatBuffs.swordIntent)}
@@ -43,17 +43,17 @@ export function CombatPlayerBar({
           <BuffPill
             label="閃避"
             value={
-              combatBuffs.dodgeStacks > 0
-                ? `${combatBuffs.dodgeStacks}層 ${Math.round(dodgeChance * 100)}%`
+              combatBuffs.dodge > 0
+                ? `${combatBuffs.dodge}層 ${Math.round(dodgeChance * 100)}%`
                 : "0"
             }
-            active={combatBuffs.dodgeStacks > 0}
+            active={combatBuffs.dodge > 0}
             color="jade"
           />
-          {combatBuffs.nextSwordDamageBonus > 0 && (
+          {combatBuffs.nextSwordBonus > 0 && (
             <BuffPill
               label="養劍"
-              value={`+${Math.round(combatBuffs.nextSwordDamageBonus * 100)}%`}
+              value={`+${Math.round(combatBuffs.nextSwordBonus * 100)}%`}
               active
               color="crimson"
             />

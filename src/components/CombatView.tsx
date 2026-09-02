@@ -3,9 +3,9 @@
 import { EnemyPanel } from "@/components/EnemyPanel";
 import { CardHand } from "@/components/CardHand";
 import { CombatPlayerBar } from "@/components/CombatPlayerBar";
-import type { CardInstance } from "@/lib/deck";
+import type { Card } from "@/types/battle";
 import type { Hero, HeroStats } from "@/lib/stats";
-import type { CombatBuffs } from "@/types/card";
+import type { CombatBuffs } from "@/lib/battle-resolve";
 import type {
   CombatEnemy,
   CombatPhase,
@@ -23,21 +23,19 @@ interface CombatViewProps {
   energy: number;
   combatBuffs: CombatBuffs;
   phase: CombatPhase;
-  hand: CardInstance[];
+  hand: Card[];
   drawPileCount: number;
   discardPileCount: number;
+  exhaustPileCount: number;
   deckCount: number;
   damagePopups: DamagePopup[];
   isShaking: boolean;
   lastDamage: number | null;
   lastEnemyDamage: number | null;
   lastDodge?: boolean;
-  lastCounterDamage?: number | null;
-  lastComboDamage?: number | null;
-  lastReflectDamage?: number | null;
   lastPassiveHeal?: number | null;
   totalDamage: number;
-  onPlayCard: (instance: CardInstance) => void;
+  onPlayCard: (card: Card) => void;
   onEndTurn: () => void;
 }
 
@@ -55,15 +53,13 @@ export function CombatView({
   hand,
   drawPileCount,
   discardPileCount,
+  exhaustPileCount,
   deckCount,
   damagePopups,
   isShaking,
   lastDamage,
   lastEnemyDamage,
   lastDodge,
-  lastCounterDamage,
-  lastComboDamage,
-  lastReflectDamage,
   lastPassiveHeal,
   totalDamage,
   onPlayCard,
@@ -100,9 +96,6 @@ export function CombatView({
             isShaking={isShaking}
             lastEnemyDamage={lastEnemyDamage}
             lastDodge={lastDodge}
-            lastCounterDamage={lastCounterDamage}
-            lastComboDamage={lastComboDamage}
-            lastReflectDamage={lastReflectDamage}
             lastPassiveHeal={lastPassiveHeal}
           />
         </div>
@@ -121,6 +114,7 @@ export function CombatView({
             energy={energy}
             drawPileCount={drawPileCount}
             discardPileCount={discardPileCount}
+            exhaustPileCount={exhaustPileCount}
             deckCount={deckCount}
             onPlayCard={onPlayCard}
             onEndTurn={onEndTurn}

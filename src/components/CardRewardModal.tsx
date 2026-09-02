@@ -1,11 +1,11 @@
 "use client";
 
-import type { Card } from "@/types/card";
+import { CARD_TEMPLATES, type CardTemplateId } from "@/lib/battle-deck";
 import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
 
 interface CardRewardModalProps {
-  rewardCards: Card[];
-  onSelect: (card: Card) => void;
+  rewardTemplateIds: CardTemplateId[];
+  onSelect: (templateId: CardTemplateId) => void;
   enemyName: string;
   floorReward?: number;
   isTierComplete?: boolean;
@@ -15,7 +15,7 @@ interface CardRewardModalProps {
 }
 
 export function CardRewardModal({
-  rewardCards,
+  rewardTemplateIds,
   onSelect,
   enemyName,
   floorReward = 0,
@@ -50,14 +50,12 @@ export function CardRewardModal({
           )}
           <p className="mt-1 text-[10px] text-stone-500">
             擇一劍訣，永久納入牌庫
-            {!isTierComplete && tierFloor && totalFloors && tierFloor < totalFloors
-              ? "，續闖下一重"
-              : ""}
           </p>
         </div>
 
         <div className="space-y-3">
-          {rewardCards.map((card) => {
+          {rewardTemplateIds.map((templateId) => {
+            const card = CARD_TEMPLATES[templateId];
             const typeStyle =
               CARD_TYPE_COLORS[card.type] ?? "border-[#8a7340] bg-[#1a1814]";
             const typeAccent =
@@ -65,8 +63,8 @@ export function CardRewardModal({
 
             return (
               <button
-                key={card.id}
-                onClick={() => onSelect(card)}
+                key={templateId}
+                onClick={() => onSelect(templateId)}
                 className={`card-hover flex w-full items-center gap-3 rounded border-2 p-3 text-left hover:border-[#7aab9a]/45 active:scale-[0.98] ${typeStyle}`}
               >
                 <div className="flex-1">
@@ -75,7 +73,7 @@ export function CardRewardModal({
                       {card.type}
                     </span>
                     <span className="text-[10px] text-[#7aab9a]">
-                      真元{card.energyCost}
+                      真元{card.cost}
                     </span>
                   </div>
                   <h3 className="text-sm font-bold text-stone-200">

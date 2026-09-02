@@ -1,6 +1,7 @@
 "use client";
 
 import { formatNumber } from "@/lib/stats";
+import { ENEMY_INTENT_CYCLE, getEnemyIntent } from "@/lib/dungeon";
 import type { CombatEnemy, DamagePopup } from "@/types/game";
 
 interface EnemyPanelProps {
@@ -28,6 +29,7 @@ export function EnemyPanel({
 }: EnemyPanelProps) {
   const hpPercent = Math.max(0, (enemy.currentHp / enemy.maxHp) * 100);
   const isDefeated = enemy.currentHp <= 0;
+  const intent = getEnemyIntent(enemy);
 
   return (
     <div className="glass-panel-danger overflow-hidden">
@@ -39,6 +41,24 @@ export function EnemyPanel({
           {enemy.name}
         </h2>
         <p className="text-[10px] text-stone-500">{enemy.realm}</p>
+        <p className="mt-1 text-[10px] text-amber-400/90">
+          意圖：{intent.label}
+          {intent.damage > 0 ? ` · ${intent.damage} 傷` : ""}
+        </p>
+        <div className="mt-1 flex justify-center gap-1">
+          {ENEMY_INTENT_CYCLE.map((it, i) => (
+            <span
+              key={it.id}
+              className={`rounded px-1 py-0.5 text-[8px] ${
+                i === (enemy.intentIndex ?? 0)
+                  ? "bg-amber-500/30 text-amber-200"
+                  : "bg-stone-800 text-stone-500"
+              }`}
+            >
+              {it.label}
+            </span>
+          ))}
+        </div>
         {enemy.attackPatternLabel && (
           <p className="mt-1 text-[10px] text-[#c48888]">
             ⚔ {enemy.attackPatternLabel}

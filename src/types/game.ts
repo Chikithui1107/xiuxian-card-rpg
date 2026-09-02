@@ -99,9 +99,10 @@ export interface CombatEnemy extends Enemy {
   passiveLabel?: string | null;
   attackPattern?: "triple_slash" | null;
   attackPatternLabel?: string | null;
+  intentIndex?: number;
 }
 
-export const HIGH_DAMAGE_THRESHOLD = 500;
+export const HIGH_DAMAGE_THRESHOLD = 20;
 
 export const CARD_TYPE_COLORS: Record<string, string> = {
   基礎劍招: "border-[#8a7340] bg-[#1a1814]",

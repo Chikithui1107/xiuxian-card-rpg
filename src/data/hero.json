@@ -6,6 +6,6 @@
   "baseAttack": 120,
   "critRate": 0.15,
   "critMultiplier": 2.0,
-  "maxHp": 800,
+  "maxHp": 60,
   "spiritStones": 1280
 }
