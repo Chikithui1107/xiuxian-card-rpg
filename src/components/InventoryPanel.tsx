@@ -43,7 +43,7 @@ export function InventoryPanel({
                 {eq ? (
                   <p className="text-xs font-semibold text-[#7aab9a]">{eq.name}</p>
                 ) : (
-                  <p className="text-xs text-stone-700">空</p>
+                  <p className="slot-empty text-xs">空</p>
                 )}
               </div>
             );
@@ -63,7 +63,7 @@ export function InventoryPanel({
               key={eq.id}
               className={`rounded border px-3 py-2 transition-all duration-200 ${
                 equipped
-                  ? "border-[#8a7340]/30 bg-stone-900/40"
+                  ? "item-equipped border-[#8a7340]/35 bg-stone-900/50"
                   : "border-stone-700/40 bg-black/20 hover:border-[#4a7c6f]/35"
               }`}
             >

@@ -12,6 +12,7 @@ import { TierSelectionView } from "@/components/TierSelectionView";
 import { MapView } from "@/components/MapView";
 import { InventoryView } from "@/components/InventoryView";
 import { CardRewardModal } from "@/components/CardRewardModal";
+import { InGameMenu } from "@/components/InGameMenu";
 import {
   calculateHeroStats,
   getHero,
@@ -298,6 +299,27 @@ export default function GamePage() {
     [selectedTier, startBattleForMapNode, finishMapNode, heroStats.maxHp]
   );
 
+  const hasActiveRun = selectedTier !== null && dungeonMap.length > 0;
+
+  const continueGame = useCallback(() => {
+    setActiveTab("combat");
+    setLastRunMessage(null);
+  }, []);
+
+  const quitRun = useCallback(() => {
+    returnToLobby("已放棄本次修行。", true);
+  }, [returnToLobby]);
+
+  const abandonGame = useCallback(() => {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm("確定放棄本次修行？進度將無法恢復。")
+    ) {
+      return;
+    }
+    quitRun();
+  }, [quitRun]);
+
   const enterTierSelect = useCallback(() => {
     setIsInCombat(false);
     setCombatScreen("tier-select");
@@ -562,7 +584,15 @@ export default function GamePage() {
             achievementCount={unlockedAchievements.length}
             deckCount={permanentDeck.length}
             lastRunMessage={lastRunMessage}
+            hasActiveRun={hasActiveRun}
+            runLabel={
+              selectedTier
+                ? `${selectedTier.name}${isInCombat ? " · 戰鬥中" : " · 地圖"}`
+                : null
+            }
             onEnterDungeon={enterTierSelect}
+            onContinueGame={continueGame}
+            onAbandonGame={abandonGame}
           />
         );
       case "inventory":
@@ -603,9 +633,6 @@ export default function GamePage() {
                 currentNodeId={currentMapNodeId}
                 mapMessage={mapMessage}
                 onSelectNode={handleMapNodeSelect}
-                onAbandon={() =>
-                  returnToTierSelect("已放棄本次試煉。", false)
-                }
               />
           );
         }
@@ -655,6 +682,13 @@ export default function GamePage() {
     <MobileFrame
       title="修仙卡牌錄"
       subtitle={TAB_LABELS[activeTab]}
+      inGameMenu={
+        activeTab === "combat" &&
+        ((combatScreen === "map" && selectedTier !== null) ||
+          (isInCombat && phase === "playing")) ? (
+          <InGameMenu onQuit={quitRun} />
+        ) : null
+      }
       bottomNav={
         <BottomNav
           activeTab={activeTab}
@@ -662,6 +696,9 @@ export default function GamePage() {
           inCombat={
             (isInCombat && phase === "playing") ||
             (selectedTier !== null && combatScreen === "map")
+          }
+          combatLocked={
+            isInCombat && (phase === "victory" || phase === "defeat")
           }
         />
       }
@@ -690,7 +727,7 @@ export default function GamePage() {
             </h2>
             <p className="mt-2 text-xs text-stone-500">
               {selectedTier
-                ? `【${selectedTier.name}】第 ${tierFloor} 重`
+                ? `【${selectedTier.name}】關卡 ${tierFloor}`
                 : "祕境試煉"}
               · 返回試煉選擇…
             </p>

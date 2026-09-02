@@ -25,21 +25,19 @@ export function CultivatorPanel({
   const hpPercent = Math.max(0, (playerHp / stats.maxHp) * 100);
 
   return (
-    <div className="glass-panel-gold overflow-hidden p-4">
-      <p className="zone-label mb-3 text-[#8a7340]">修士名錄</p>
-
-      <div className="mb-4 flex items-center gap-4">
-        <div className="relative flex h-20 w-20 shrink-0 items-center justify-center">
+    <div className="glass-panel-gold overflow-hidden p-3.5">
+      <div className="mb-3 flex items-center gap-3">
+        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
           <div className="absolute inset-0 animate-seal-pulse rounded-full border border-[#4a7c6f]/40 bg-gradient-to-br from-stone-900/80 to-stone-950/90" />
-          <span className="relative text-3xl font-black text-[#c9a84c]">仙</span>
+          <span className="relative text-2xl font-black text-[#c9a84c]">仙</span>
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-lg font-bold tracking-wider text-[#c9a84c]">
+          <h3 className="text-base font-bold tracking-wider text-[#c9a84c]">
             {hero.name}
           </h3>
-          <p className="text-xs text-[#7aab9a]">{hero.title}</p>
+          <p className="text-[11px] text-[#7aab9a]">{hero.title}</p>
           <div className="mt-1 inline-block rounded border border-[#8a7340]/35 bg-black/30 px-2 py-0.5">
-            <span className="text-xs font-bold text-[#c9a84c]">{hero.realm}</span>
+            <span className="text-[11px] font-bold text-[#c9a84c]">{hero.realm}</span>
           </div>
         </div>
       </div>

@@ -10,9 +10,6 @@ interface EnemyPanelProps {
   isShaking: boolean;
   lastEnemyDamage?: number | null;
   lastDodge?: boolean;
-  lastCounterDamage?: number | null;
-  lastComboDamage?: number | null;
-  lastReflectDamage?: number | null;
   lastPassiveHeal?: number | null;
 }
 
@@ -22,9 +19,6 @@ export function EnemyPanel({
   isShaking,
   lastEnemyDamage,
   lastDodge,
-  lastCounterDamage,
-  lastComboDamage,
-  lastReflectDamage,
   lastPassiveHeal,
 }: EnemyPanelProps) {
   const hpPercent = Math.max(0, (enemy.currentHp / enemy.maxHp) * 100);
@@ -32,113 +26,86 @@ export function EnemyPanel({
   const intent = getEnemyIntent(enemy);
 
   return (
-    <div className="glass-panel-danger overflow-hidden">
-      <div className="border-b border-[#8b3a3a]/20 bg-black/20 px-4 py-2.5 text-center">
-        <p className="zone-label text-[#a85555]/80">妖邪</p>
-        <h2
-          className={`text-lg font-bold tracking-wider ${isDefeated ? "text-stone-600 line-through" : "text-[#c48888]"}`}
-        >
-          {enemy.name}
-        </h2>
-        <p className="text-[10px] text-stone-500">{enemy.realm}</p>
-        <p className="mt-1 text-[10px] text-amber-400/90">
-          意圖：{intent.label}
-          {intent.damage > 0 ? ` · ${intent.damage} 傷` : ""}
-        </p>
-        <div className="mt-1 flex justify-center gap-1">
-          {ENEMY_INTENT_CYCLE.map((it, i) => (
-            <span
-              key={it.id}
-              className={`rounded px-1 py-0.5 text-[8px] ${
-                i === (enemy.intentIndex ?? 0)
-                  ? "bg-amber-500/30 text-amber-200"
-                  : "bg-stone-800 text-stone-500"
-              }`}
-            >
-              {it.label}
-            </span>
-          ))}
-        </div>
-        {enemy.attackPatternLabel && (
-          <p className="mt-1 text-[10px] text-[#c48888]">
-            ⚔ {enemy.attackPatternLabel}
-          </p>
-        )}
-        {enemy.passiveLabel && (
-          <p className="mt-1 text-[10px] italic text-[#9a9ab8]">
-            ◈ {enemy.passiveLabel}
-          </p>
-        )}
-      </div>
-
-      <div
-        className={`relative px-4 py-4 transition-all ${isShaking ? "animate-shake" : ""} ${!isDefeated ? "animate-qi-breathe rounded" : "opacity-60"}`}
-      >
-        <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-full border-2 border-[#8b3a3a]/35 bg-gradient-to-br from-stone-900/70 to-black/60">
-          <span className="text-3xl font-black text-[#8b3a3a]/60">妖</span>
-        </div>
-
-        <div className="mb-1 flex justify-between text-[10px]">
-          <span className="text-[#a85555]/80">氣血</span>
-          <span className="stat-value font-bold text-[#c48888]">
-            {formatNumber(Math.max(0, enemy.currentHp))} /{" "}
-            {formatNumber(enemy.maxHp)}
+    <div
+      className={`glass-panel-danger relative overflow-hidden p-3 ${isShaking ? "animate-shake" : ""} ${
+        isDefeated ? "opacity-60" : "animate-qi-breathe"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-[#8b3a3a]/40 bg-gradient-to-br from-stone-900/80 to-black/70">
+          <span className="text-2xl font-black text-[#c48888]/75">
+            {enemy.name.slice(0, 1)}
           </span>
         </div>
-        <div className="h-3 overflow-hidden rounded-full bg-black/40">
-          <div
-            className="enemy-hp-fill h-full rounded-full transition-all duration-300"
-            style={{ width: `${hpPercent}%` }}
-          />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2
+              className={`truncate text-base font-bold tracking-wider ${
+                isDefeated ? "text-stone-600 line-through" : "text-[#c48888]"
+              }`}
+            >
+              {enemy.name}
+            </h2>
+            <span className="shrink-0 text-[10px] text-stone-500">
+              {enemy.realm}
+            </span>
+          </div>
+          <p className="mt-0.5 text-[10px] text-amber-400/90">
+            意圖：{intent.label}
+            {intent.damage > 0 ? ` · ${intent.damage} 傷` : ""}
+          </p>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {ENEMY_INTENT_CYCLE.map((it, i) => (
+              <span
+                key={it.id}
+                className={`rounded px-1 py-0.5 text-[8px] ${
+                  i === (enemy.intentIndex ?? 0)
+                    ? "bg-amber-500/30 text-amber-200"
+                    : "bg-stone-800 text-stone-500"
+                }`}
+              >
+                {it.label}
+              </span>
+            ))}
+          </div>
+          <div className="mt-1.5 mb-0.5 flex justify-between text-[10px]">
+            <span className="text-[#a85555]/80">氣血</span>
+            <span className="stat-value font-bold text-[#c48888]">
+              {formatNumber(Math.max(0, enemy.currentHp))} /{" "}
+              {formatNumber(enemy.maxHp)}
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-black/40">
+            <div
+              className="enemy-hp-fill h-full rounded-full transition-all duration-300"
+              style={{ width: `${hpPercent}%` }}
+            />
+          </div>
+          {enemy.passiveLabel && (
+            <p className="mt-1 truncate text-[10px] italic text-[#9a9ab8]">
+              ◈ {enemy.passiveLabel}
+            </p>
+          )}
         </div>
+      </div>
 
-        {damagePopups.map((popup) => (
-          <DamageNumber key={popup.id} popup={popup} />
-        ))}
+      {damagePopups.map((popup) => (
+        <DamageNumber key={popup.id} popup={popup} />
+      ))}
 
-        {lastComboDamage != null && lastComboDamage > 0 && (
-          <p className="mt-1 text-center text-[10px] text-[#c9a84c]">
-            慧劍連擊 -{lastComboDamage}
-          </p>
-        )}
-
-        {lastReflectDamage != null && lastReflectDamage > 0 && (
-          <p className="mt-1 text-center text-[10px] text-[#7aab9a]">
-            逆流反彈 -{lastReflectDamage}
-          </p>
-        )}
-
-        {lastDodge && (
-          <p className="mt-2 text-center text-[10px] text-[#7aab9a]">
-            閃避成功！
-          </p>
-        )}
-
-        {lastCounterDamage != null && lastCounterDamage > 0 && (
-          <p className="mt-1 text-center text-[10px] text-[#c9a84c]">
-            玄鐵反擊 -{lastCounterDamage}
-          </p>
-        )}
-
+      <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[10px]">
+        {lastDodge && <span className="text-[#7aab9a]">閃避成功</span>}
         {lastEnemyDamage != null && lastEnemyDamage > 0 && (
-          <p className="mt-2 text-center text-[10px] text-[#a85555]">
+          <span className="text-[#a85555]">
             反噬 -{lastEnemyDamage}
-            {enemy.passive === "burn" && (
-              <span className="text-[#c48888]">（灼燒）</span>
-            )}
-          </p>
+            {enemy.passive === "burn" ? "（灼燒）" : ""}
+          </span>
         )}
-
         {lastEnemyDamage === 0 && lastDodge && (
-          <p className="mt-1 text-center text-[10px] text-stone-500">
-            完全閃避，未受傷害
-          </p>
+          <span className="text-stone-500">完全閃避</span>
         )}
-
         {lastPassiveHeal != null && lastPassiveHeal > 0 && (
-          <p className="mt-1 text-center text-[10px] text-[#7aab9a]">
-            妖法回復 +{lastPassiveHeal}
-          </p>
+          <span className="text-[#7aab9a]">回復 +{lastPassiveHeal}</span>
         )}
       </div>
     </div>

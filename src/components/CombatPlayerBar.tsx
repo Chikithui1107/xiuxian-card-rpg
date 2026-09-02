@@ -23,14 +23,13 @@ export function CombatPlayerBar({
   maxEnergy = 3,
 }: CombatPlayerBarProps) {
   const hpPercent = Math.max(0, (currentHp / stats.maxHp) * 100);
-  const energyPercent = (energy / maxEnergy) * 100;
   const dodgeChance = getStackDodgeChance(combatBuffs.dodge);
 
   return (
-    <div className="glass-panel-gold mx-3 shrink-0 p-3">
-      <div className="mb-2 flex items-start justify-between gap-2">
-        <div>
-          <p className="text-sm font-bold text-[#c9a84c]">{hero.name}</p>
+    <div className="glass-panel-gold shrink-0 px-3 py-2.5">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-[#c9a84c]">{hero.name}</p>
           <p className="text-[10px] text-[#7aab9a]">{hero.realm}</p>
         </div>
         <div className="flex flex-wrap justify-end gap-1 text-[9px]">
@@ -76,18 +75,18 @@ export function CombatPlayerBar({
         </div>
       </div>
 
-      <div>
-        <div className="mb-0.5 flex justify-between text-[10px]">
-          <span className="text-[#7aab9a]">真元</span>
-          <span className="stat-value text-[#9ab8aa]">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-[#7aab9a]">真元</span>
+        <div className="flex items-center gap-1.5">
+          {Array.from({ length: maxEnergy }, (_, i) => (
+            <span
+              key={i}
+              className={`energy-orb ${i < energy ? "energy-orb-lit" : ""}`}
+            />
+          ))}
+          <span className="stat-value ml-1 text-[10px] text-[#9ab8aa]">
             {energy}/{maxEnergy}
           </span>
-        </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-black/40">
-          <div
-            className="energy-bar-fill h-full rounded-full transition-all"
-            style={{ width: `${energyPercent}%` }}
-          />
         </div>
       </div>
     </div>

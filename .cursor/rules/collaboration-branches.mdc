@@ -1,0 +1,40 @@
+---
+description: Branch collaboration — UI in components, logic in lib; merge friend branches
+alwaysApply: true
+---
+
+# 多人協作：盡量容納他人 branch 的 UI
+
+## 分工原則
+
+| 層級 | 目錄 | 誰改 | 內容 |
+|------|------|------|------|
+| **UI** | `src/components/` | 隊友（ho、Iyson、Kit 等） | 版面、樣式、動畫、選單、大廳 |
+| **邏輯** | `src/lib/` | 核心玩法 | `battle-deck.ts`、`battle-resolve.ts`、`dungeon.ts` |
+| **資料** | `src/data/` | 需協調 | 數值由設計者定，改前先溝通 |
+| **流程** | `src/app/page.tsx` | 整合者 | 只接線 props/callback，少寫 UI |
+
+**UI 組件應只接收 props + 回調**，不直接 import 舊版 `deck.ts` / `sword-combat.ts`。
+
+## 現有隊友分支
+
+- **`origin/ho`**：大廳 `CultivatorPanel`、遊戲內選單 `InGameMenu`、繼續/放棄、戰鬥版面優化
+- **`origin/Iyson`**、`origin/Kit`**：待推送 UI 時從各自 branch 合併
+
+合併 `ho` 時：**保留 `main` 的戰鬥邏輯**，採用 `ho` 的 UI 與流程組件。
+
+## 合併他人 UI 的步驟
+
+1. `git fetch origin`
+2. `git merge origin/<branch>`（或只 cherry-pick `src/components/**`）
+3. 衝突時：**`lib/`、`types/battle.ts` 以 main 為準**；`components/` 以對方 UI 為準並適配現有 props
+4. `npm run build` 通過後再 push / 部署
+
+## 手牌 UI
+
+- 重疊扇形手牌：`src/components/HandUI.tsx`（可單獨改樣式）
+- 外殼與牌堆統計：`src/components/CardHand.tsx`
+
+## 用戶說「帮我运行」
+
+同步 GitHub + 部署 GitHub Pages，不開本地 dev。見 `run-means-deploy.mdc`。
