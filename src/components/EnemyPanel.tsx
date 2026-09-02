@@ -47,14 +47,14 @@ export function EnemyPanel({
     <div className="relative bg-transparent">
       {monster ? (
         <div
-          className={`enemy-sprite-stage relative mx-auto mb-2 flex h-40 w-full max-w-[16rem] items-end justify-center bg-transparent ${
-            shaking ? "animate-shake" : isDefeated ? "" : "animate-qi-breathe"
+          className={`enemy-sprite-stage relative mx-auto mb-2 flex h-40 w-full max-w-[16rem] items-end justify-center ${
+            shaking ? "animate-shake" : ""
           }`}
         >
           <img
             src={monster.image}
             alt={monster.name}
-            className={`enemy-sprite max-h-full w-auto bg-transparent object-contain drop-shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all duration-500 ${
+            className={`enemy-sprite max-h-full w-auto object-contain transition-all duration-500 ${
               isDefeated ? "scale-90 opacity-40 grayscale" : ""
             }`}
             draggable={false}
