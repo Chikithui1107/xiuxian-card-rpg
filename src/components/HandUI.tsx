@@ -173,7 +173,7 @@ function HandCard({
   const canAfford = energy >= card.cost;
   const typeStyle =
     CARD_TYPE_COLORS[template?.type ?? ""] ??
-    "border-[#8a7340] bg-[#1a1814]";
+    "ink-card-type-basic bg-[#1a1814]";
   const typeAccent =
     CARD_TYPE_ACCENT[template?.type ?? ""] ?? "text-[#c9a84c]";
 
@@ -358,15 +358,15 @@ function HandCard({
               ? "cursor-grab opacity-55"
               : "cursor-grab active:cursor-grabbing"
         } ${typeStyle} ${
-          dragging ? "" : "transition-transform duration-150 ease-out"
-        }`}
+          dragging ? "" : "transition-[transform,box-shadow] duration-150 ease-out"
+        } ${selected ? "ink-card-selected" : ""}`}
         style={{
           transform: dragging
             ? undefined
             : `translateY(${lift ? -18 : 0}px) scale(${lift ? 1.08 : 1})`,
         }}
       >
-        <div className="flex h-full w-full flex-col rounded-lg border-2 p-1.5 shadow-lg shadow-black/40 sm:p-2">
+        <div className="relative z-[2] flex h-full w-full flex-col p-1.5 sm:p-2">
           <div className="flex items-start justify-between gap-0.5">
             <span className="line-clamp-2 text-left text-[9px] font-bold leading-tight text-[#f0e6d3] sm:text-[10px]">
               {card.name}

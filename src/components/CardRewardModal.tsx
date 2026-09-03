@@ -63,7 +63,7 @@ export function CardRewardModal({
         {rewardTemplateIds.map((templateId) => {
           const card = CARD_TEMPLATES[templateId];
           const typeStyle =
-            CARD_TYPE_COLORS[card.type] ?? "border-[#8a7340] bg-[#1a1814]";
+            CARD_TYPE_COLORS[card.type] ?? "ink-card-type-basic bg-[#1a1814]";
           const typeAccent =
             CARD_TYPE_ACCENT[card.type] ?? "text-[#c9a84c]";
 
@@ -71,7 +71,7 @@ export function CardRewardModal({
             <button
               key={templateId}
               onClick={() => onSelect(templateId)}
-              className={`card-hover ink-card w-[7.5rem] rounded border-2 p-2.5 text-left hover:border-[#7aab9a]/45 active:scale-[0.98] sm:w-28 ${typeStyle}`}
+              className={`card-hover ink-card w-[7.5rem] p-2.5 text-left active:scale-[0.98] sm:w-28 ${typeStyle}`}
             >
               <div className="mb-0.5 flex items-center justify-between gap-1">
                 <span className={`text-[8px] font-semibold ${typeAccent}`}>

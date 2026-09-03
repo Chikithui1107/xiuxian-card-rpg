@@ -233,11 +233,11 @@ export function CombatView({
 
       {flights.map((flight) => {
         const typeStyle =
-          CARD_TYPE_COLORS[flight.type] ?? "border-[#8a7340] bg-[#1a1814]";
+          CARD_TYPE_COLORS[flight.type] ?? "ink-card-type-basic bg-[#1a1814]";
         return (
           <div
             key={flight.key}
-            className={`animate-card-fly pointer-events-none fixed z-[80] overflow-hidden rounded-lg border-2 p-1.5 shadow-xl shadow-black/50 ${typeStyle}`}
+            className={`animate-card-fly ink-card pointer-events-none fixed z-[80] overflow-hidden p-1.5 shadow-xl ${typeStyle}`}
             style={
               {
                 left: flight.from.left,

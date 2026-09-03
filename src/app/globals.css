@@ -624,20 +624,89 @@ body {
 }
 
 .ink-card {
+  --card-border: rgba(138, 115, 64, 0.72);
+  --card-border-inner: rgba(201, 168, 76, 0.16);
+  --card-glow: rgba(201, 168, 76, 0.08);
   position: relative;
+  border-radius: 0.5rem;
+  border: 1.5px solid var(--card-border);
+  background-clip: padding-box;
   background-image:
-    linear-gradient(165deg, rgba(36, 32, 26, 0.5) 0%, transparent 42%),
-    linear-gradient(180deg, rgba(16, 14, 12, 0.2), rgba(10, 9, 8, 0.35));
+    linear-gradient(165deg, rgba(48, 42, 34, 0.55) 0%, transparent 40%),
+    linear-gradient(180deg, rgba(22, 19, 16, 0.92), rgba(12, 11, 10, 0.98));
   box-shadow:
-    inset 0 1px 0 rgba(201, 168, 76, 0.08),
-    0 2px 8px rgba(0, 0, 0, 0.28);
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 245, 220, 0.06),
+    inset 0 0 0 1px var(--card-border-inner),
+    0 4px 12px rgba(0, 0, 0, 0.35),
+    0 0 18px var(--card-glow);
 }
-.ink-card::after {
+
+.ink-card::before {
   content: "";
   position: absolute;
   inset: 4px;
-  border: 1px solid rgba(201, 168, 76, 0.08);
+  border-radius: 0.3rem;
+  border: 1px solid rgba(201, 168, 76, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
   pointer-events: none;
+  z-index: 1;
+}
+
+.ink-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(201, 168, 76, 0.18) 0%, transparent 28%),
+    linear-gradient(315deg, rgba(201, 168, 76, 0.1) 0%, transparent 22%);
+  opacity: 0.85;
+  mix-blend-mode: soft-light;
+}
+
+/* 類型色邊 */
+.ink-card-type-basic {
+  --card-border: rgba(168, 140, 72, 0.82);
+  --card-border-inner: rgba(201, 168, 76, 0.2);
+  --card-glow: rgba(201, 168, 76, 0.1);
+}
+.ink-card-type-step {
+  --card-border: rgba(90, 140, 170, 0.85);
+  --card-border-inner: rgba(122, 171, 206, 0.22);
+  --card-glow: rgba(74, 124, 154, 0.12);
+}
+.ink-card-type-insight {
+  --card-border: rgba(130, 110, 170, 0.85);
+  --card-border-inner: rgba(184, 168, 216, 0.22);
+  --card-glow: rgba(106, 90, 138, 0.14);
+}
+.ink-card-type-charge {
+  --card-border: rgba(150, 125, 70, 0.78);
+  --card-border-inner: rgba(201, 168, 76, 0.16);
+  --card-glow: rgba(138, 115, 64, 0.1);
+}
+.ink-card-type-boost {
+  --card-border: rgba(180, 70, 70, 0.88);
+  --card-border-inner: rgba(196, 92, 92, 0.22);
+  --card-glow: rgba(139, 32, 32, 0.16);
+}
+.ink-card-type-ultimate {
+  --card-border: rgba(220, 185, 80, 0.92);
+  --card-border-inner: rgba(255, 215, 0, 0.28);
+  --card-glow: rgba(201, 168, 76, 0.22);
+}
+
+.ink-card-selected,
+.ink-card:hover {
+  --card-border: color-mix(in srgb, var(--card-border) 70%, #e8d5a3 30%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 245, 220, 0.08),
+    inset 0 0 0 1px var(--card-border-inner),
+    0 6px 16px rgba(0, 0, 0, 0.4),
+    0 0 22px var(--card-glow);
 }
 
 .slot-empty {

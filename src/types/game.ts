@@ -114,12 +114,12 @@ export interface CombatEnemy extends Enemy {
 export const HIGH_DAMAGE_THRESHOLD = 20;
 
 export const CARD_TYPE_COLORS: Record<string, string> = {
-  基礎劍招: "border-[#8a7340] bg-[#1a1814]",
-  劍步身法: "border-[#4a7c9a] bg-[#141820]",
-  劍道悟性: "border-[#6a5a8a] bg-[#18141f]",
-  劍道蓄勢: "border-[#8a7340]/70 bg-[#1a1810]",
-  劍意增幅: "border-[#8b2020] bg-[#1a1414]",
-  絕技終結: "border-[#c9a84c]/60 bg-[#1a1810]",
+  基礎劍招: "ink-card-type-basic bg-[#1a1814]",
+  劍步身法: "ink-card-type-step bg-[#141820]",
+  劍道悟性: "ink-card-type-insight bg-[#18141f]",
+  劍道蓄勢: "ink-card-type-charge bg-[#1a1810]",
+  劍意增幅: "ink-card-type-boost bg-[#1a1414]",
+  絕技終結: "ink-card-type-ultimate bg-[#1a1810]",
 };
 
 export const CARD_TYPE_ACCENT: Record<string, string> = {
