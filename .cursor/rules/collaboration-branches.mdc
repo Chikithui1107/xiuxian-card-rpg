@@ -35,6 +35,6 @@ alwaysApply: true
 - 重疊扇形手牌：`src/components/HandUI.tsx`（可單獨改樣式）
 - 外殼與牌堆統計：`src/components/CardHand.tsx`
 
-## 用戶說「帮我运行」
+## 用戶說「帮我运行」／自動同步
 
-同步 GitHub + 部署 GitHub Pages，不開本地 dev。見 `run-means-deploy.mdc`。
+同步 GitHub + 部署 GitHub Pages，不開本地 `npm run dev`。見 `auto-sync-deploy.mdc`（改完可玩內容後預設自動部署）。
