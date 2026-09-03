@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import {
   CARD_TEMPLATES,
   type CardTemplateId,
@@ -17,8 +23,9 @@ interface HandUIProps {
   onDenyPlay?: (reason: "energy" | "locked") => void;
 }
 
-const PLAY_SWIPE_Y = -72;
-const TAP_SLOP = 10;
+/** 上滑多少像素算出牌（相對起點） */
+const PLAY_SWIPE_Y = -64;
+const TAP_SLOP = 12;
 
 function getOverlapClass(total: number) {
   if (total <= 4) return "-space-x-2";
@@ -58,10 +65,12 @@ export function HandUI({
 
   return (
     <div
-      className={`relative px-1 pb-1 pt-2 ${denyShake ? "animate-deny-shake" : ""}`}
+      className={`relative overflow-visible px-1 pb-1 pt-3 ${
+        denyShake ? "animate-deny-shake" : ""
+      }`}
     >
       {selected && selectedTemplate && draggingId === null && (
-        <div className="mb-2 rounded-lg border border-[#8a7340]/45 bg-stone-950/95 px-3 py-2 shadow-lg shadow-black/40">
+        <div className="pointer-events-none absolute bottom-[calc(100%-0.25rem)] left-1 right-1 z-40 rounded-lg border border-[#8a7340]/45 bg-stone-950/95 px-3 py-2 shadow-lg shadow-black/50">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-sm font-bold text-[#f0e6d3]">{selected.name}</p>
@@ -87,17 +96,15 @@ export function HandUI({
           <p className="mt-2 text-[11px] leading-relaxed text-stone-300">
             {selectedTemplate.description}
           </p>
-          <p className="mt-2 text-center text-[9px] text-stone-500">
-            上滑出牌 · 再點取消選中
+          <p className="mt-1.5 text-center text-[9px] text-stone-500">
+            拖向敵方出牌 · 再點取消
           </p>
         </div>
       )}
 
-      <div
-        className={`flex justify-center ${denyShake ? "" : ""}`}
-      >
+      <div className="flex justify-center overflow-visible">
         <div
-          className={`flex items-end justify-center ${getOverlapClass(hand.length)} transition-all duration-300`}
+          className={`flex items-end justify-center overflow-visible ${getOverlapClass(hand.length)}`}
         >
           {hand.map((card, index) => (
             <HandCard
@@ -107,8 +114,8 @@ export function HandUI({
               energy={energy}
               locked={disabled}
               selected={selectedId === card.instanceId}
-              isDragging={draggingId === card.instanceId}
-              onDraggingChange={(id) => setDraggingId(id)}
+              onDragStart={() => setDraggingId(card.instanceId)}
+              onDragEnd={() => setDraggingId(null)}
               onSelect={(id) =>
                 setSelectedId((prev) => (prev === id ? null : id))
               }
@@ -128,8 +135,8 @@ function HandCard({
   energy,
   locked,
   selected,
-  isDragging,
-  onDraggingChange,
+  onDragStart,
+  onDragEnd,
   onSelect,
   onPlayCard,
   onDenyPlay,
@@ -139,21 +146,28 @@ function HandCard({
   energy: number;
   locked: boolean;
   selected: boolean;
-  isDragging: boolean;
-  onDraggingChange: (id: string | null) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
   onSelect: (id: string) => void;
   onPlayCard: (card: Card, origin: DOMRect) => void;
   onDenyPlay?: (reason: "energy" | "locked") => void;
 }) {
-  const rootRef = useRef<HTMLDivElement>(null);
+  const slotRef = useRef<HTMLDivElement>(null);
+  const ghostRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{
     pointerId: number;
     startX: number;
     startY: number;
+    grabX: number;
+    grabY: number;
+    width: number;
+    height: number;
     moved: boolean;
+    active: boolean;
   } | null>(null);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [hovered, setHovered] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [readyHint, setReadyHint] = useState(false);
 
   const template = CARD_TEMPLATES[card.id as CardTemplateId];
   const canAfford = energy >= card.cost;
@@ -163,167 +177,226 @@ function HandCard({
   const typeAccent =
     CARD_TYPE_ACCENT[template?.type ?? ""] ?? "text-[#c9a84c]";
 
-  const resetDrag = useCallback(() => {
-    dragRef.current = null;
-    onDraggingChange(null);
-    setOffset({ x: 0, y: 0 });
-  }, [onDraggingChange]);
+  const clearGhostStyles = useCallback(() => {
+    const ghost = ghostRef.current;
+    if (!ghost) return;
+    ghost.style.position = "";
+    ghost.style.left = "";
+    ghost.style.top = "";
+    ghost.style.width = "";
+    ghost.style.height = "";
+    ghost.style.zIndex = "";
+    ghost.style.margin = "";
+    ghost.style.transform = "";
+    ghost.style.pointerEvents = "";
+    ghost.style.transition = "";
+  }, []);
 
-  const tryPlay = useCallback(() => {
-    const el = rootRef.current;
-    if (!el) return;
-    const origin = el.getBoundingClientRect();
-    if (locked) {
-      onDenyPlay?.("locked");
-      resetDrag();
-      return;
-    }
-    if (!canAfford) {
-      onDenyPlay?.("energy");
-      resetDrag();
-      return;
-    }
-    onPlayCard(card, origin);
-    resetDrag();
-  }, [card, canAfford, locked, onDenyPlay, onPlayCard, resetDrag]);
+  const finishDrag = useCallback(() => {
+    dragRef.current = null;
+    setDragging(false);
+    setReadyHint(false);
+    clearGhostStyles();
+    onDragEnd();
+  }, [clearGhostStyles, onDragEnd]);
+
+  const tryPlay = useCallback(
+    (origin: DOMRect) => {
+      if (locked) {
+        onDenyPlay?.("locked");
+        finishDrag();
+        return;
+      }
+      if (!canAfford) {
+        onDenyPlay?.("energy");
+        finishDrag();
+        return;
+      }
+      onPlayCard(card, origin);
+      finishDrag();
+    },
+    [canAfford, card, finishDrag, locked, onDenyPlay, onPlayCard]
+  );
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
+    const ghost = ghostRef.current;
+    if (!ghost) return;
+    const rect = ghost.getBoundingClientRect();
+    e.preventDefault();
+    ghost.setPointerCapture(e.pointerId);
+
     dragRef.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
+      grabX: e.clientX - rect.left,
+      grabY: e.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
       moved: false,
+      active: false,
     };
-    onDraggingChange(card.instanceId);
+  };
+
+  const promoteToFreeDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    const ghost = ghostRef.current;
+    if (!drag || !ghost || drag.active) return;
+
+    drag.active = true;
+    setDragging(true);
+    onDragStart();
+
+    ghost.style.position = "fixed";
+    ghost.style.left = `${e.clientX - drag.grabX}px`;
+    ghost.style.top = `${e.clientY - drag.grabY}px`;
+    ghost.style.width = `${drag.width}px`;
+    ghost.style.height = `${drag.height}px`;
+    ghost.style.zIndex = "300";
+    ghost.style.margin = "0";
+    ghost.style.pointerEvents = "auto";
+    ghost.style.transform = "scale(1.06)";
+    ghost.style.transition = "none";
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
-    if (!drag || drag.pointerId !== e.pointerId) return;
+    const ghost = ghostRef.current;
+    if (!drag || !ghost || drag.pointerId !== e.pointerId) return;
+
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
-    if (Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP) {
+
+    if (!drag.moved && (Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP)) {
       drag.moved = true;
+      promoteToFreeDrag(e);
     }
-    // Prefer upward swipe; dampen horizontal
-    const nextY = Math.min(12, Math.max(-140, dy));
-    const nextX = Math.max(-36, Math.min(36, dx * 0.35));
-    setOffset({ x: nextX, y: nextY });
+
+    if (!drag.active) return;
+
+    ghost.style.left = `${e.clientX - drag.grabX}px`;
+    ghost.style.top = `${e.clientY - drag.grabY}px`;
+
+    const upEnough = e.clientY - drag.startY <= PLAY_SWIPE_Y;
+    setReadyHint(upEnough);
   };
 
   const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
+    const ghost = ghostRef.current;
     if (!drag || drag.pointerId !== e.pointerId) return;
+
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {
-      /* already released */
+      /* ignore */
     }
 
     const dy = e.clientY - drag.startY;
-    if (drag.moved && dy <= PLAY_SWIPE_Y) {
-      tryPlay();
+    const origin =
+      ghost?.getBoundingClientRect() ??
+      slotRef.current?.getBoundingClientRect();
+
+    if (drag.moved && dy <= PLAY_SWIPE_Y && origin) {
+      tryPlay(origin);
       return;
     }
 
     if (!drag.moved) {
       onSelect(card.instanceId);
     }
-    resetDrag();
+    finishDrag();
   };
 
   const onPointerCancel = () => {
-    resetDrag();
+    finishDrag();
   };
 
-  const lift =
-    isDragging || selected || hovered
-      ? selected || isDragging
-        ? -28
-        : -20
-      : 0;
-  const scale = isDragging ? 1.12 : selected || hovered ? 1.14 : 1;
-  const z = isDragging ? 50 : selected || hovered ? 40 : index;
+  const lift = !dragging && (selected || hovered);
+  const z = dragging ? 1 : selected || hovered ? 40 : index;
 
   return (
     <div
-      ref={rootRef}
-      role="button"
-      tabIndex={0}
-      aria-pressed={selected}
-      aria-disabled={locked || !canAfford}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
-      onPointerEnter={() => setHovered(true)}
-      onPointerLeave={() => {
-        if (!isDragging) setHovered(false);
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onSelect(card.instanceId);
-        }
-        if (e.key === "ArrowUp") {
-          e.preventDefault();
-          tryPlay();
-        }
-      }}
-      className={`ink-card relative origin-bottom touch-none select-none ${
-        locked
-          ? "cursor-not-allowed opacity-40"
-          : !canAfford
-            ? "cursor-grab opacity-55"
-            : "cursor-grab active:cursor-grabbing"
-      } ${typeStyle} ${isDragging ? "transition-none" : "transition-transform duration-200"}`}
-      style={{
-        zIndex: z,
-        transform: `translate(${offset.x}px, ${offset.y + lift}px) scale(${scale})`,
-      }}
+      ref={slotRef}
+      className="relative h-[8.75rem] w-[5.25rem] shrink-0 sm:h-[9.5rem] sm:w-24"
+      style={{ zIndex: z }}
     >
       <div
-        className={`flex flex-col rounded-lg border-2 p-1.5 shadow-lg shadow-black/40 sm:p-2 ${
-          selected || hovered || isDragging
-            ? "h-[10.5rem] w-[6.25rem] sm:h-[11.5rem] sm:w-[7rem]"
-            : "h-[8.75rem] w-[5.25rem] sm:h-[9.5rem] sm:w-24"
+        ref={ghostRef}
+        role="button"
+        tabIndex={0}
+        aria-pressed={selected}
+        aria-disabled={locked || !canAfford}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
+        onPointerEnter={() => setHovered(true)}
+        onPointerLeave={() => {
+          if (!dragging) setHovered(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect(card.instanceId);
+          }
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            const origin =
+              ghostRef.current?.getBoundingClientRect() ??
+              slotRef.current?.getBoundingClientRect();
+            if (origin) tryPlay(origin);
+          }
+        }}
+        className={`ink-card origin-bottom touch-none select-none will-change-transform ${
+          dragging ? "" : "h-full w-full"
+        } ${
+          locked
+            ? "cursor-not-allowed opacity-40"
+            : !canAfford
+              ? "cursor-grab opacity-55"
+              : "cursor-grab active:cursor-grabbing"
+        } ${typeStyle} ${
+          dragging ? "" : "transition-transform duration-150 ease-out"
         }`}
+        style={{
+          transform: dragging
+            ? undefined
+            : `translateY(${lift ? -18 : 0}px) scale(${lift ? 1.08 : 1})`,
+        }}
       >
-        <div className="flex items-start justify-between gap-0.5">
-          <span className="line-clamp-2 text-left text-[9px] font-bold leading-tight text-[#f0e6d3] sm:text-[10px]">
-            {card.name}
-          </span>
-          <span
-            className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-extrabold sm:h-5 sm:w-5 sm:text-[10px] ${
-              canAfford
-                ? "bg-[#7aab9a] text-stone-950"
-                : "bg-[#a85555] text-stone-100"
-            }`}
-          >
-            {card.cost}
-          </span>
-        </div>
-        <p
-          className={`mt-1 flex-1 overflow-hidden text-left leading-snug text-stone-400 ${
-            selected || hovered || isDragging
-              ? "text-[8px] sm:text-[9px]"
-              : "line-clamp-4 text-[7px] sm:text-[8px]"
-          }`}
-        >
-          {template?.description}
-        </p>
-        <div className="mt-1 shrink-0">
-          <p className={`text-[7px] font-semibold sm:text-[8px] ${typeAccent}`}>
-            {template?.type}
+        <div className="flex h-full w-full flex-col rounded-lg border-2 p-1.5 shadow-lg shadow-black/40 sm:p-2">
+          <div className="flex items-start justify-between gap-0.5">
+            <span className="line-clamp-2 text-left text-[9px] font-bold leading-tight text-[#f0e6d3] sm:text-[10px]">
+              {card.name}
+            </span>
+            <span
+              className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-extrabold sm:h-5 sm:w-5 sm:text-[10px] ${
+                canAfford
+                  ? "bg-[#7aab9a] text-stone-950"
+                  : "bg-[#a85555] text-stone-100"
+              }`}
+            >
+              {card.cost}
+            </span>
+          </div>
+          <p className="mt-1 line-clamp-4 flex-1 overflow-hidden text-left text-[7px] leading-snug text-stone-400 sm:text-[8px]">
+            {template?.description}
           </p>
-          {card.isExhaust && (
-            <p className="text-[7px] text-amber-500/80 sm:text-[8px]">消耗</p>
-          )}
-          {isDragging && offset.y <= PLAY_SWIPE_Y * 0.55 && (
-            <p className="mt-0.5 text-[8px] font-bold text-[#7aab9a]">松手出牌</p>
-          )}
+          <div className="mt-1 shrink-0">
+            <p className={`text-[7px] font-semibold sm:text-[8px] ${typeAccent}`}>
+              {template?.type}
+            </p>
+            {card.isExhaust && (
+              <p className="text-[7px] text-amber-500/80 sm:text-[8px]">消耗</p>
+            )}
+            {readyHint && (
+              <p className="mt-0.5 text-[8px] font-bold text-[#7aab9a]">
+                松手出牌
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

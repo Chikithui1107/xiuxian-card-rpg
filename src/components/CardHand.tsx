@@ -37,7 +37,7 @@ export function CardHand({
   return (
     <div className="relative space-y-2">
       <div className="flex items-end justify-between px-0.5">
-        <p className="zone-label">手牌 · 懸停／點選查看 · 上滑出牌</p>
+        <p className="zone-label">手牌 · 點選查看 · 拖出出牌</p>
         <div className="flex gap-3 text-center">
           <MiniStat label="牌庫" value={String(drawPileCount)} color="jade" />
           <MiniStat label="棄牌" value={String(discardPileCount)} color="stone" />

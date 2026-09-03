@@ -213,7 +213,7 @@ export function CombatView({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-[#4a7c6f]/20 bg-[#121110]/95 px-3 pb-2 pt-2">
+      <div className="relative z-20 shrink-0 overflow-visible border-t border-[#4a7c6f]/20 bg-[#121110]/95 px-3 pb-2 pt-2">
         <CardHand
           hand={hand}
           energy={energy}
