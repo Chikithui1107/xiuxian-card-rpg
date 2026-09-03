@@ -1,4 +1,5 @@
 import dungeonsData from "@/data/dungeons.json";
+import { ENEMY_SPRITE_ID } from "@/data/monsters";
 import type { CombatEnemy, DungeonTier, Enemy } from "@/types/game";
 import type { MapNode, NodeType } from "@/types/map";
 
@@ -50,9 +51,14 @@ function isCombatNodeType(
 }
 
 const WOLF_ENCOUNTER_SNIPPET = "遭遇野狼";
+const BANDIT_ENCOUNTER_SNIPPET = "攔路劫修";
 
 function isWolfEncounter(node: MapNode): boolean {
   return node.title.includes(WOLF_ENCOUNTER_SNIPPET);
+}
+
+function isBanditEncounter(node: MapNode): boolean {
+  return node.title.includes(BANDIT_ENCOUNTER_SNIPPET);
 }
 
 function pickEnemyTemplate(
@@ -117,7 +123,9 @@ export function getEnemyForMapNode(
 
   const template = isWolfEncounter(node)
     ? pool.find((e) => e.id === "enemy_wolf") ?? pickEnemyTemplate(node, pool)
-    : pickEnemyTemplate(node, pool);
+    : isBanditEncounter(node)
+      ? pool.find((e) => e.id === "enemy_bandit") ?? pickEnemyTemplate(node, pool)
+      : pickEnemyTemplate(node, pool);
   const stepScale = 1 + node.tier * 0.04;
   const maxHp = Math.floor(
     NODE_BASE_HP[node.type] * tier.hpMultiplier * stepScale
@@ -140,7 +148,9 @@ export function getEnemyForMapNode(
     attackPatternLabel:
       node.type === "elite" ? "三連斬（單次攻擊判定閃避）" : null,
     intentIndex: 0,
-    monsterSprite: isWolfEncounter(node) ? "demon_wolf" : undefined,
+    monsterSprite:
+      (isWolfEncounter(node) ? "demon_wolf" : undefined) ??
+      ENEMY_SPRITE_ID[template.id],
   };
 }
 

@@ -11,6 +11,7 @@
   {
     "id": "enemy_bandit",
     "name": "劫修",
+    "monsterId": "bandit",
     "realm": "練氣後期",
     "maxHp": 45,
     "attackDamage": 8,
@@ -19,6 +20,7 @@
   {
     "id": "enemy_traitor",
     "name": "叛劍客",
+    "monsterId": "traitor",
     "realm": "築基初期",
     "maxHp": 80,
     "attackDamage": 11,
@@ -27,6 +29,7 @@
   {
     "id": "enemy_elder",
     "name": "血魔長老",
+    "monsterId": "blood_elder",
     "realm": "築基圓滿",
     "maxHp": 180,
     "attackDamage": 13,
