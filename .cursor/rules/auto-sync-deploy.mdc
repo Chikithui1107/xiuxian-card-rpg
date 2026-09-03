@@ -1,0 +1,35 @@
+---
+description: 改完可玩内容后自动 commit / push / 部署 GitHub Pages
+alwaysApply: true
+---
+
+# 自动同步（GitHub + Pages）
+
+## 「同步」/「帮我运行」含义
+
+用户说 **「同步」**、**「帮我运行」**、**「更新网站」** 时：
+
+1. `git add` 相关改动并 commit（按仓库 commit 规范）
+2. `git push origin main`
+3. `npm run build`（含 `out/.nojekyll`）
+4. 把 `out/` 强制推到 `gh-pages` 分支部署 GitHub Pages
+5. **不要**开本地 `npm run dev`（除非用户明确要求本地预览）
+
+公开地址：`https://chikithui1107.github.io/xiuxian-card-rpg/`
+
+## 自动同步（默认开启）
+
+完成一次**可感知的游戏改动**后（UI、战斗手感、立绘、玩法接线等），**主动执行上述同步流程**，不必等用户再说「同步」。
+
+仍须遵守：
+
+- 只在用户本会话内由你产生的改动上 commit；不要把无关脏文件一起塞进去
+- commit message 写清楚 why
+- 部署失败要报告；成功后给一行线上链接 + 提醒强制刷新（若缓存相关）
+- 用户若说 **「先别同步」** / **「不要部署」** / **「只改本地」**，则跳过 push 与 Pages，直到对方再次允许
+
+## 不自动同步的情况
+
+- 纯讨论、方案、问问题、未改代码
+- 只改了 `.cursor/rules`、文档、未影响线上包的笔记
+- build 失败时：先修，修好再部署；不要推坏的 `out/`
