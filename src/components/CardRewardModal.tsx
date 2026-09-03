@@ -71,7 +71,7 @@ export function CardRewardModal({
             <button
               key={templateId}
               onClick={() => onSelect(templateId)}
-              className={`card-hover ink-card w-[7.5rem] p-2.5 text-left active:scale-[0.98] sm:w-28 ${typeStyle}`}
+              className={`card-hover ink-card flex flex-col p-2 text-left active:scale-[0.98] ${typeStyle}`}
             >
               <div className="mb-0.5 flex items-center justify-between gap-1">
                 <span className={`text-[8px] font-semibold ${typeAccent}`}>
@@ -79,8 +79,10 @@ export function CardRewardModal({
                 </span>
                 <span className="text-[8px] text-[#7aab9a]">真元{card.cost}</span>
               </div>
-              <h3 className="text-xs font-bold text-stone-200">{card.name}</h3>
-              <p className="mt-1 line-clamp-4 text-[8px] leading-snug text-stone-500">
+              <h3 className="line-clamp-2 text-[10px] font-bold leading-tight text-stone-200">
+                {card.name}
+              </h3>
+              <p className="mt-1 min-h-0 flex-1 overflow-hidden text-[8px] leading-snug text-stone-500">
                 {card.description}
               </p>
             </button>

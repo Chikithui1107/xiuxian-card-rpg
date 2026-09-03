@@ -268,7 +268,7 @@ export default function RoguelikeBattleMvp() {
                 type="button"
                 disabled={phase !== "playing" || !affordable}
                 onClick={() => playCard(card)}
-                className="w-28 shrink-0 rounded-lg border border-[#8a7340]/50 bg-[#1a1814] p-2 text-left transition hover:border-[#7aab9a]/50 disabled:opacity-40"
+                className="ink-card flex flex-col p-2 text-left transition hover:border-[#7aab9a]/50 disabled:opacity-40"
               >
                 <div className="flex justify-between text-[9px]">
                   <span className="text-[#c9a84c]">{template?.type}</span>
@@ -276,9 +276,9 @@ export default function RoguelikeBattleMvp() {
                     {card.cost}
                   </span>
                 </div>
-                <p className="mt-1 text-xs font-bold text-stone-200">{card.name}</p>
+                <p className="mt-1 line-clamp-2 text-[10px] font-bold leading-tight text-stone-200">{card.name}</p>
                 <p className="mt-0.5 text-[8px] text-stone-600">{card.instanceId}</p>
-                <p className="mt-1 line-clamp-4 text-[8px] leading-snug text-stone-500">
+                <p className="mt-1 min-h-0 flex-1 overflow-hidden text-[8px] leading-snug text-stone-500">
                   {template?.description}
                 </p>
                 {card.isExhaust && (

@@ -623,11 +623,26 @@ body {
   box-shadow: 0 0 6px rgba(122, 171, 154, 0.35);
 }
 
+:root {
+  --game-card-width: 6.5rem;
+  --game-card-height: 10.5rem;
+}
+
+.hand-card-slot {
+  width: var(--game-card-width);
+  height: var(--game-card-height);
+}
+
 .ink-card {
   --card-border: rgba(138, 115, 64, 0.72);
   --card-border-inner: rgba(201, 168, 76, 0.16);
   --card-glow: rgba(201, 168, 76, 0.08);
   position: relative;
+  box-sizing: border-box;
+  width: var(--game-card-width);
+  height: var(--game-card-height);
+  overflow: hidden;
+  flex-shrink: 0;
   border-radius: 0.5rem;
   border: 1.5px solid var(--card-border);
   background-clip: padding-box;

@@ -51,7 +51,7 @@ export function HandUI({
 
   if (hand.length === 0) {
     return (
-      <p className="flex min-h-[11rem] items-center justify-center text-xs text-stone-500">
+      <p className="flex min-h-[var(--game-card-height)] items-center justify-center text-xs text-stone-500">
         手牌已空
       </p>
     );
@@ -209,7 +209,7 @@ function HandCard({
     ghost.style.zIndex = "300";
     ghost.style.margin = "0";
     ghost.style.pointerEvents = "auto";
-    ghost.style.transform = "scale(1.05)";
+                ghost.style.transform = "none";
     ghost.style.transition = "none";
   };
 
@@ -272,7 +272,7 @@ function HandCard({
   return (
     <div
       ref={slotRef}
-      className="relative h-[10.5rem] w-[6.25rem] shrink-0 overflow-visible sm:h-[11.5rem] sm:w-[7rem]"
+      className="hand-card-slot relative shrink-0 overflow-visible"
       style={{ zIndex: z }}
       onMouseEnter={() => {
         if (!dragging) setHovered(true);
@@ -320,25 +320,19 @@ function HandCard({
             ? {}
             : {
                 transform: inspecting
-                  ? "translateY(-22px) scale(1.18)"
-                  : "translateY(0) scale(1)",
+                  ? "translateY(-22px)"
+                  : "translateY(0)",
                 zIndex: inspecting ? 60 : undefined,
               }),
         }}
       >
-        <div className="relative z-[2] flex h-full w-full flex-col p-2 sm:p-2.5">
+        <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-2">
           <div className="flex items-start justify-between gap-1">
-            <span
-              className={`text-left font-bold leading-tight text-[#f0e6d3] ${
-                inspecting
-                  ? "text-[12px] sm:text-[13px]"
-                  : "line-clamp-2 text-[10px] sm:text-[11px]"
-              }`}
-            >
+            <span className="line-clamp-2 text-left text-[10px] font-bold leading-tight text-[#f0e6d3]">
               {card.name}
             </span>
             <span
-              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold sm:h-6 sm:w-6 sm:text-[11px] ${
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
                 canAfford
                   ? "bg-[#7aab9a] text-stone-950"
                   : "bg-[#a85555] text-stone-100"
@@ -348,24 +342,20 @@ function HandCard({
             </span>
           </div>
           <p
-            className={`mt-1.5 flex-1 text-left leading-snug ${
+            className={`mt-1.5 min-h-0 flex-1 text-left text-[8px] leading-snug ${
               inspecting
-                ? "overflow-y-auto text-[10px] text-stone-300 sm:text-[11px]"
-                : "line-clamp-5 overflow-hidden text-[8px] text-stone-400 sm:text-[9px]"
+                ? "overflow-y-auto text-stone-300"
+                : "line-clamp-5 overflow-hidden text-stone-400"
             }`}
           >
             {template?.description}
           </p>
           <div className="mt-1 shrink-0">
-            <p
-              className={`font-semibold ${typeAccent} ${
-                inspecting ? "text-[9px] sm:text-[10px]" : "text-[8px] sm:text-[9px]"
-              }`}
-            >
+            <p className={`text-[8px] font-semibold ${typeAccent}`}>
               {template?.type}
             </p>
             {card.isExhaust && (
-              <p className="text-[8px] text-amber-500/80 sm:text-[9px]">消耗</p>
+              <p className="text-[8px] text-amber-500/80">消耗</p>
             )}
             {inspecting && !readyHint && (
               <p className="mt-1 text-[8px] text-stone-500">
