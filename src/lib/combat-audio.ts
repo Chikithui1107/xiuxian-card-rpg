@@ -83,6 +83,91 @@ function noiseBurst(
   src.start();
 }
 
+/** 拂雪流光專用：「秀～」劍鳴 */
+function playFuxueXiu(
+  audio: AudioContext,
+  dest: AudioNode,
+  strength: "light" | "full"
+): void {
+  const now = audio.currentTime;
+  const isFull = strength === "full";
+  const sweepMs = isFull ? 0.2 : 0.14;
+  const peak = isFull ? 0.13 : 0.085;
+
+  const length = Math.max(1, Math.floor(audio.sampleRate * sweepMs));
+  const buffer = audio.createBuffer(1, length, audio.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i++) {
+    const t = i / length;
+    data[i] = (Math.random() * 2 - 1) * (1 - t * 0.35);
+  }
+
+  const src = audio.createBufferSource();
+  src.buffer = buffer;
+  const band = audio.createBiquadFilter();
+  band.type = "bandpass";
+  band.Q.value = isFull ? 3.2 : 2.8;
+  band.frequency.setValueAtTime(isFull ? 3400 : 2600, now);
+  band.frequency.exponentialRampToValueAtTime(720, now + sweepMs * 0.75);
+
+  const airGain = audio.createGain();
+  airGain.gain.setValueAtTime(0.0001, now);
+  airGain.gain.exponentialRampToValueAtTime(peak, now + 0.005);
+  airGain.gain.exponentialRampToValueAtTime(0.0001, now + sweepMs);
+
+  src.connect(band);
+  band.connect(airGain);
+  airGain.connect(dest);
+  src.start(now);
+
+  const blade = audio.createOscillator();
+  blade.type = "sine";
+  blade.frequency.setValueAtTime(isFull ? 2400 : 1900, now);
+  blade.frequency.exponentialRampToValueAtTime(380, now + (isFull ? 0.1 : 0.08));
+
+  const bladeGain = audio.createGain();
+  bladeGain.gain.setValueAtTime(0.0001, now);
+  bladeGain.gain.exponentialRampToValueAtTime(isFull ? 0.1 : 0.065, now + 0.003);
+  bladeGain.gain.exponentialRampToValueAtTime(0.0001, now + (isFull ? 0.16 : 0.12));
+
+  blade.connect(bladeGain);
+  bladeGain.connect(dest);
+  blade.start(now);
+  blade.stop(now + 0.2);
+
+  const ring = audio.createOscillator();
+  ring.type = "triangle";
+  ring.frequency.setValueAtTime(isFull ? 1680 : 1320, now + 0.012);
+  ring.frequency.exponentialRampToValueAtTime(920, now + (isFull ? 0.14 : 0.1));
+
+  const ringGain = audio.createGain();
+  ringGain.gain.setValueAtTime(0.0001, now + 0.012);
+  ringGain.gain.exponentialRampToValueAtTime(isFull ? 0.055 : 0.038, now + 0.028);
+  ringGain.gain.exponentialRampToValueAtTime(0.0001, now + (isFull ? 0.22 : 0.16));
+
+  ring.connect(ringGain);
+  ringGain.connect(dest);
+  ring.start(now + 0.012);
+  ring.stop(now + 0.24);
+
+  if (isFull) {
+    const tail = audio.createOscillator();
+    tail.type = "sine";
+    tail.frequency.setValueAtTime(1180, now + 0.06);
+    tail.frequency.exponentialRampToValueAtTime(680, now + 0.28);
+
+    const tailGain = audio.createGain();
+    tailGain.gain.setValueAtTime(0.0001, now + 0.06);
+    tailGain.gain.exponentialRampToValueAtTime(0.04, now + 0.075);
+    tailGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+
+    tail.connect(tailGain);
+    tailGain.connect(dest);
+    tail.start(now + 0.06);
+    tail.stop(now + 0.32);
+  }
+}
+
 export function playDenySfx(): void {
   const audio = getCtx();
   if (!audio) return;
@@ -101,9 +186,7 @@ export function playWhoosh(kind?: PlayFxKind): void {
 
   switch (kind) {
     case "fuxue":
-      noiseBurst(audio, audio.destination, 0.2, 0.1, 1200);
-      tone(audio, audio.destination, 880, "triangle", 0.06, 0.008, 0.16, 240);
-      tone(audio, audio.destination, 1480, "sine", 0.03, 0.01, 0.18);
+      playFuxueXiu(audio, audio.destination, "light");
       return;
     case "tuxu":
       noiseBurst(audio, audio.destination, 0.14, 0.07, 2200);
@@ -138,11 +221,7 @@ export function playImpact(kind: PlayFxKind): void {
 
   switch (kind) {
     case "fuxue":
-      // 劍氣揮斬：清脆刃音 + 氣流
-      noiseBurst(audio, audio.destination, 0.14, 0.12, 900);
-      tone(audio, audio.destination, 1180, "sawtooth", 0.09, 0.003, 0.1, 180);
-      tone(audio, audio.destination, 2100, "sine", 0.045, 0.002, 0.08);
-      tone(audio, audio.destination, 660, "triangle", 0.04, 0.01, 0.16);
+      playFuxueXiu(audio, audio.destination, "full");
       return;
     case "tuxu":
       noiseBurst(audio, audio.destination, 0.12, 0.07, 2400);
