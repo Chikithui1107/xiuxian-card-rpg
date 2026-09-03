@@ -81,6 +81,78 @@
   animation: enemy-float 2.8s ease-in-out infinite;
 }
 
+@keyframes card-fly {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--fly-x, 0), var(--fly-y, -120px)) scale(0.4)
+      rotate(-10deg);
+    opacity: 0;
+  }
+}
+
+.animate-card-fly {
+  animation: card-fly 0.34s cubic-bezier(0.22, 0.75, 0.2, 1) forwards;
+}
+
+@keyframes enemy-hit-flash {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  35% {
+    filter: brightness(1.55) saturate(1.15);
+  }
+}
+
+.enemy-hit-flash {
+  animation: enemy-hit-flash 0.22s ease-out;
+}
+
+@keyframes deny-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+.animate-deny-shake {
+  animation: deny-shake 0.28s ease-in-out;
+}
+
+@keyframes feel-toast {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.animate-feel-toast {
+  animation: feel-toast 0.9s ease-out forwards;
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }

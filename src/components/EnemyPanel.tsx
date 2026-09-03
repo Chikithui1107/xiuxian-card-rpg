@@ -10,6 +10,7 @@ interface EnemyPanelProps {
   enemy: CombatEnemy;
   damagePopups: DamagePopup[];
   isShaking?: boolean;
+  hitFlash?: boolean;
   lastEnemyDamage?: number | null;
   lastDodge?: boolean;
   lastPassiveHeal?: number | null;
@@ -19,6 +20,7 @@ export function EnemyPanel({
   enemy,
   damagePopups,
   isShaking = false,
+  hitFlash = false,
   lastEnemyDamage,
   lastDodge,
   lastPassiveHeal,
@@ -49,7 +51,7 @@ export function EnemyPanel({
         <div
           className={`enemy-sprite-stage relative mx-auto mb-2 flex h-40 w-full max-w-[16rem] items-end justify-center ${
             shaking ? "animate-shake" : ""
-          }`}
+          } ${hitFlash ? "enemy-hit-flash" : ""}`}
         >
           <img
             src={monster.image}

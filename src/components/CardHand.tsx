@@ -10,10 +10,13 @@ interface CardHandProps {
   discardPileCount: number;
   exhaustPileCount: number;
   deckCount: number;
-  onPlayCard: (card: Card) => void;
+  onPlayCard: (card: Card, origin: DOMRect) => void;
+  onDenyPlay?: (reason: "energy" | "locked") => void;
   onEndTurn: () => void;
   lastDamage: number | null;
   disabled: boolean;
+  denyShake?: boolean;
+  feelToast?: string | null;
 }
 
 export function CardHand({
@@ -24,14 +27,17 @@ export function CardHand({
   exhaustPileCount,
   deckCount,
   onPlayCard,
+  onDenyPlay,
   onEndTurn,
   lastDamage,
   disabled,
+  denyShake = false,
+  feelToast = null,
 }: CardHandProps) {
   return (
-    <div className="space-y-2">
+    <div className="relative space-y-2">
       <div className="flex items-end justify-between px-0.5">
-        <p className="zone-label">手牌 · 點選施法</p>
+        <p className="zone-label">手牌 · 懸停／點選查看 · 上滑出牌</p>
         <div className="flex gap-3 text-center">
           <MiniStat label="牌庫" value={String(drawPileCount)} color="jade" />
           <MiniStat label="棄牌" value={String(discardPileCount)} color="stone" />
@@ -44,8 +50,16 @@ export function CardHand({
         hand={hand}
         energy={energy}
         disabled={disabled}
+        denyShake={denyShake}
         onPlayCard={onPlayCard}
+        onDenyPlay={onDenyPlay}
       />
+
+      {feelToast && (
+        <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-8 z-20 -translate-x-1/2 rounded border border-[#a85555]/50 bg-stone-950/90 px-3 py-1 text-[11px] font-semibold text-[#c48888] shadow-lg">
+          {feelToast}
+        </p>
+      )}
 
       <div>
         <button
