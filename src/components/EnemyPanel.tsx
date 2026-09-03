@@ -71,7 +71,7 @@ export function EnemyPanel({
         <div
           className={`mx-auto mb-2 flex h-24 w-24 items-center justify-center rounded-full border-2 border-[#8b3a3a]/40 bg-gradient-to-br from-stone-900/80 to-stone-950/80 ${
             shaking ? "animate-shake" : ""
-          }`}
+          } ${hitFlash ? "enemy-hit-flash" : ""}`}
         >
           <span className="text-3xl font-black text-[#c48888]/75">
             {enemy.name.slice(0, 1)}

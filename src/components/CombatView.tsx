@@ -18,6 +18,14 @@ import type {
   DamagePopup,
 } from "@/types/game";
 import { CARD_TYPE_COLORS } from "@/types/game";
+import { getPlayFxKind, type PlayFxKind } from "@/lib/combat-fx";
+import {
+  playDenySfx,
+  playImpact,
+  playWhoosh,
+  unlockCombatAudio,
+} from "@/lib/combat-audio";
+import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
 
 interface CombatViewProps {
   hero: Hero;
@@ -55,13 +63,7 @@ interface Flight {
   from: DOMRect;
   toX: number;
   toY: number;
-}
-
-function isDamageCard(card: Card): boolean {
-  const template = CARD_TEMPLATES[card.id as CardTemplateId];
-  return !!template?.effects.some(
-    (e) => e.kind === "damage" || e.kind === "damage_consume_intent"
-  );
+  fx: PlayFxKind;
 }
 
 export function CombatView({
@@ -104,6 +106,8 @@ export function CombatView({
   const flightId = useId();
   const flightSeq = useRef(0);
   const [flights, setFlights] = useState<Flight[]>([]);
+  const [bursts, setBursts] = useState<PlayBurst[]>([]);
+  const [screenFlash, setScreenFlash] = useState(false);
   const [hitFlash, setHitFlash] = useState(false);
   const [denyShake, setDenyShake] = useState(false);
   const [feelToast, setFeelToast] = useState<string | null>(null);
@@ -127,6 +131,8 @@ export function CombatView({
 
   const handleDenyPlay = useCallback(
     (reason: "energy" | "locked") => {
+      unlockCombatAudio();
+      playDenySfx();
       if (reason === "energy") showToast("真元不足");
       else showToast("尚不可出牌");
     },
@@ -135,7 +141,12 @@ export function CombatView({
 
   const handlePlayCard = useCallback(
     (card: Card, origin: DOMRect) => {
-      const damage = isDamageCard(card);
+      unlockCombatAudio();
+      playWhoosh();
+
+      const template = CARD_TEMPLATES[card.id as CardTemplateId];
+      const fx = getPlayFxKind(template);
+      const damage = fx === "slash" || fx === "ultimate";
       const target = damage
         ? enemyTargetRef.current
         : playerTargetRef.current;
@@ -148,7 +159,13 @@ export function CombatView({
         ? targetRect.top + targetRect.height * 0.35 - origin.height / 2
         : origin.top - 120;
 
-      const template = CARD_TEMPLATES[card.id as CardTemplateId];
+      const impactX = targetRect
+        ? targetRect.left + targetRect.width / 2
+        : origin.left + origin.width / 2;
+      const impactY = targetRect
+        ? targetRect.top + targetRect.height * (damage ? 0.38 : 0.5)
+        : origin.top - 80;
+
       flightSeq.current += 1;
       const key = `${flightId}-${flightSeq.current}`;
 
@@ -162,24 +179,37 @@ export function CombatView({
           from: origin,
           toX: toX - origin.left,
           toY: toY - origin.top,
+          fx,
         },
       ]);
 
       onPlayCard(card);
 
       window.setTimeout(() => {
-        setFlights((prev) => prev.filter((f) => f.key !== key));
+        playImpact(fx);
+        setBursts((prev) => [...prev, { key, kind: fx, x: impactX, y: impactY }]);
+        if (fx === "ultimate") {
+          setScreenFlash(true);
+          window.setTimeout(() => setScreenFlash(false), 420);
+        }
         if (damage) {
           setHitFlash(true);
           window.setTimeout(() => setHitFlash(false), 220);
         }
-      }, 340);
+        setFlights((prev) => prev.filter((f) => f.key !== key));
+        window.setTimeout(() => {
+          setBursts((prev) => prev.filter((b) => b.key !== key));
+        }, 560);
+      }, 280);
     },
     [flightId, onPlayCard]
   );
 
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col">
+    <div
+      className="relative flex min-h-0 flex-1 flex-col"
+      onPointerDown={unlockCombatAudio}
+    >
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#4a7c6f]/15 bg-stone-950/80 px-3 py-1.5">
         <p className="zone-label shrink-0">戰鬥中</p>
         <p className="min-w-0 flex-1 truncate text-center text-[10px] text-[#7aab9a]">
@@ -231,13 +261,15 @@ export function CombatView({
         />
       </div>
 
+      {screenFlash && <div className="play-screen-flash" aria-hidden />}
+      <PlayBurstFx bursts={bursts} />
       {flights.map((flight) => {
         const typeStyle =
           CARD_TYPE_COLORS[flight.type] ?? "ink-card-type-basic bg-[#1a1814]";
         return (
           <div
             key={flight.key}
-            className={`animate-card-fly ink-card pointer-events-none fixed z-[80] overflow-hidden p-1.5 shadow-xl ${typeStyle}`}
+            className={`animate-card-fly play-fly-${flight.fx} ink-card pointer-events-none fixed z-[80] overflow-hidden p-1.5 shadow-xl ${typeStyle}`}
             style={
               {
                 left: flight.from.left,
