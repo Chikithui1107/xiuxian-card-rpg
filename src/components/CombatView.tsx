@@ -18,7 +18,7 @@ import type {
   DamagePopup,
 } from "@/types/game";
 import { CARD_TYPE_COLORS } from "@/types/game";
-import { getPlayFxKind, type PlayFxKind } from "@/lib/combat-fx";
+import { getPlayFxKind, type PlayFxKind, isDamagePlayFx, shouldScreenFlash, playFxDurationMs } from "@/lib/combat-fx";
 import {
   playDenySfx,
   playImpact,
@@ -142,11 +142,12 @@ export function CombatView({
   const handlePlayCard = useCallback(
     (card: Card, origin: DOMRect) => {
       unlockCombatAudio();
-      playWhoosh();
 
       const template = CARD_TEMPLATES[card.id as CardTemplateId];
       const fx = getPlayFxKind(template);
-      const damage = fx === "slash" || fx === "ultimate";
+      playWhoosh(fx);
+
+      const damage = isDamagePlayFx(fx);
       const target = damage
         ? enemyTargetRef.current
         : playerTargetRef.current;
@@ -188,18 +189,18 @@ export function CombatView({
       window.setTimeout(() => {
         playImpact(fx);
         setBursts((prev) => [...prev, { key, kind: fx, x: impactX, y: impactY }]);
-        if (fx === "ultimate") {
+        if (shouldScreenFlash(fx)) {
           setScreenFlash(true);
-          window.setTimeout(() => setScreenFlash(false), 420);
+          window.setTimeout(() => setScreenFlash(false), 480);
         }
         if (damage) {
           setHitFlash(true);
-          window.setTimeout(() => setHitFlash(false), 220);
+          window.setTimeout(() => setHitFlash(false), fx === "yijian" ? 320 : 220);
         }
         setFlights((prev) => prev.filter((f) => f.key !== key));
         window.setTimeout(() => {
           setBursts((prev) => prev.filter((b) => b.key !== key));
-        }, 560);
+        }, playFxDurationMs(fx));
       }, 280);
     },
     [flightId, onPlayCard]
@@ -261,7 +262,9 @@ export function CombatView({
         />
       </div>
 
-      {screenFlash && <div className="play-screen-flash" aria-hidden />}
+      {screenFlash && (
+        <div className="play-screen-flash play-screen-flash--yijian" aria-hidden />
+      )}
       <PlayBurstFx bursts={bursts} />
       {flights.map((flight) => {
         const typeStyle =

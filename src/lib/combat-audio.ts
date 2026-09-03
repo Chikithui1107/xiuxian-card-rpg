@@ -51,7 +51,10 @@ function tone(
   const now = audio.currentTime;
   osc.frequency.setValueAtTime(freq, now);
   if (slideTo != null) {
-    osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), now + attack + release);
+    osc.frequency.exponentialRampToValueAtTime(
+      Math.max(20, slideTo),
+      now + attack + release
+    );
   }
   osc.connect(envGain(audio, dest, peak, attack, release));
   osc.start(now);
@@ -80,13 +83,6 @@ function noiseBurst(
   src.start();
 }
 
-export function playWhoosh(): void {
-  const audio = getCtx();
-  if (!audio) return;
-  noiseBurst(audio, audio.destination, 0.18, 0.11, 900);
-  tone(audio, audio.destination, 520, "triangle", 0.07, 0.01, 0.14, 180);
-}
-
 export function playDenySfx(): void {
   const audio = getCtx();
   if (!audio) return;
@@ -98,25 +94,41 @@ export function playDenySfx(): void {
   }, 90);
 }
 
-function playSlashImpact(heavy: boolean): void {
+/** 出牌飛出：依牌型不同起手音 */
+export function playWhoosh(kind?: PlayFxKind): void {
   const audio = getCtx();
   if (!audio) return;
-  noiseBurst(audio, audio.destination, heavy ? 0.2 : 0.12, heavy ? 0.16 : 0.11, 700);
-  tone(
-    audio,
-    audio.destination,
-    heavy ? 720 : 980,
-    "sawtooth",
-    heavy ? 0.12 : 0.09,
-    0.004,
-    heavy ? 0.18 : 0.1,
-    heavy ? 90 : 160
-  );
-  tone(audio, audio.destination, heavy ? 1480 : 2100, "sine", 0.05, 0.002, 0.07);
-  if (heavy) {
-    tone(audio, audio.destination, 72, "sine", 0.14, 0.01, 0.24);
-    tone(audio, audio.destination, 523, "triangle", 0.07, 0.01, 0.3);
-    tone(audio, audio.destination, 784, "sine", 0.045, 0.02, 0.34);
+
+  switch (kind) {
+    case "fuxue":
+      noiseBurst(audio, audio.destination, 0.2, 0.1, 1200);
+      tone(audio, audio.destination, 880, "triangle", 0.06, 0.008, 0.16, 240);
+      tone(audio, audio.destination, 1480, "sine", 0.03, 0.01, 0.18);
+      return;
+    case "tuxu":
+      noiseBurst(audio, audio.destination, 0.14, 0.07, 2200);
+      tone(audio, audio.destination, 1260, "sine", 0.05, 0.01, 0.14, 720);
+      return;
+    case "lingtai":
+      tone(audio, audio.destination, 740, "triangle", 0.05, 0.015, 0.16);
+      tone(audio, audio.destination, 988, "sine", 0.035, 0.02, 0.2);
+      return;
+    case "cangfeng":
+      tone(audio, audio.destination, 180, "sawtooth", 0.05, 0.02, 0.16, 420);
+      noiseBurst(audio, audio.destination, 0.1, 0.06, 800);
+      return;
+    case "ningshuang":
+      tone(audio, audio.destination, 560, "sine", 0.05, 0.02, 0.22);
+      tone(audio, audio.destination, 840, "triangle", 0.035, 0.03, 0.24);
+      return;
+    case "yijian":
+      noiseBurst(audio, audio.destination, 0.22, 0.12, 700);
+      tone(audio, audio.destination, 420, "sawtooth", 0.08, 0.01, 0.2, 90);
+      tone(audio, audio.destination, 980, "triangle", 0.05, 0.015, 0.22);
+      return;
+    default:
+      noiseBurst(audio, audio.destination, 0.16, 0.09, 900);
+      tone(audio, audio.destination, 520, "triangle", 0.06, 0.01, 0.14, 180);
   }
 }
 
@@ -125,31 +137,46 @@ export function playImpact(kind: PlayFxKind): void {
   if (!audio) return;
 
   switch (kind) {
-    case "slash":
-      playSlashImpact(false);
+    case "fuxue":
+      // 劍氣揮斬：清脆刃音 + 氣流
+      noiseBurst(audio, audio.destination, 0.14, 0.12, 900);
+      tone(audio, audio.destination, 1180, "sawtooth", 0.09, 0.003, 0.1, 180);
+      tone(audio, audio.destination, 2100, "sine", 0.045, 0.002, 0.08);
+      tone(audio, audio.destination, 660, "triangle", 0.04, 0.01, 0.16);
       return;
-    case "ultimate":
-      playSlashImpact(true);
+    case "tuxu":
+      noiseBurst(audio, audio.destination, 0.12, 0.07, 2400);
+      tone(audio, audio.destination, 1480, "sine", 0.06, 0.008, 0.14, 920);
+      tone(audio, audio.destination, 990, "triangle", 0.035, 0.02, 0.18);
       return;
-    case "dodge":
-      noiseBurst(audio, audio.destination, 0.15, 0.09, 1600);
-      tone(audio, audio.destination, 1320, "sine", 0.07, 0.008, 0.16, 880);
-      return;
-    case "draw":
+    case "lingtai":
       tone(audio, audio.destination, 659, "triangle", 0.07, 0.01, 0.14);
       window.setTimeout(() => {
         const later = getCtx();
         if (!later) return;
-        tone(later, later.destination, 880, "triangle", 0.06, 0.01, 0.16);
+        tone(later, later.destination, 880, "triangle", 0.06, 0.01, 0.15);
+        tone(later, later.destination, 1175, "sine", 0.03, 0.015, 0.18);
       }, 70);
       return;
-    case "energy":
-      tone(audio, audio.destination, 523, "sine", 0.08, 0.012, 0.2);
-      tone(audio, audio.destination, 784, "triangle", 0.055, 0.02, 0.24);
+    case "cangfeng":
+      noiseBurst(audio, audio.destination, 0.12, 0.1, 600);
+      tone(audio, audio.destination, 160, "sawtooth", 0.08, 0.008, 0.14, 520);
+      tone(audio, audio.destination, 980, "square", 0.04, 0.004, 0.08);
+      tone(audio, audio.destination, 1310, "sine", 0.035, 0.01, 0.16);
       return;
-    case "intent":
-      tone(audio, audio.destination, 220, "sawtooth", 0.07, 0.02, 0.18, 520);
-      tone(audio, audio.destination, 440, "sine", 0.055, 0.03, 0.22);
+    case "ningshuang":
+      tone(audio, audio.destination, 392, "sine", 0.07, 0.02, 0.24);
+      tone(audio, audio.destination, 587, "triangle", 0.05, 0.025, 0.28);
+      tone(audio, audio.destination, 880, "sine", 0.03, 0.04, 0.3);
+      noiseBurst(audio, audio.destination, 0.16, 0.05, 1800);
+      return;
+    case "yijian":
+      noiseBurst(audio, audio.destination, 0.24, 0.16, 500);
+      tone(audio, audio.destination, 680, "sawtooth", 0.13, 0.004, 0.2, 70);
+      tone(audio, audio.destination, 1480, "sine", 0.06, 0.002, 0.1);
+      tone(audio, audio.destination, 72, "sine", 0.14, 0.012, 0.28);
+      tone(audio, audio.destination, 523, "triangle", 0.07, 0.015, 0.32);
+      tone(audio, audio.destination, 784, "sine", 0.04, 0.03, 0.36);
       return;
   }
 }

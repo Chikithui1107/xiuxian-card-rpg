@@ -733,21 +733,23 @@ body {
   box-shadow: inset 3px 0 0 rgba(201, 168, 76, 0.55);
 }
 
-.animate-card-fly.play-fly-slash {
-  box-shadow: 0 0 28px rgba(201, 168, 76, 0.55), 0 0 8px rgba(255, 240, 200, 0.4);
+.animate-card-fly.play-fly-fuxue {
+  box-shadow: 0 0 30px rgba(210, 230, 255, 0.55), 0 0 10px rgba(240, 248, 255, 0.4);
 }
-.animate-card-fly.play-fly-ultimate {
-  box-shadow: 0 0 36px rgba(160, 210, 255, 0.55), 0 0 12px rgba(201, 168, 76, 0.45);
+.animate-card-fly.play-fly-tuxu {
+  box-shadow: 0 0 28px rgba(122, 190, 220, 0.55);
 }
-.animate-card-fly.play-fly-dodge {
-  box-shadow: 0 0 28px rgba(122, 171, 206, 0.55);
+.animate-card-fly.play-fly-lingtai {
+  box-shadow: 0 0 28px rgba(184, 168, 216, 0.55);
 }
-.animate-card-fly.play-fly-draw {
-  box-shadow: 0 0 28px rgba(184, 168, 216, 0.5);
+.animate-card-fly.play-fly-cangfeng {
+  box-shadow: 0 0 28px rgba(201, 168, 76, 0.55), 0 0 12px rgba(120, 180, 255, 0.35);
 }
-.animate-card-fly.play-fly-energy,
-.animate-card-fly.play-fly-intent {
-  box-shadow: 0 0 28px rgba(201, 168, 76, 0.5);
+.animate-card-fly.play-fly-ningshuang {
+  box-shadow: 0 0 28px rgba(160, 210, 230, 0.5), 0 0 8px rgba(230, 140, 120, 0.25);
+}
+.animate-card-fly.play-fly-yijian {
+  box-shadow: 0 0 40px rgba(180, 220, 255, 0.65), 0 0 14px rgba(201, 168, 76, 0.4);
 }
 
 .play-screen-flash {
@@ -763,120 +765,399 @@ body {
   );
   animation: play-screen-flash 0.42s ease-out forwards;
 }
+.play-screen-flash--yijian {
+  background: radial-gradient(
+    ellipse at 50% 30%,
+    rgba(210, 235, 255, 0.42) 0%,
+    rgba(150, 200, 255, 0.16) 38%,
+    transparent 72%
+  );
+  animation-duration: 0.48s;
+}
 @keyframes play-screen-flash {
-  0% { opacity: 0.9; }
+  0% { opacity: 0.95; }
   100% { opacity: 0; }
 }
 
 .play-burst {
-  --burst: #e8d5a3;
   position: fixed;
   z-index: 90;
   width: 0;
   height: 0;
   pointer-events: none;
 }
-.play-burst--slash { --burst: #f0e0b0; }
-.play-burst--ultimate { --burst: #cfe8ff; }
-.play-burst--dodge { --burst: #9ec9e8; }
-.play-burst--draw { --burst: #c8b8e8; }
-.play-burst--energy { --burst: #e6c86a; }
-.play-burst--intent { --burst: #e8a070; }
 
-.play-burst-ring {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  border: 2px solid var(--burst);
-  box-shadow: 0 0 16px var(--burst);
-  transform: translate(-50%, -50%) scale(0.2);
-  animation: play-burst-ring 0.55s ease-out forwards;
-}
-.play-burst--ultimate .play-burst-ring {
-  width: 28px;
-  height: 28px;
-  border-width: 3px;
-}
-
-@keyframes play-burst-ring {
-  0% { opacity: 1; transform: translate(-50%, -50%) scale(0.15); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(4.2); }
-}
-
-.play-burst-slash {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 140px;
-  height: 3px;
-  border-radius: 999px;
-  --slash-rot: -32deg;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    var(--burst) 30%,
-    #fff 50%,
-    var(--burst) 70%,
-    transparent
-  );
-  box-shadow: 0 0 10px var(--burst);
-  transform: translate(-50%, -50%) rotate(var(--slash-rot)) scaleX(0.15);
-  animation: play-burst-slash 0.38s cubic-bezier(0.15, 0.8, 0.2, 1) forwards;
-}
-.play-burst-slash-b {
-  width: 100px;
-  --slash-rot: 18deg;
-  animation-delay: 0.04s;
-}
-.play-burst--dodge .play-burst-slash,
-.play-burst--draw .play-burst-slash,
-.play-burst--energy .play-burst-slash,
-.play-burst--intent .play-burst-slash {
-  height: 2px;
-  width: 90px;
-  opacity: 0.85;
-}
-
-@keyframes play-burst-slash {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) rotate(var(--slash-rot)) scaleX(0.12);
-  }
-  22% { opacity: 1; }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -50%) rotate(var(--slash-rot)) scaleX(1.15);
-  }
-}
-
-.play-burst-spark {
+/* ── shared particles ── */
+.fx-spark {
   position: absolute;
   left: 0;
   top: 0;
   width: 5px;
   height: 5px;
   border-radius: 999px;
-  background: var(--burst);
-  box-shadow: 0 0 8px var(--burst);
+  background: #e8d5a3;
+  box-shadow: 0 0 8px currentColor;
   transform: translate(-50%, -50%);
-  animation: play-burst-spark 0.5s ease-out forwards;
-  animation-delay: calc(var(--i, 0) * 18ms);
+  animation: fx-spark 0.5s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 16ms);
+}
+.fx-spark-fuxue { background: #eef6ff; box-shadow: 0 0 10px #cfe4ff; }
+.fx-spark-tuxu { background: #9ed7ef; box-shadow: 0 0 10px #7ab8d8; }
+.fx-spark-lingtai { background: #d4c4f0; box-shadow: 0 0 10px #b8a8d8; }
+.fx-spark-cangfeng { background: #f0d78a; box-shadow: 0 0 10px #c9a84c; }
+.fx-spark-ningshuang { background: #d7eef7; box-shadow: 0 0 10px #9ec9d8; }
+.fx-spark-yijian { background: #fff; box-shadow: 0 0 12px #b8dcff; width: 6px; height: 6px; }
+
+@keyframes fx-spark {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx, 40px)), calc(-50% + var(--dy, 0px))) scale(0.2);
+  }
 }
 
-@keyframes play-burst-spark {
+.fx-ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 2px solid rgba(200, 220, 255, 0.85);
+  box-shadow: 0 0 14px rgba(180, 210, 255, 0.55);
+  transform: translate(-50%, -50%) scale(0.2);
+  animation: fx-ring 0.55s ease-out forwards;
+}
+@keyframes fx-ring {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(0.15); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(4.2); }
+}
+
+.fx-core-glow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%) scale(0.4);
+  animation: fx-core 0.45s ease-out forwards;
+}
+.fx-core-fuxue {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(180, 210, 255, 0.35) 45%, transparent 70%);
+}
+.fx-core-cangfeng {
+  background: radial-gradient(circle, rgba(255, 230, 160, 0.95) 0%, rgba(120, 170, 255, 0.35) 50%, transparent 72%);
+}
+.fx-core-yijian {
+  width: 42px;
+  height: 42px;
+  background: radial-gradient(circle, #fff 0%, rgba(180, 220, 255, 0.55) 40%, transparent 72%);
+}
+@keyframes fx-core {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(0.35); }
+  55% { opacity: 0.85; transform: translate(-50%, -50%) scale(1.35); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); }
+}
+
+/* ── 拂雪流光：劍氣揮斬 ── */
+.fx-qi-arc {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 150px;
+  height: 150px;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  border-top-color: rgba(235, 245, 255, 0.95);
+  border-right-color: rgba(180, 210, 255, 0.55);
+  box-shadow: 0 0 18px rgba(200, 225, 255, 0.45);
+  transform: translate(-50%, -50%) rotate(-55deg) scale(0.35);
+  animation: fx-qi-arc 0.48s cubic-bezier(0.12, 0.75, 0.2, 1) forwards;
+}
+.fx-qi-arc-b {
+  width: 118px;
+  height: 118px;
+  border-top-color: rgba(255, 255, 255, 0.75);
+  animation-delay: 0.04s;
+  animation-duration: 0.42s;
+}
+@keyframes fx-qi-arc {
   0% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-95deg) scale(0.25);
   }
+  18% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(28deg) scale(1.15);
+  }
+}
+
+.fx-sword-beam {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 170px;
+  height: 4px;
+  border-radius: 999px;
+  --slash-rot: -38deg;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(200, 225, 255, 0.55) 18%,
+    #fff 48%,
+    rgba(200, 225, 255, 0.55) 78%,
+    transparent
+  );
+  box-shadow: 0 0 14px rgba(210, 230, 255, 0.85), 0 0 28px rgba(150, 190, 255, 0.35);
+  transform: translate(-50%, -50%) rotate(var(--slash-rot)) scaleX(0.12);
+  animation: fx-sword-beam 0.4s cubic-bezier(0.1, 0.8, 0.15, 1) forwards;
+}
+.fx-sword-beam-b {
+  width: 120px;
+  height: 2px;
+  --slash-rot: 16deg;
+  animation-delay: 0.05s;
+  opacity: 0.85;
+}
+.fx-sword-beam-ultimate {
+  width: 210px;
+  height: 5px;
+  --slash-rot: -48deg;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(170, 210, 255, 0.7) 16%,
+    #fff 50%,
+    rgba(170, 210, 255, 0.7) 84%,
+    transparent
+  );
+}
+.fx-sword-beam-ultimate-b {
+  width: 160px;
+  height: 3px;
+  --slash-rot: 24deg;
+  animation-delay: 0.06s;
+}
+@keyframes fx-sword-beam {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--slash-rot)) scaleX(0.1);
+  }
+  20% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--slash-rot)) scaleX(1.2);
+  }
+}
+
+.fx-snow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 1px;
+  background: rgba(240, 248, 255, 0.95);
+  box-shadow: 0 0 6px rgba(200, 225, 255, 0.8);
+  transform: translate(calc(-50% + var(--sx, 0px)), calc(-50% + var(--sy, 0px)));
+  animation: fx-snow 0.65s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 20ms);
+}
+.fx-snow-heavy {
+  width: 5px;
+  height: 5px;
+}
+@keyframes fx-snow {
+  0% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--sx, 0px)), calc(-50% + var(--sy, 0px))) scale(0.4) rotate(0deg);
+  }
+  20% { opacity: 1; }
   100% {
     opacity: 0;
     transform: translate(
-        calc(-50% + var(--dx, 40px)),
-        calc(-50% + var(--dy, 0px))
+        calc(-50% + var(--sx, 0px) + var(--drift, 20px)),
+        calc(-50% + var(--sy, 0px) + 48px)
       )
-      scale(0.2);
+      scale(0.7)
+      rotate(120deg);
   }
+}
+
+/* ── 踏虛掠影：殘影 ── */
+.fx-ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 34px;
+  height: 52px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(150, 210, 235, 0.55);
+  background: linear-gradient(180deg, rgba(120, 190, 220, 0.22), transparent);
+  transform: translate(-50%, -50%);
+  animation: fx-ghost 0.5s ease-out forwards;
+}
+.fx-ghost-a { animation-delay: 0ms; left: -18px; }
+.fx-ghost-b { animation-delay: 40ms; left: 0; opacity: 0.85; }
+.fx-ghost-c { animation-delay: 80ms; left: 18px; }
+@keyframes fx-ghost {
+  0% { opacity: 0.9; transform: translate(-50%, -40%) scale(0.85); filter: blur(0); }
+  100% { opacity: 0; transform: translate(-50%, -90%) scale(1.15); filter: blur(2px); }
+}
+.fx-ring-tuxu { border-color: rgba(140, 210, 235, 0.85); }
+.fx-ring-tuxu-b {
+  animation-delay: 0.08s;
+  width: 14px;
+  height: 14px;
+  border-color: rgba(200, 240, 255, 0.7);
+}
+
+/* ── 靈台觀劍：心眼符紋 ── */
+.fx-eye {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 36px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(200, 180, 240, 0.9);
+  box-shadow: 0 0 16px rgba(180, 160, 230, 0.55), inset 0 0 10px rgba(220, 200, 255, 0.35);
+  transform: translate(-50%, -50%) scale(0.4);
+  animation: fx-eye 0.55s ease-out forwards;
+}
+.fx-eye::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #e8dcff;
+  box-shadow: 0 0 10px #c8b8e8;
+  transform: translate(-50%, -50%);
+}
+@keyframes fx-eye {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  35% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.45); }
+}
+.fx-ring-lingtai { border-color: rgba(200, 180, 240, 0.8); }
+.fx-ring-lingtai-b { animation-delay: 0.1s; width: 12px; height: 12px; }
+.fx-glyph {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fff, rgba(184, 168, 216, 0.4));
+  box-shadow: 0 0 8px rgba(200, 180, 240, 0.7);
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) translateY(-28px) scaleY(0.2);
+  animation: fx-glyph 0.55s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 25ms);
+}
+@keyframes fx-glyph {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) translateY(-10px) scaleY(0.1); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--rot, 0deg)) translateY(-42px) scaleY(1.1); }
+}
+
+/* ── 藏鋒蘊雷：蓄雷 ── */
+.fx-bolt {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 46px;
+  --bolt-rot: -18deg;
+  background: linear-gradient(180deg, #fff 0%, #f0d78a 40%, rgba(120, 170, 255, 0.2) 100%);
+  box-shadow: 0 0 12px rgba(201, 168, 76, 0.8);
+  clip-path: polygon(40% 0, 100% 35%, 55% 35%, 75% 100%, 0 45%, 45% 45%);
+  transform: translate(-50%, -50%) rotate(var(--bolt-rot)) scaleY(0.2);
+  animation: fx-bolt 0.42s ease-out forwards;
+}
+.fx-bolt-b {
+  height: 34px;
+  --bolt-rot: 28deg;
+  animation-delay: 0.05s;
+}
+@keyframes fx-bolt {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--bolt-rot)) scaleY(0.15); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--bolt-rot)) scaleY(1.2); }
+}
+.fx-ring-cangfeng { border-color: rgba(240, 215, 130, 0.85); box-shadow: 0 0 14px rgba(201, 168, 76, 0.55); }
+
+/* ── 凝霜養魂：霜晶 ── */
+.fx-frost-mist {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 70px;
+  height: 70px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(210, 235, 245, 0.45) 0%, transparent 70%);
+  transform: translate(-50%, -50%) scale(0.3);
+  animation: fx-frost-mist 0.55s ease-out forwards;
+}
+@keyframes fx-frost-mist {
+  0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.25); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6); }
+}
+.fx-crystal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 14px;
+  background: linear-gradient(180deg, #fff, rgba(160, 210, 230, 0.55));
+  clip-path: polygon(50% 0, 100% 35%, 70% 100%, 30% 100%, 0 35%);
+  box-shadow: 0 0 8px rgba(180, 220, 235, 0.7);
+  transform: translate(calc(-50% + var(--cx, 0px)), calc(-50% + var(--cy, 0px))) scale(0.2);
+  animation: fx-crystal 0.58s ease-out forwards;
+  animation-delay: calc(var(--i, 0) * 30ms);
+}
+@keyframes fx-crystal {
+  0% { opacity: 0; transform: translate(calc(-50% + var(--cx, 0px)), calc(-50% + var(--cy, 0px))) scale(0.15) rotate(0deg); }
+  40% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--cx, 0px)), calc(-50% + var(--cy, 0px) - 18px)) scale(1.1) rotate(25deg); }
+}
+.fx-ring-ningshuang { border-color: rgba(170, 220, 235, 0.85); }
+
+/* ── 一劍霜寒：垂天霜刃 ── */
+.fx-frost-blade {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 18px;
+  height: 150px;
+  border-radius: 4px 4px 40% 40%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(180, 220, 255, 0.75) 35%,
+    rgba(120, 180, 230, 0.15) 100%
+  );
+  box-shadow: 0 0 24px rgba(180, 220, 255, 0.75), 0 0 40px rgba(150, 200, 255, 0.35);
+  transform: translate(-50%, -80%) scaleY(0.15);
+  animation: fx-frost-blade 0.55s cubic-bezier(0.15, 0.8, 0.2, 1) forwards;
+}
+@keyframes fx-frost-blade {
+  0% { opacity: 0; transform: translate(-50%, -110%) scaleY(0.1); }
+  30% { opacity: 1; transform: translate(-50%, -55%) scaleY(1); }
+  100% { opacity: 0; transform: translate(-50%, -20%) scaleY(1.05); }
+}
+.fx-ring-yijian {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+  border-color: rgba(200, 230, 255, 0.95);
+}
+.fx-ring-yijian-b {
+  animation-delay: 0.08s;
+  width: 16px;
+  height: 16px;
 }
