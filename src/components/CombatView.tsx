@@ -23,6 +23,7 @@ import {
   playDenySfx,
   playImpact,
   playWhoosh,
+  preloadCombatSfx,
   unlockCombatAudio,
 } from "@/lib/combat-audio";
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
@@ -117,6 +118,10 @@ export function CombatView({
     return () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
     };
+  }, []);
+
+  useEffect(() => {
+    preloadCombatSfx();
   }, []);
 
   const showToast = useCallback((msg: string) => {

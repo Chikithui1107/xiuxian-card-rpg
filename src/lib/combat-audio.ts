@@ -1,11 +1,34 @@
 import type { PlayFxKind } from "@/lib/combat-fx";
+import { publicAsset } from "@/lib/paths";
 
 type WebkitWindow = Window & {
   webkitAudioContext?: typeof AudioContext;
 };
 
+/**
+ * 把你的音效放到 public/sfx/ 后即可生效，例如：
+ *   public/sfx/sword_whoosh.mp3
+ *   public/sfx/sword_impact.mp3
+ *   public/sfx/yijian_whoosh.mp3  （可選，沒有則回退到 sword_whoosh）
+ *
+ * 支援 .mp3 / .wav / .ogg
+ */
+const SAMPLE_CANDIDATES: Record<string, string[]> = {
+  sword_whoosh: ["sword_whoosh", "whoosh", "slash"],
+  sword_impact: ["sword_impact", "impact", "hit"],
+  yijian_whoosh: ["yijian_whoosh", "heavy_whoosh", "sword_whoosh"],
+  yijian_impact: ["yijian_impact", "heavy_impact", "sword_impact"],
+  soft_whoosh: ["soft_whoosh", "whoosh", "sword_whoosh"],
+  soft_impact: ["soft_impact", "impact", "sword_impact"],
+  deny: ["deny", "error", "sword_impact"],
+};
+
+const EXT = [".mp3", ".wav", ".ogg"] as const;
+
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
+const bufferCache = new Map<string, AudioBuffer | null>();
+const resolveCache = new Map<string, string | null>();
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -15,16 +38,11 @@ function getCtx(): AudioContext | null {
   if (!ctx) {
     ctx = new AC();
     master = ctx.createGain();
-    master.gain.value = 1;
+    master.gain.value = 0.85;
     master.connect(ctx.destination);
   }
   if (ctx.state === "suspended") void ctx.resume();
   return ctx;
-}
-
-function out(): AudioNode {
-  if (!master) getCtx();
-  return master ?? ctx!.destination;
 }
 
 export function unlockCombatAudio(): void {
@@ -32,270 +50,103 @@ export function unlockCombatAudio(): void {
   if (audio?.state === "suspended") void audio.resume();
 }
 
-function withAudio(play: (audio: AudioContext) => void): void {
+async function loadBuffer(logicalKey: string): Promise<AudioBuffer | null> {
+  if (bufferCache.has(logicalKey)) return bufferCache.get(logicalKey)!;
   const audio = getCtx();
-  if (!audio) return;
+  if (!audio) return null;
+
+  const names = SAMPLE_CANDIDATES[logicalKey] ?? [logicalKey];
+  for (const name of names) {
+    for (const ext of EXT) {
+      const url = publicAsset(`/sfx/${name}${ext}`);
+      try {
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const raw = await res.arrayBuffer();
+        // skip tiny/non-audio responses (e.g. HTML 404 pages mis-served)
+        if (raw.byteLength < 256) continue;
+        const buffer = await audio.decodeAudioData(raw.slice(0));
+        bufferCache.set(logicalKey, buffer);
+        resolveCache.set(logicalKey, url);
+        return buffer;
+      } catch {
+        /* try next candidate */
+      }
+    }
+  }
+
+  bufferCache.set(logicalKey, null);
+  resolveCache.set(logicalKey, null);
+  return null;
+}
+
+function playBuffer(buffer: AudioBuffer, peak = 1): void {
+  const audio = getCtx();
+  if (!audio || !master) return;
   if (audio.state === "suspended") {
-    void audio.resume().then(() => {
-      if (ctx && ctx.state === "running") play(ctx);
-    });
+    void audio.resume().then(() => playBuffer(buffer, peak));
     return;
   }
-  play(audio);
-}
-
-function whiteNoise(audio: AudioContext, seconds: number): AudioBuffer {
-  const length = Math.max(1, Math.floor(audio.sampleRate * seconds));
-  const buffer = audio.createBuffer(1, length, audio.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < length; i++) {
-    data[i] = Math.random() * 2 - 1;
-  }
-  return buffer;
-}
-
-function playNoiseLayer(options: {
-  audio: AudioContext;
-  duration: number;
-  peak: number;
-  startHz: number;
-  endHz: number;
-  q?: number;
-  attack?: number;
-  type?: BiquadFilterType;
-  delay?: number;
-}): void {
-  const {
-    audio,
-    duration,
-    peak,
-    startHz,
-    endHz,
-    q = 0.7,
-    attack = 0.01,
-    type = "bandpass",
-    delay = 0,
-  } = options;
-
-  const t0 = audio.currentTime + delay;
   const src = audio.createBufferSource();
-  src.buffer = whiteNoise(audio, duration + 0.05);
-
-  const filter = audio.createBiquadFilter();
-  filter.type = type;
-  filter.Q.value = q;
-  filter.frequency.setValueAtTime(Math.max(80, startHz), t0);
-  filter.frequency.exponentialRampToValueAtTime(
-    Math.max(80, endHz),
-    t0 + duration
-  );
-
+  src.buffer = buffer;
   const gain = audio.createGain();
-  // linear ramps are more reliable / louder than exponential near silence
-  gain.gain.setValueAtTime(0, t0);
-  gain.gain.linearRampToValueAtTime(peak, t0 + attack);
-  gain.gain.linearRampToValueAtTime(0, t0 + duration);
-
-  src.connect(filter);
-  filter.connect(gain);
-  gain.connect(out());
-  src.start(t0);
-  src.stop(t0 + duration + 0.06);
+  gain.gain.value = peak;
+  src.connect(gain);
+  gain.connect(master);
+  src.start();
 }
 
-function playBodyThump(audio: AudioContext, heavy: boolean): void {
-  const t0 = audio.currentTime;
-  const osc = audio.createOscillator();
-  osc.type = "sine";
-  osc.frequency.setValueAtTime(heavy ? 70 : 90, t0);
-  osc.frequency.exponentialRampToValueAtTime(heavy ? 35 : 48, t0 + 0.12);
-
-  const gain = audio.createGain();
-  gain.gain.setValueAtTime(0, t0);
-  gain.gain.linearRampToValueAtTime(heavy ? 0.35 : 0.18, t0 + 0.01);
-  gain.gain.linearRampToValueAtTime(0, t0 + (heavy ? 0.16 : 0.1));
-
-  osc.connect(gain);
-  gain.connect(out());
-  osc.start(t0);
-  osc.stop(t0 + 0.2);
+async function playSample(logicalKey: string, peak = 1): Promise<boolean> {
+  const buffer = await loadBuffer(logicalKey);
+  if (!buffer) return false;
+  playBuffer(buffer, peak);
+  return true;
 }
 
-/** 揮劍破空：可聽清的氣流聲，無叮叮 */
-function playSwordWhoosh(audio: AudioContext, heavy = false): void {
-  playNoiseLayer({
-    audio,
-    duration: heavy ? 0.26 : 0.18,
-    peak: heavy ? 0.85 : 0.7,
-    startHz: heavy ? 3200 : 4000,
-    endHz: heavy ? 350 : 550,
-    q: 0.8,
-    attack: 0.012,
-  });
-  playNoiseLayer({
-    audio,
-    duration: heavy ? 0.22 : 0.15,
-    peak: heavy ? 0.45 : 0.35,
-    startHz: 2000,
-    endHz: 200,
-    q: 0.5,
-    attack: 0.02,
-    type: "lowpass",
-    delay: 0.015,
-  });
-  if (heavy) playBodyThump(audio, true);
+function whooshKey(kind?: PlayFxKind): string {
+  switch (kind) {
+    case "yijian":
+      return "yijian_whoosh";
+    case "tuxu":
+    case "lingtai":
+    case "ningshuang":
+    case "cangfeng":
+      return "soft_whoosh";
+    default:
+      return "sword_whoosh";
+  }
 }
 
-/** 命中：短促氣爆 + 低沉撞擊 */
-function playSwordImpact(audio: AudioContext, heavy = false): void {
-  playNoiseLayer({
-    audio,
-    duration: heavy ? 0.1 : 0.07,
-    peak: heavy ? 0.9 : 0.75,
-    startHz: 2500,
-    endHz: 400,
-    q: 0.9,
-    attack: 0.004,
-  });
-  playNoiseLayer({
-    audio,
-    duration: heavy ? 0.14 : 0.09,
-    peak: heavy ? 0.5 : 0.35,
-    startHz: 800,
-    endHz: 120,
-    q: 0.5,
-    attack: 0.006,
-    type: "lowpass",
-  });
-  playBodyThump(audio, heavy);
+function impactKey(kind: PlayFxKind): string {
+  switch (kind) {
+    case "yijian":
+      return "yijian_impact";
+    case "tuxu":
+    case "lingtai":
+    case "ningshuang":
+    case "cangfeng":
+      return "soft_impact";
+    default:
+      return "sword_impact";
+  }
 }
 
 export function playDenySfx(): void {
-  withAudio((audio) => {
-    playNoiseLayer({
-      audio,
-      duration: 0.1,
-      peak: 0.45,
-      startHz: 500,
-      endHz: 120,
-      q: 0.6,
-      attack: 0.005,
-      type: "lowpass",
-    });
-    playBodyThump(audio, false);
-  });
+  void playSample("deny", 0.8);
 }
 
 export function playWhoosh(kind?: PlayFxKind): void {
-  withAudio((audio) => {
-    switch (kind) {
-      case "fuxue":
-        playSwordWhoosh(audio, false);
-        return;
-      case "yijian":
-        playSwordWhoosh(audio, true);
-        return;
-      case "tuxu":
-        playNoiseLayer({
-          audio,
-          duration: 0.14,
-          peak: 0.55,
-          startHz: 3000,
-          endHz: 700,
-          q: 0.7,
-        });
-        return;
-      case "lingtai":
-        playNoiseLayer({
-          audio,
-          duration: 0.16,
-          peak: 0.4,
-          startHz: 1600,
-          endHz: 450,
-          q: 0.5,
-          type: "lowpass",
-        });
-        return;
-      case "cangfeng":
-        playNoiseLayer({
-          audio,
-          duration: 0.15,
-          peak: 0.5,
-          startHz: 700,
-          endHz: 120,
-          q: 0.5,
-          type: "lowpass",
-        });
-        playBodyThump(audio, false);
-        return;
-      case "ningshuang":
-        playNoiseLayer({
-          audio,
-          duration: 0.16,
-          peak: 0.45,
-          startHz: 2000,
-          endHz: 400,
-          q: 0.6,
-        });
-        return;
-      default:
-        playSwordWhoosh(audio, false);
-    }
-  });
+  void playSample(whooshKey(kind), kind === "yijian" ? 1 : 0.9);
 }
 
 export function playImpact(kind: PlayFxKind): void {
-  withAudio((audio) => {
-    switch (kind) {
-      case "fuxue":
-        playSwordImpact(audio, false);
-        return;
-      case "yijian":
-        playSwordImpact(audio, true);
-        return;
-      case "tuxu":
-        playNoiseLayer({
-          audio,
-          duration: 0.08,
-          peak: 0.5,
-          startHz: 2200,
-          endHz: 500,
-          q: 0.7,
-        });
-        return;
-      case "lingtai":
-        playNoiseLayer({
-          audio,
-          duration: 0.12,
-          peak: 0.35,
-          startHz: 1200,
-          endHz: 300,
-          q: 0.5,
-          type: "lowpass",
-        });
-        return;
-      case "cangfeng":
-        playNoiseLayer({
-          audio,
-          duration: 0.12,
-          peak: 0.55,
-          startHz: 700,
-          endHz: 100,
-          q: 0.5,
-          type: "lowpass",
-        });
-        playBodyThump(audio, false);
-        return;
-      case "ningshuang":
-        playNoiseLayer({
-          audio,
-          duration: 0.12,
-          peak: 0.4,
-          startHz: 1800,
-          endHz: 280,
-          q: 0.6,
-        });
-        return;
-    }
-  });
+  void playSample(impactKey(kind), kind === "yijian" ? 1 : 0.95);
+}
+
+/** 預載常用劍音，減少第一次出牌延遲 */
+export function preloadCombatSfx(): void {
+  void loadBuffer("sword_whoosh");
+  void loadBuffer("sword_impact");
+  void loadBuffer("yijian_whoosh");
+  void loadBuffer("yijian_impact");
 }
