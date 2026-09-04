@@ -73,7 +73,7 @@ export interface DungeonTier {
   accent: "cyan" | "purple" | "amber";
 }
 
-export type CombatScreen = "tier-select" | "map" | "battle";
+export type CombatScreen = "tier-select" | "path" | "battle";
 
 export type CombatPhase = "playing" | "defeat";
 

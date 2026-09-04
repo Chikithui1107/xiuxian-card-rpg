@@ -146,7 +146,7 @@ export function TierSelectionView({
                 <span
                   className={`text-xs font-bold tracking-[0.2em] ${styles.text}`}
                 >
-                  開始挑戰 →
+                  {cleared ? "再挑戰（新一輪） →" : "開始挑戰 →"}
                 </span>
               </div>
             </button>

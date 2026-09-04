@@ -6,6 +6,18 @@ export function flattenMap(map: MapNode[][]): MapNode[] {
   return map.flat();
 }
 
+export function getAvailableNodes(map: MapNode[][]): MapNode[] {
+  return flattenMap(map).filter((node) => node.status === "available");
+}
+
+export function countCompletedNodes(map: MapNode[][]): number {
+  return flattenMap(map).filter((node) => node.status === "completed").length;
+}
+
+export function countTotalNodes(map: MapNode[][]): number {
+  return flattenMap(map).length;
+}
+
 export function getMapNode(
   map: MapNode[][],
   id: string

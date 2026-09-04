@@ -9,7 +9,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { LobbyView } from "@/components/LobbyView";
 import { CombatView } from "@/components/CombatView";
 import { TierSelectionView } from "@/components/TierSelectionView";
-import { MapView } from "@/components/MapView";
+import { PathChoiceView } from "@/components/PathChoiceView";
 import { InventoryView } from "@/components/InventoryView";
 import { CardRewardModal } from "@/components/CardRewardModal";
 import { InGameMenu } from "@/components/InGameMenu";
@@ -50,6 +50,9 @@ import {
 } from "@/lib/dungeon";
 import {
   completeMapNode,
+  countCompletedNodes,
+  countTotalNodes,
+  getAvailableNodes,
   getMapNode,
   isBossCleared,
 } from "@/lib/map";
@@ -229,23 +232,6 @@ export default function GamePage() {
     [heroStats.maxHp, resetCombatState]
   );
 
-  const returnToTierSelect = useCallback(
-    (message: string | null = null, healPlayer = false) => {
-      setActiveTab("combat");
-      setIsInCombat(false);
-      setCombatScreen("tier-select");
-      setSelectedTier(null);
-      setTierFloor(1);
-      setDungeonMap([]);
-      setCurrentMapNodeId(null);
-      setMapMessage(null);
-      resetCombatState();
-      if (message) setLastRunMessage(message);
-      if (healPlayer) setPlayerHp(heroStats.maxHp);
-    },
-    [heroStats.maxHp, resetCombatState]
-  );
-
   const startBattleForMapNode = useCallback(
     (tier: DungeonTier, node: MapNode) => {
       const scaledEnemy = getEnemyForMapNode(tier, node, ENEMY_LIST);
@@ -272,10 +258,10 @@ export default function GamePage() {
     [permanentDeck]
   );
 
-  const returnToMap = useCallback(
+  const returnToPath = useCallback(
     (message: string | null = null) => {
       setIsInCombat(false);
-      setCombatScreen("map");
+      setCombatScreen("path");
       setActiveTab("combat");
       resetCombatState();
       if (message) setMapMessage(message);
@@ -287,9 +273,9 @@ export default function GamePage() {
     (nodeId: string, message: string) => {
       setDungeonMap((prev) => completeMapNode(prev, nodeId));
       setCurrentMapNodeId(null);
-      returnToMap(message);
+      returnToPath(message);
     },
-    [returnToMap]
+    [returnToPath]
   );
 
   const handleMapNodeSelect = useCallback(
@@ -340,13 +326,13 @@ export default function GamePage() {
 
   const quitRun = useCallback(() => {
     resetPermanentDeck();
-    returnToLobby("已放棄本次修行。", true);
+    returnToLobby("已退出本次修行，秘境進度已清空。", true);
   }, [returnToLobby, resetPermanentDeck]);
 
   const abandonGame = useCallback(() => {
     if (
       typeof window !== "undefined" &&
-      !window.confirm("確定放棄本次修行？進度將無法恢復。")
+      !window.confirm("確定退出本次修行？當前秘境進度將無法恢復。")
     ) {
       return;
     }
@@ -372,7 +358,7 @@ export default function GamePage() {
       setCurrentMapNodeId(null);
       setMapMessage(null);
       setIsInCombat(false);
-      setCombatScreen("map");
+      setCombatScreen("path");
       setActiveTab("combat");
       resetPermanentDeck();
       resetCombatState();
@@ -580,13 +566,13 @@ export default function GamePage() {
     const tierLabel = selectedTier?.name ?? "祕境";
     const timer = setTimeout(() => {
       resetPermanentDeck();
-      returnToTierSelect(
-        `${tierLabel} 第 ${tierFloor} 重失敗，已返回試煉選擇。`,
+      returnToLobby(
+        `${tierLabel} 第 ${tierFloor} 重失敗，已返回山門。`,
         true
       );
     }, 1500);
     return () => clearTimeout(timer);
-  }, [phase, tierFloor, selectedTier, returnToTierSelect, resetPermanentDeck]);
+  }, [phase, tierFloor, selectedTier, returnToLobby, resetPermanentDeck]);
 
   const completeRewardNode = useCallback(
     (cardName: string | null) => {
@@ -610,10 +596,10 @@ export default function GamePage() {
         return;
       }
 
-      returnToMap(
+      returnToPath(
         cardName
-          ? `擊敗敵人，獲得「${cardName}」。選擇下一節點繼續。`
-          : "擊敗敵人，已放棄劍訣獎勵。選擇下一節點繼續。"
+          ? `擊敗敵人，獲得「${cardName}」。請擇下一途繼續。`
+          : "擊敗敵人，已放棄劍訣獎勵。請擇下一途繼續。"
       );
     },
     [
@@ -622,7 +608,7 @@ export default function GamePage() {
       dungeonMap,
       pendingFloorReward,
       pendingTierComplete,
-      returnToMap,
+      returnToPath,
     ]
   );
 
@@ -648,8 +634,9 @@ export default function GamePage() {
       if (prev.includes(selectedTier.achievementId)) return prev;
       return [...prev, selectedTier.achievementId];
     });
-    returnToTierSelect(stageClearMessage);
-  }, [selectedTier, stageClearMessage, returnToTierSelect]);
+    // 通關封印：清空本局地圖，回山門，不可再鑽回舊圖
+    returnToLobby(stageClearMessage, true);
+  }, [selectedTier, stageClearMessage, returnToLobby]);
 
   const deckInfo = useMemo(
     () => ({
@@ -676,7 +663,13 @@ export default function GamePage() {
             hasActiveRun={hasActiveRun}
             runLabel={
               selectedTier
-                ? `${selectedTier.name}${isInCombat ? " · 戰鬥中" : " · 地圖"}`
+                ? `${selectedTier.name}${
+                    isInCombat
+                      ? " · 戰鬥中"
+                      : combatScreen === "path"
+                        ? " · 岔路"
+                        : ""
+                  }`
                 : null
             }
             onEnterDungeon={enterTierSelect}
@@ -712,17 +705,19 @@ export default function GamePage() {
             </div>
           );
         }
-        if (combatScreen === "map" && selectedTier) {
+        if (combatScreen === "path" && selectedTier) {
           return (
-              <MapView
-                map={dungeonMap}
-                tierName={selectedTier.name}
-                playerHp={playerHp}
-                maxHp={heroStats.maxHp}
-                currentNodeId={currentMapNodeId}
-                mapMessage={mapMessage}
-                onSelectNode={handleMapNodeSelect}
-              />
+            <PathChoiceView
+              map={dungeonMap}
+              choices={getAvailableNodes(dungeonMap)}
+              tierName={selectedTier.name}
+              playerHp={playerHp}
+              maxHp={heroStats.maxHp}
+              completedCount={countCompletedNodes(dungeonMap)}
+              totalCount={countTotalNodes(dungeonMap)}
+              mapMessage={mapMessage}
+              onSelectNode={handleMapNodeSelect}
+            />
           );
         }
         if (!isInCombat) {
@@ -735,7 +730,7 @@ export default function GamePage() {
             enemy={enemy}
             tierName={selectedTier?.name}
             tierFloor={tierFloor}
-            totalFloors={10}
+            totalFloors={8}
             playerHp={playerHp}
             energy={energy}
             combatBuffs={combatBuffs}
@@ -760,6 +755,13 @@ export default function GamePage() {
     }
   };
 
+  const showRunMenu =
+    hasActiveRun &&
+    activeTab === "combat" &&
+    (combatScreen === "path" ||
+      combatScreen === "battle" ||
+      isInCombat);
+
   if (!ready) {
     return (
       <div className="mobile-shell flex items-center justify-center">
@@ -771,26 +773,19 @@ export default function GamePage() {
   return (
     <MobileFrame
       title="修仙卡牌錄"
-      subtitle={TAB_LABELS[activeTab]}
+      subtitle={
+        hasActiveRun && selectedTier
+          ? `${selectedTier.name} · 修行中`
+          : TAB_LABELS[activeTab]
+      }
       inGameMenu={
-        activeTab === "combat" &&
-        ((combatScreen === "map" && selectedTier !== null) ||
-          (isInCombat &&
-            phase === "playing" &&
-            battlePhase === "IN_BATTLE")) ? (
-          <InGameMenu onQuit={quitRun} />
-        ) : null
+        showRunMenu ? <InGameMenu onQuit={quitRun} /> : null
       }
       bottomNav={
         <BottomNav
           activeTab={activeTab}
           onTabChange={setActiveTab}
-          inCombat={
-            (isInCombat &&
-              phase === "playing" &&
-              battlePhase === "IN_BATTLE") ||
-            (selectedTier !== null && combatScreen === "map")
-          }
+          inCombat={hasActiveRun}
           combatLocked={
             isInCombat &&
             (phase === "defeat" || battlePhase !== "IN_BATTLE")
@@ -814,7 +809,7 @@ export default function GamePage() {
           isTierComplete={pendingTierComplete}
           tierName={selectedTier?.name}
           tierFloor={tierFloor}
-          totalFloors={10}
+          totalFloors={8}
         />
       )}
 
@@ -836,7 +831,7 @@ export default function GamePage() {
               {selectedTier
                 ? `【${selectedTier.name}】關卡 ${tierFloor}`
                 : "祕境試煉"}
-              · 返回試煉選擇…
+              · 返回山門…
             </p>
           </div>
         </div>
