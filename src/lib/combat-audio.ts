@@ -5,50 +5,113 @@ type WebkitWindow = Window & {
 };
 
 let ctx: AudioContext | null = null;
+let master: GainNode | null = null;
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
   const AC =
     window.AudioContext ?? (window as WebkitWindow).webkitAudioContext;
   if (!AC) return null;
-  if (!ctx) ctx = new AC();
+  if (!ctx) {
+    ctx = new AC();
+    master = ctx.createGain();
+    master.gain.value = 0.55;
+    master.connect(ctx.destination);
+  }
   if (ctx.state === "suspended") void ctx.resume();
   return ctx;
+}
+
+function dest(): AudioNode {
+  return master ?? getCtx()!.destination;
 }
 
 export function unlockCombatAudio(): void {
   getCtx();
 }
 
-function envGain(
-  audio: AudioContext,
-  dest: AudioNode,
-  peak: number,
-  attack: number,
-  release: number
-): GainNode {
-  const gain = audio.createGain();
-  const now = audio.currentTime;
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(peak, now + attack);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + attack + release);
-  gain.connect(dest);
-  return gain;
+function noiseBuffer(audio: AudioContext, seconds: number): AudioBuffer {
+  const length = Math.max(1, Math.floor(audio.sampleRate * seconds));
+  const buffer = audio.createBuffer(1, length, audio.sampleRate);
+  const data = buffer.getChannelData(0);
+  let last = 0;
+  // Slightly brown-ish noise: smoother air, less harsh static
+  for (let i = 0; i < length; i++) {
+    const white = Math.random() * 2 - 1;
+    last = (last + 0.02 * white) / 1.02;
+    data[i] = last * 3.5;
+  }
+  return buffer;
 }
 
-function tone(
-  audio: AudioContext,
-  dest: AudioNode,
-  freq: number,
-  type: OscillatorType,
-  peak: number,
-  attack: number,
-  release: number,
-  slideTo?: number
-): void {
+function playNoiseSweep(options: {
+  audio: AudioContext;
+  duration: number;
+  peak: number;
+  startHz: number;
+  endHz: number;
+  q?: number;
+  attack?: number;
+  filterType?: BiquadFilterType;
+}): void {
+  const {
+    audio,
+    duration,
+    peak,
+    startHz,
+    endHz,
+    q = 0.85,
+    attack = 0.008,
+    filterType = "bandpass",
+  } = options;
+  const now = audio.currentTime;
+  const src = audio.createBufferSource();
+  src.buffer = noiseBuffer(audio, duration);
+
+  const filter = audio.createBiquadFilter();
+  filter.type = filterType;
+  filter.Q.value = q;
+  filter.frequency.setValueAtTime(startHz, now);
+  filter.frequency.exponentialRampToValueAtTime(
+    Math.max(60, endHz),
+    now + duration
+  );
+
+  const gain = audio.createGain();
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(peak, now + attack);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+  src.connect(filter);
+  filter.connect(gain);
+  gain.connect(dest());
+  src.start(now);
+  src.stop(now + duration + 0.02);
+}
+
+function playTone(options: {
+  audio: AudioContext;
+  freq: number;
+  type?: OscillatorType;
+  peak: number;
+  attack?: number;
+  release: number;
+  slideTo?: number;
+  delay?: number;
+}): void {
+  const {
+    audio,
+    freq,
+    type = "sine",
+    peak,
+    attack = 0.004,
+    release,
+    slideTo,
+    delay = 0,
+  } = options;
+  const now = audio.currentTime + delay;
   const osc = audio.createOscillator();
   osc.type = type;
-  const now = audio.currentTime;
   osc.frequency.setValueAtTime(freq, now);
   if (slideTo != null) {
     osc.frequency.exponentialRampToValueAtTime(
@@ -56,206 +119,250 @@ function tone(
       now + attack + release
     );
   }
-  osc.connect(envGain(audio, dest, peak, attack, release));
+
+  const gain = audio.createGain();
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(peak, now + attack);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + attack + release);
+
+  osc.connect(gain);
+  gain.connect(dest());
   osc.start(now);
-  osc.stop(now + attack + release + 0.02);
+  osc.stop(now + attack + release + 0.03);
 }
 
-function noiseBurst(
-  audio: AudioContext,
-  dest: AudioNode,
-  duration: number,
-  peak: number,
-  highpass: number
-): void {
-  const length = Math.max(1, Math.floor(audio.sampleRate * duration));
-  const buffer = audio.createBuffer(1, length, audio.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < length; i++) data[i] = Math.random() * 2 - 1;
-
-  const src = audio.createBufferSource();
-  src.buffer = buffer;
-  const filter = audio.createBiquadFilter();
-  filter.type = "highpass";
-  filter.frequency.value = highpass;
-  src.connect(filter);
-  filter.connect(envGain(audio, dest, peak, 0.004, duration * 0.9));
-  src.start();
+/** 揮劍破空：氣切聲，不要電子「秀～」 */
+function playSwordWhoosh(audio: AudioContext, heavy = false): void {
+  playNoiseSweep({
+    audio,
+    duration: heavy ? 0.22 : 0.16,
+    peak: heavy ? 0.22 : 0.16,
+    startHz: heavy ? 4200 : 5200,
+    endHz: heavy ? 480 : 780,
+    q: 0.7,
+    attack: 0.006,
+  });
+  // 低頻刀身帶過
+  playTone({
+    audio,
+    freq: heavy ? 220 : 280,
+    type: "sine",
+    peak: heavy ? 0.05 : 0.032,
+    attack: 0.01,
+    release: heavy ? 0.16 : 0.11,
+    slideTo: heavy ? 70 : 110,
+  });
 }
 
-/** 拂雪流光專用：「秀～」劍鳴 */
-function playFuxueXiu(
-  audio: AudioContext,
-  dest: AudioNode,
-  strength: "light" | "full"
-): void {
-  const now = audio.currentTime;
-  const isFull = strength === "full";
-  const sweepMs = isFull ? 0.2 : 0.14;
-  const peak = isFull ? 0.13 : 0.085;
-
-  const length = Math.max(1, Math.floor(audio.sampleRate * sweepMs));
-  const buffer = audio.createBuffer(1, length, audio.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < length; i++) {
-    const t = i / length;
-    data[i] = (Math.random() * 2 - 1) * (1 - t * 0.35);
+/** 劍刃命中：短促金屬閃，不要長鳴 */
+function playSwordImpact(audio: AudioContext, heavy = false): void {
+  playNoiseSweep({
+    audio,
+    duration: heavy ? 0.1 : 0.07,
+    peak: heavy ? 0.2 : 0.14,
+    startHz: 6500,
+    endHz: 1400,
+    q: 1.1,
+    attack: 0.002,
+    filterType: "bandpass",
+  });
+  // 金屬微閃（極短）
+  playTone({
+    audio,
+    freq: heavy ? 2100 : 2600,
+    type: "triangle",
+    peak: heavy ? 0.045 : 0.03,
+    attack: 0.001,
+    release: heavy ? 0.07 : 0.045,
+    slideTo: heavy ? 900 : 1200,
+  });
+  if (heavy) {
+    playTone({
+      audio,
+      freq: 85,
+      type: "sine",
+      peak: 0.12,
+      attack: 0.008,
+      release: 0.2,
+      slideTo: 45,
+    });
+    playNoiseSweep({
+      audio,
+      duration: 0.18,
+      peak: 0.1,
+      startHz: 900,
+      endHz: 120,
+      q: 0.55,
+      attack: 0.01,
+    });
   }
+}
 
-  const src = audio.createBufferSource();
-  src.buffer = buffer;
-  const band = audio.createBiquadFilter();
-  band.type = "bandpass";
-  band.Q.value = isFull ? 3.2 : 2.8;
-  band.frequency.setValueAtTime(isFull ? 3400 : 2600, now);
-  band.frequency.exponentialRampToValueAtTime(720, now + sweepMs * 0.75);
-
-  const airGain = audio.createGain();
-  airGain.gain.setValueAtTime(0.0001, now);
-  airGain.gain.exponentialRampToValueAtTime(peak, now + 0.005);
-  airGain.gain.exponentialRampToValueAtTime(0.0001, now + sweepMs);
-
-  src.connect(band);
-  band.connect(airGain);
-  airGain.connect(dest);
-  src.start(now);
-
-  const blade = audio.createOscillator();
-  blade.type = "sine";
-  blade.frequency.setValueAtTime(isFull ? 2400 : 1900, now);
-  blade.frequency.exponentialRampToValueAtTime(380, now + (isFull ? 0.1 : 0.08));
-
-  const bladeGain = audio.createGain();
-  bladeGain.gain.setValueAtTime(0.0001, now);
-  bladeGain.gain.exponentialRampToValueAtTime(isFull ? 0.1 : 0.065, now + 0.003);
-  bladeGain.gain.exponentialRampToValueAtTime(0.0001, now + (isFull ? 0.16 : 0.12));
-
-  blade.connect(bladeGain);
-  bladeGain.connect(dest);
-  blade.start(now);
-  blade.stop(now + 0.2);
-
-  const ring = audio.createOscillator();
-  ring.type = "triangle";
-  ring.frequency.setValueAtTime(isFull ? 1680 : 1320, now + 0.012);
-  ring.frequency.exponentialRampToValueAtTime(920, now + (isFull ? 0.14 : 0.1));
-
-  const ringGain = audio.createGain();
-  ringGain.gain.setValueAtTime(0.0001, now + 0.012);
-  ringGain.gain.exponentialRampToValueAtTime(isFull ? 0.055 : 0.038, now + 0.028);
-  ringGain.gain.exponentialRampToValueAtTime(0.0001, now + (isFull ? 0.22 : 0.16));
-
-  ring.connect(ringGain);
-  ringGain.connect(dest);
-  ring.start(now + 0.012);
-  ring.stop(now + 0.24);
-
-  if (isFull) {
-    const tail = audio.createOscillator();
-    tail.type = "sine";
-    tail.frequency.setValueAtTime(1180, now + 0.06);
-    tail.frequency.exponentialRampToValueAtTime(680, now + 0.28);
-
-    const tailGain = audio.createGain();
-    tailGain.gain.setValueAtTime(0.0001, now + 0.06);
-    tailGain.gain.exponentialRampToValueAtTime(0.04, now + 0.075);
-    tailGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
-
-    tail.connect(tailGain);
-    tailGain.connect(dest);
-    tail.start(now + 0.06);
-    tail.stop(now + 0.32);
-  }
+function playSoftChime(audio: AudioContext, a: number, b: number): void {
+  playTone({
+    audio,
+    freq: a,
+    type: "sine",
+    peak: 0.045,
+    attack: 0.012,
+    release: 0.18,
+  });
+  playTone({
+    audio,
+    freq: b,
+    type: "triangle",
+    peak: 0.028,
+    attack: 0.02,
+    release: 0.22,
+    delay: 0.04,
+  });
 }
 
 export function playDenySfx(): void {
   const audio = getCtx();
   if (!audio) return;
-  tone(audio, audio.destination, 180, "square", 0.08, 0.005, 0.08);
-  window.setTimeout(() => {
-    const later = getCtx();
-    if (!later) return;
-    tone(later, later.destination, 140, "square", 0.07, 0.005, 0.1);
-  }, 90);
+  playTone({
+    audio,
+    freq: 196,
+    type: "triangle",
+    peak: 0.06,
+    attack: 0.004,
+    release: 0.09,
+  });
+  playTone({
+    audio,
+    freq: 147,
+    type: "sine",
+    peak: 0.05,
+    attack: 0.004,
+    release: 0.12,
+    delay: 0.08,
+  });
 }
 
-/** 出牌飛出：依牌型不同起手音 */
+/** 出牌飛出／揮劍起手 */
 export function playWhoosh(kind?: PlayFxKind): void {
   const audio = getCtx();
   if (!audio) return;
 
   switch (kind) {
     case "fuxue":
-      playFuxueXiu(audio, audio.destination, "light");
-      return;
-    case "tuxu":
-      noiseBurst(audio, audio.destination, 0.14, 0.07, 2200);
-      tone(audio, audio.destination, 1260, "sine", 0.05, 0.01, 0.14, 720);
-      return;
-    case "lingtai":
-      tone(audio, audio.destination, 740, "triangle", 0.05, 0.015, 0.16);
-      tone(audio, audio.destination, 988, "sine", 0.035, 0.02, 0.2);
-      return;
-    case "cangfeng":
-      tone(audio, audio.destination, 180, "sawtooth", 0.05, 0.02, 0.16, 420);
-      noiseBurst(audio, audio.destination, 0.1, 0.06, 800);
-      return;
-    case "ningshuang":
-      tone(audio, audio.destination, 560, "sine", 0.05, 0.02, 0.22);
-      tone(audio, audio.destination, 840, "triangle", 0.035, 0.03, 0.24);
+      playSwordWhoosh(audio, false);
       return;
     case "yijian":
-      noiseBurst(audio, audio.destination, 0.22, 0.12, 700);
-      tone(audio, audio.destination, 420, "sawtooth", 0.08, 0.01, 0.2, 90);
-      tone(audio, audio.destination, 980, "triangle", 0.05, 0.015, 0.22);
+      playSwordWhoosh(audio, true);
+      return;
+    case "tuxu":
+      playNoiseSweep({
+        audio,
+        duration: 0.12,
+        peak: 0.1,
+        startHz: 3800,
+        endHz: 1100,
+        q: 0.6,
+      });
+      return;
+    case "lingtai":
+      playSoftChime(audio, 660, 990);
+      return;
+    case "cangfeng":
+      playNoiseSweep({
+        audio,
+        duration: 0.14,
+        peak: 0.1,
+        startHz: 700,
+        endHz: 180,
+        q: 0.5,
+      });
+      playTone({
+        audio,
+        freq: 140,
+        type: "sine",
+        peak: 0.05,
+        attack: 0.02,
+        release: 0.16,
+        slideTo: 320,
+      });
+      return;
+    case "ningshuang":
+      playSoftChime(audio, 523, 784);
+      playNoiseSweep({
+        audio,
+        duration: 0.14,
+        peak: 0.06,
+        startHz: 2400,
+        endHz: 900,
+        q: 0.8,
+      });
       return;
     default:
-      noiseBurst(audio, audio.destination, 0.16, 0.09, 900);
-      tone(audio, audio.destination, 520, "triangle", 0.06, 0.01, 0.14, 180);
+      playSwordWhoosh(audio, false);
   }
 }
 
+/** 命中／生效 */
 export function playImpact(kind: PlayFxKind): void {
   const audio = getCtx();
   if (!audio) return;
 
   switch (kind) {
     case "fuxue":
-      playFuxueXiu(audio, audio.destination, "full");
-      return;
-    case "tuxu":
-      noiseBurst(audio, audio.destination, 0.12, 0.07, 2400);
-      tone(audio, audio.destination, 1480, "sine", 0.06, 0.008, 0.14, 920);
-      tone(audio, audio.destination, 990, "triangle", 0.035, 0.02, 0.18);
-      return;
-    case "lingtai":
-      tone(audio, audio.destination, 659, "triangle", 0.07, 0.01, 0.14);
-      window.setTimeout(() => {
-        const later = getCtx();
-        if (!later) return;
-        tone(later, later.destination, 880, "triangle", 0.06, 0.01, 0.15);
-        tone(later, later.destination, 1175, "sine", 0.03, 0.015, 0.18);
-      }, 70);
-      return;
-    case "cangfeng":
-      noiseBurst(audio, audio.destination, 0.12, 0.1, 600);
-      tone(audio, audio.destination, 160, "sawtooth", 0.08, 0.008, 0.14, 520);
-      tone(audio, audio.destination, 980, "square", 0.04, 0.004, 0.08);
-      tone(audio, audio.destination, 1310, "sine", 0.035, 0.01, 0.16);
-      return;
-    case "ningshuang":
-      tone(audio, audio.destination, 392, "sine", 0.07, 0.02, 0.24);
-      tone(audio, audio.destination, 587, "triangle", 0.05, 0.025, 0.28);
-      tone(audio, audio.destination, 880, "sine", 0.03, 0.04, 0.3);
-      noiseBurst(audio, audio.destination, 0.16, 0.05, 1800);
+      playSwordImpact(audio, false);
       return;
     case "yijian":
-      noiseBurst(audio, audio.destination, 0.24, 0.16, 500);
-      tone(audio, audio.destination, 680, "sawtooth", 0.13, 0.004, 0.2, 70);
-      tone(audio, audio.destination, 1480, "sine", 0.06, 0.002, 0.1);
-      tone(audio, audio.destination, 72, "sine", 0.14, 0.012, 0.28);
-      tone(audio, audio.destination, 523, "triangle", 0.07, 0.015, 0.32);
-      tone(audio, audio.destination, 784, "sine", 0.04, 0.03, 0.36);
+      playSwordImpact(audio, true);
+      return;
+    case "tuxu":
+      playNoiseSweep({
+        audio,
+        duration: 0.1,
+        peak: 0.09,
+        startHz: 4200,
+        endHz: 1600,
+        q: 0.7,
+      });
+      playTone({
+        audio,
+        freq: 1180,
+        type: "sine",
+        peak: 0.03,
+        attack: 0.006,
+        release: 0.1,
+        slideTo: 720,
+      });
+      return;
+    case "lingtai":
+      playSoftChime(audio, 784, 1175);
+      return;
+    case "cangfeng":
+      playNoiseSweep({
+        audio,
+        duration: 0.12,
+        peak: 0.12,
+        startHz: 900,
+        endHz: 200,
+        q: 0.55,
+      });
+      playTone({
+        audio,
+        freq: 180,
+        type: "sine",
+        peak: 0.07,
+        attack: 0.008,
+        release: 0.14,
+        slideTo: 420,
+      });
+      return;
+    case "ningshuang":
+      playSoftChime(audio, 392, 587);
+      playNoiseSweep({
+        audio,
+        duration: 0.15,
+        peak: 0.07,
+        startHz: 2000,
+        endHz: 600,
+        q: 0.7,
+      });
       return;
   }
 }
