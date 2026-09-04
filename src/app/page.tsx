@@ -12,9 +12,12 @@ import { TierSelectionView } from "@/components/TierSelectionView";
 import { PathChoiceView } from "@/components/PathChoiceView";
 import { InventoryView } from "@/components/InventoryView";
 import { CardRewardModal } from "@/components/CardRewardModal";
+import { EventModal } from "@/components/EventModal";
 import { InGameMenu } from "@/components/InGameMenu";
 import { VictoryAnimOverlay } from "@/components/VictoryAnimOverlay";
 import { StageClearOverlay } from "@/components/StageClearOverlay";
+import { applyEventChoice, pickStoryEvent } from "@/lib/events";
+import type { EventChoice, StoryEvent } from "@/data/events";
 import {
   calculateHeroStats,
   getHero,
@@ -161,6 +164,10 @@ export default function GamePage() {
   const [dungeonMap, setDungeonMap] = useState<MapNode[][]>([]);
   const [currentMapNodeId, setCurrentMapNodeId] = useState<string | null>(null);
   const [mapMessage, setMapMessage] = useState<string | null>(null);
+  const [activeEvent, setActiveEvent] = useState<StoryEvent | null>(null);
+  const [activeEventNodeId, setActiveEventNodeId] = useState<string | null>(
+    null
+  );
   const [combatBuffs, setCombatBuffs] = useState<CombatBuffs>(
     INITIAL_COMBAT_BUFFS
   );
@@ -225,6 +232,8 @@ export default function GamePage() {
       setDungeonMap([]);
       setCurrentMapNodeId(null);
       setMapMessage(null);
+      setActiveEvent(null);
+      setActiveEventNodeId(null);
       resetCombatState();
       if (message) setLastRunMessage(message);
       if (healPlayer) setPlayerHp(heroStats.maxHp);
@@ -280,7 +289,7 @@ export default function GamePage() {
 
   const handleMapNodeSelect = useCallback(
     (node: MapNode) => {
-      if (!selectedTier || node.status !== "available") return;
+      if (!selectedTier || node.status !== "available" || activeEvent) return;
 
       switch (node.type) {
         case "combat":
@@ -301,20 +310,37 @@ export default function GamePage() {
           break;
         }
         case "event": {
-          if (Math.random() < 0.5) {
-            const heal = Math.floor(heroStats.maxHp * 0.15);
-            setPlayerHp((hp) => Math.min(heroStats.maxHp, hp + heal));
-            finishMapNode(node.id, `機緣巧合，恢復 ${heal} 氣血`);
-          } else {
-            const stones = 50;
-            setSpiritStones((s) => s + stones);
-            finishMapNode(node.id, `路遇散修饋贈 ${stones} 靈石`);
-          }
+          setActiveEvent(pickStoryEvent(node.title));
+          setActiveEventNodeId(node.id);
           break;
         }
       }
     },
-    [selectedTier, startBattleForMapNode, finishMapNode, heroStats.maxHp]
+    [selectedTier, startBattleForMapNode, finishMapNode, heroStats.maxHp, activeEvent]
+  );
+
+  const handleEventChoice = useCallback(
+    (choice: EventChoice) => {
+      if (!activeEvent || !activeEventNodeId) return;
+      const { nextHp, spiritDelta, summary } = applyEventChoice(choice, {
+        maxHp: heroStats.maxHp,
+        currentHp: playerHp,
+      });
+      setPlayerHp(nextHp);
+      if (spiritDelta !== 0) {
+        setSpiritStones((s) => s + spiritDelta);
+      }
+      setActiveEvent(null);
+      setActiveEventNodeId(null);
+      finishMapNode(activeEventNodeId, summary);
+    },
+    [
+      activeEvent,
+      activeEventNodeId,
+      finishMapNode,
+      heroStats.maxHp,
+      playerHp,
+    ]
   );
 
   const hasActiveRun = selectedTier !== null && dungeonMap.length > 0;
@@ -357,6 +383,8 @@ export default function GamePage() {
       setDungeonMap(generateMoonNightMap());
       setCurrentMapNodeId(null);
       setMapMessage(null);
+      setActiveEvent(null);
+      setActiveEventNodeId(null);
       setIsInCombat(false);
       setCombatScreen("path");
       setActiveTab("combat");
@@ -818,6 +846,10 @@ export default function GamePage() {
           tierName={selectedTier?.name}
           onContinue={handleStageClearContinue}
         />
+      )}
+
+      {activeEvent && (
+        <EventModal event={activeEvent} onChoose={handleEventChoice} />
       )}
 
       {isInCombat && phase === "defeat" && (
