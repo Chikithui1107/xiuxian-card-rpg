@@ -74,7 +74,7 @@ export function CardRewardModal({
           return (
             <button
               key={templateId}
-              onClick={() => onSelect(templateId)}
+              onClick={() => handleSelect(templateId)}
               className={`card-hover ink-card flex flex-col p-2 text-left active:scale-[0.98] ${typeStyle}`}
             >
               <div className="mb-0.5 flex items-center justify-between gap-1">
