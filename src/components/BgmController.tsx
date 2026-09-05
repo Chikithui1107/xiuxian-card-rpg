@@ -5,21 +5,21 @@ import {
   isBgmMuted,
   setBgmAllowed,
   toggleBgmMuted,
-  unlockBgm,
+  unlockAndStartBgm,
 } from "@/lib/bgm";
 
 interface BgmControllerProps {
-  /** 非戰鬥階段為 true，戰鬥中為 false */
-  enabled?: boolean;
+  /** 非戰鬥階段為 true，進入戰鬥為 false */
+  enabled: boolean;
 }
 
-export function BgmController({ enabled = true }: BgmControllerProps) {
+export function BgmController({ enabled }: BgmControllerProps) {
   const [muted, setMuted] = useState(false);
 
   useEffect(() => {
     setMuted(isBgmMuted());
     const onFirst = () => {
-      unlockBgm();
+      unlockAndStartBgm();
       window.removeEventListener("pointerdown", onFirst);
       window.removeEventListener("keydown", onFirst);
     };
@@ -36,7 +36,7 @@ export function BgmController({ enabled = true }: BgmControllerProps) {
   }, [enabled]);
 
   const onToggle = useCallback(() => {
-    unlockBgm();
+    unlockAndStartBgm();
     setMuted(toggleBgmMuted());
   }, []);
 
@@ -46,7 +46,13 @@ export function BgmController({ enabled = true }: BgmControllerProps) {
       className="bgm-toggle-btn"
       onClick={onToggle}
       aria-label={muted ? "開啟背景音樂" : "關閉背景音樂"}
-      title={muted ? "開音樂" : "關音樂"}
+      title={
+        muted
+          ? "開音樂"
+          : enabled
+            ? "關音樂"
+            : "戰鬥中已暫停 · 點擊可靜音設定"
+      }
     >
       {muted ? "音" : "樂"}
     </button>
