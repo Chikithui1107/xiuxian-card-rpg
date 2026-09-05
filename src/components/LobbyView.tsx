@@ -87,17 +87,7 @@ export function LobbyView({
         />
       )}
 
-      {/* 低調角色切換入口 */}
-      <button
-        type="button"
-        className="lobby-switch-entry"
-        onClick={() => setSelectOpen(true)}
-        aria-label="切換角色"
-      >
-        角色
-      </button>
-
-      {/* 名字上移，與屬性框分開；輕漸變提高可讀性 */}
+      {/* 名字區：切換入口放這裡，避免被頂欄／選單遮住 */}
       <div className="lobby-hero-title pointer-events-none absolute inset-x-0 z-20 px-4 pb-3 pt-8 text-center">
         <h2 className="text-[1.55rem] font-bold tracking-[0.36em] text-[#f5efe4] drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
           {hero.name}
@@ -105,6 +95,14 @@ export function LobbyView({
         <p className="lobby-hero-subtitle mt-1 text-[11px] tracking-[0.22em]">
           {hero.title} · {hero.realm}
         </p>
+        <button
+          type="button"
+          className="lobby-switch-entry pointer-events-auto"
+          onClick={() => setSelectOpen(true)}
+          aria-label="切換角色"
+        >
+          切換角色
+        </button>
       </div>
 
       <div className="lobby-dock absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-3">
