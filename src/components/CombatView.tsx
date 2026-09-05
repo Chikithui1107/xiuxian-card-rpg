@@ -229,7 +229,7 @@ export function CombatView({
 
   return (
     <div
-      className="relative flex min-h-0 flex-1 flex-col"
+      className="relative grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
       onPointerDown={unlockCombatAudio}
     >
       <div
@@ -239,10 +239,10 @@ export function CombatView({
         <img
           src={COMBAT_BG}
           alt=""
-          className="h-full w-full object-cover object-[center_30%]"
+          className="h-full w-full object-cover object-[center_28%]"
           draggable={false}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-[#121110]/90" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/30 to-[#121110]/95" />
       </div>
 
       <div className="relative z-10 flex shrink-0 items-center justify-center px-3 py-1">
@@ -251,11 +251,7 @@ export function CombatView({
         </p>
       </div>
 
-      {/* 上方只放敵人，高度固定比例，避免出牌後舞台被撐大 */}
-      <div
-        ref={enemyTargetRef}
-        className="relative z-10 min-h-0 flex-[1.15] px-3 pt-1"
-      >
+      <div ref={enemyTargetRef} className="relative z-10 min-h-0 px-3 pt-1">
         <EnemyPanel
           enemy={enemy}
           damagePopups={damagePopups}
@@ -267,10 +263,9 @@ export function CombatView({
         />
       </div>
 
-      {/* 手牌區不加 backdrop-blur / overflow-hidden，避免拖牌被裁切 */}
       <div
         ref={playerTargetRef}
-        className="relative z-30 shrink-0 overflow-visible border-t border-[#8a7340]/25 bg-[#121110]/78 px-3 pb-2.5 pt-1"
+        className="relative z-30 shrink-0 border-t border-[#8a7340]/25 bg-[#121110]/90 px-3 pb-2.5 pt-1"
       >
         <CardHand
           hand={hand}

@@ -63,18 +63,22 @@ export function EnemyPanel({
 
   return (
     <div
-      className={`flex h-full min-h-0 flex-col items-center justify-center gap-2 pb-1 ${
+      className={`flex h-full min-h-0 flex-col items-center justify-end gap-2 pb-2 ${
         isDefeated ? "opacity-70" : ""
       }`}
     >
       <div
-        className={`enemy-sprite-stage relative mx-auto flex h-[min(42vh,15.5rem)] w-full max-w-[20rem] shrink-0 items-end justify-center ${
+        className={`enemy-sprite-stage relative mx-auto flex h-56 w-full max-w-[19rem] shrink-0 items-end justify-center sm:h-60 ${
           shaking ? "animate-shake" : ""
         } ${hitFlash ? "enemy-hit-flash" : ""}`}
       >
-        {/* 腳下暗墊，避免透明 PNG 融進月夜背景 */}
+        {/* 整塊暗底托住半透明立繪，避免融進月夜 */}
         <div
-          className="pointer-events-none absolute bottom-1 left-1/2 h-10 w-36 -translate-x-1/2 rounded-[100%] bg-black/45 blur-md"
+          className="pointer-events-none absolute inset-x-6 bottom-0 top-6 rounded-[2rem] bg-gradient-to-t from-black/80 via-black/45 to-black/10"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute bottom-2 left-1/2 h-14 w-44 -translate-x-1/2 rounded-[100%] bg-black/55 blur-lg"
           aria-hidden
         />
 
@@ -82,15 +86,19 @@ export function EnemyPanel({
           <img
             src={monster.image}
             alt={displayName}
-            className={`enemy-sprite relative z-[1] h-full w-auto max-w-[90%] object-contain object-bottom ${
+            className={`enemy-sprite relative z-[1] h-[95%] w-auto max-w-[92%] object-contain object-bottom ${
               isDefeated
                 ? "scale-90 opacity-40 grayscale transition-all duration-500"
                 : "enemy-sprite-float"
             }`}
+            style={{
+              filter:
+                "drop-shadow(0 10px 18px rgba(0,0,0,0.75)) contrast(1.12) saturate(1.08) brightness(1.06)",
+            }}
             draggable={false}
           />
         ) : (
-          <div className="relative z-[1] mb-2 flex h-28 w-28 items-center justify-center rounded-full border border-[#8b3a3a]/45 bg-stone-950/80">
+          <div className="relative z-[1] mb-2 flex h-28 w-28 items-center justify-center rounded-full border border-[#8b3a3a]/45 bg-stone-950/90">
             <span className="text-4xl font-black text-[#c48888]">
               {displayName.slice(0, 1)}
             </span>
@@ -98,8 +106,8 @@ export function EnemyPanel({
         )}
 
         {!isDefeated && (
-          <div className="pointer-events-none absolute left-1/2 top-1 z-10 -translate-x-1/2">
-            <div className="rounded-full border border-amber-400/55 bg-black/80 px-3 py-1 shadow-lg">
+          <div className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2">
+            <div className="rounded-full border border-amber-400/60 bg-black/85 px-3 py-1 shadow-lg">
               <p className="whitespace-nowrap text-center text-[11px] font-semibold tracking-wide text-amber-200">
                 {intent.label}
                 {intentDamage > 0
@@ -115,20 +123,16 @@ export function EnemyPanel({
         ))}
       </div>
 
-      <div className="w-full max-w-[16rem] shrink-0 px-1">
+      <div className="w-full max-w-[16rem] shrink-0 rounded-md border border-[#8b3a3a]/40 bg-black/55 px-2.5 py-1.5">
         <div className="mb-1 flex items-baseline justify-between gap-2">
           <h2
             className={`text-sm font-bold tracking-[0.14em] ${
               isDefeated ? "text-stone-500 line-through" : "text-[#f0c8c8]"
             }`}
-            style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}
           >
             {displayName}
           </h2>
-          <span
-            className="shrink-0 text-[10px] text-stone-200"
-            style={{ textShadow: "0 1px 2px rgba(0,0,0,0.85)" }}
-          >
+          <span className="shrink-0 text-[10px] text-stone-300">
             {enemy.realm}
           </span>
         </div>
@@ -139,7 +143,7 @@ export function EnemyPanel({
             {formatNumber(enemy.maxHp)}
           </span>
         </div>
-        <div className="h-2.5 overflow-hidden rounded-full border border-black/50 bg-black/60">
+        <div className="h-2.5 overflow-hidden rounded-full border border-black/50 bg-black/70">
           <div
             className="enemy-hp-fill h-full rounded-full transition-all duration-300"
             style={{ width: `${hpPercent}%` }}
