@@ -84,12 +84,12 @@ export function EnemyPanel({
 
   return (
     <div
-      className={`enemy-panel relative flex h-full min-h-0 flex-col items-center justify-start pt-[1.5vh] ${
+      className={`enemy-panel relative flex h-full min-h-0 flex-col items-center justify-start pt-[5vh] ${
         isDefeated ? "opacity-70" : ""
       }`}
     >
-      {/* 頭頂輕量 HUD：名稱 + 境界，細血條 */}
-      <div className="enemy-hud pointer-events-none z-20 mb-1.5 w-full max-w-[13rem] shrink-0 text-center">
+      {/* 頭頂輕量 HUD：名稱 + 境界，細血條（與立繪緊貼） */}
+      <div className="enemy-hud pointer-events-none z-20 mb-1 w-full max-w-[12rem] shrink-0 text-center">
         <p className="flex items-baseline justify-center gap-2 text-[11px] tracking-wide">
           <span
             className={`font-bold ${
@@ -119,9 +119,9 @@ export function EnemyPanel({
         )}
       </div>
 
-      {/* 敵人上移並放大：頭部落在畫面約 35–40% */}
+      {/* 普通怪約 55–65% 寬；略下移，留給戰場呼吸空間 */}
       <div
-        className={`enemy-sprite-stage relative mx-auto flex h-[min(52vh,19.25rem)] w-full max-w-[21rem] shrink-0 items-end justify-center ${
+        className={`enemy-sprite-stage relative mx-auto flex h-[min(45vh,16.6rem)] w-[min(62vw,17.5rem)] max-w-[17.5rem] shrink-0 items-end justify-center ${
           shaking ? "animate-shake" : ""
         } ${hitFlash ? "enemy-hit-flash" : ""}`}
       >

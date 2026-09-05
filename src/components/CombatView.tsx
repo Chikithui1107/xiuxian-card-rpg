@@ -297,6 +297,8 @@ export function CombatView({
               currentHp={playerHp}
               energy={energy}
               combatBuffs={combatBuffs}
+              drawPileCount={drawPileCount}
+              discardPileCount={discardPileCount}
             />
           }
         />

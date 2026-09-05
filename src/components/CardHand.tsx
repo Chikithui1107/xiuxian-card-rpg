@@ -27,10 +27,10 @@ const TIP_KEY = "xiuxian_swipe_tip_seen";
 export function CardHand({
   hand,
   energy,
-  drawPileCount,
-  discardPileCount,
-  exhaustPileCount,
-  deckCount,
+  drawPileCount: _drawPileCount,
+  discardPileCount: _discardPileCount,
+  exhaustPileCount: _exhaustPileCount,
+  deckCount: _deckCount,
   onPlayCard,
   onDenyPlay,
   onEndTurn,
@@ -55,19 +55,7 @@ export function CardHand({
   }, []);
 
   return (
-    <div className="relative flex h-full flex-col gap-1">
-      <div className="flex shrink-0 items-center justify-end gap-2 px-0.5">
-        <p className="text-[9px] tabular-nums text-stone-500">
-          <span className="text-[#9ab8aa]">{drawPileCount}</span>
-          <span className="mx-0.5 text-stone-600">/</span>
-          <span className="text-stone-400">{discardPileCount}</span>
-          <span className="mx-0.5 text-stone-600">·</span>
-          <span className="text-stone-500">{exhaustPileCount}</span>
-          <span className="mx-0.5 text-stone-600">·</span>
-          <span className="text-[#c9a84c]/80">{deckCount}</span>
-        </p>
-      </div>
-
+    <div className="relative flex h-full flex-col gap-0.5">
       <div className="shrink-0">{playerBar}</div>
 
       <div className="relative min-h-0 flex-1">
@@ -89,7 +77,7 @@ export function CardHand({
           type="button"
           onClick={onEndTurn}
           disabled={disabled}
-          className="btn-end-turn-seal absolute bottom-0 right-0 z-30 disabled:cursor-not-allowed disabled:opacity-35"
+          className="btn-end-turn-seal absolute right-0 top-[42%] z-30 -translate-y-1/2 disabled:cursor-not-allowed disabled:opacity-35"
           aria-label="結束回合"
         >
           <span className="btn-end-turn-seal-label">

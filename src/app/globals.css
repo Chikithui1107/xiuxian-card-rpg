@@ -509,9 +509,9 @@ body {
   min-height: 0;
 }
 
-/* 戰鬥殼：Header~10% / 戰場~48% / HUD+手牌~40%；無厚黑容器感 */
+/* 戰鬥殼：敵人→少量戰場→HUD→手牌；抬高 dock 吃掉中間空洞 */
 .combat-shell {
-  --combat-dock-h: clamp(21.5rem, 40vh, 24.5rem);
+  --combat-dock-h: clamp(23.75rem, 46vh, 27rem);
   position: relative;
   height: 100%;
   min-height: 0;
@@ -614,8 +614,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 4.75rem;
-  height: 4.75rem;
+  width: 4.15rem;
+  height: 4.15rem;
   border-radius: 9999px;
   border: 1px solid rgba(201, 168, 76, 0.42);
   background:
@@ -640,11 +640,11 @@ body {
 .btn-end-turn-seal:hover:not(:disabled) {
   border-color: rgba(201, 168, 76, 0.62);
   color: rgba(232, 212, 160, 0.95);
-  transform: scale(1.03);
+  transform: translateY(-50%) scale(1.03);
 }
 
 .btn-end-turn-seal:active:not(:disabled) {
-  transform: scale(0.97);
+  transform: translateY(-50%) scale(0.97);
   border-color: rgba(201, 168, 76, 0.75);
   box-shadow:
     0 0 0 1px rgba(201, 168, 76, 0.2),
@@ -658,10 +658,10 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.05rem;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
-  text-indent: 0.22em;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
   line-height: 1.15;
 }
 

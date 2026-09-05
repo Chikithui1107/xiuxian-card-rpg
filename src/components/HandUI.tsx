@@ -27,41 +27,50 @@ interface HandUIProps {
 const PLAY_SWIPE_Y = -52;
 const TAP_SLOP = 8;
 
+const FAN_ANGLES: Record<number, number[]> = {
+  1: [0],
+  2: [-5, 5],
+  3: [-7, 0, 7],
+  4: [-7, -3, 3, 7],
+  5: [-7, -3.5, 0, 3.5, 7],
+};
+
 function fanAngle(index: number, total: number) {
-  if (total <= 1) return 0;
-  /* 左側逆時針、右側順時針；中間近乎正直 */
-  const spread = Math.min(16, 4.2 * (total - 1));
+  const preset = FAN_ANGLES[Math.min(Math.max(total, 1), 5)];
+  if (total <= 5 && preset) return preset[index] ?? 0;
+  const spread = 14;
   const start = -spread / 2;
-  const step = spread / (total - 1);
-  return start + step * index;
+  return start + (spread / (total - 1)) * index;
 }
 
+/** 中央略高、兩側略低，形成手牌弧線（translateY 正值向下） */
 function fanLift(index: number, total: number) {
   if (total <= 1) return 0;
   const mid = (total - 1) / 2;
   const dist = Math.abs(index - mid);
-  return dist * 3.2;
+  return dist * 6;
 }
 
-/** 重疊約 22–30% 卡寬 */
+/** 強重疊扇形：約 38–48% 卡寬，確保整排落在 viewport 內 */
 function overlapPx(total: number) {
-  const w =
+  const raw =
     typeof window !== "undefined"
-      ? parseFloat(
-          getComputedStyle(document.documentElement).getPropertyValue(
-            "--game-card-width"
-          )
-        ) * 16 || 110
-      : 110;
-  if (total <= 3) return Math.round(w * 0.22);
-  if (total === 4) return Math.round(w * 0.26);
-  if (total === 5) return Math.round(w * 0.28);
-  return Math.round(w * 0.3);
+      ? getComputedStyle(document.documentElement).getPropertyValue(
+          "--game-card-width"
+        )
+      : "6.9rem";
+  const w = raw.includes("rem")
+    ? (parseFloat(raw) || 6.9) * 16
+    : parseFloat(raw) || 110;
+  if (total <= 3) return Math.round(w * 0.36);
+  if (total === 4) return Math.round(w * 0.44);
+  if (total === 5) return Math.round(w * 0.48);
+  return Math.round(w * 0.5);
 }
 
 function neighborShift(index: number, selectedIndex: number | null) {
   if (selectedIndex == null || index === selectedIndex) return 0;
-  return index < selectedIndex ? -12 : 12;
+  return index < selectedIndex ? -14 : 14;
 }
 
 function setDropReady(on: boolean, el: HTMLElement | null) {
@@ -88,18 +97,18 @@ export function HandUI({
 
   return (
     <div
-      className={`hand-fan relative px-1 pb-8 pt-9 ${
+      className={`hand-fan relative overflow-x-clip px-0.5 pb-5 pt-10 ${
         denyShake ? "animate-deny-shake" : ""
       }`}
-      style={{ minHeight: "calc(2.75rem + var(--game-card-height))" }}
+      style={{ minHeight: "calc(2.5rem + var(--game-card-height))" }}
     >
       {hand.length === 0 ? (
         <p className="flex min-h-[var(--game-card-height)] items-center justify-center text-xs text-stone-500">
           手牌已空
         </p>
       ) : (
-        <div className="flex justify-center pr-[4.25rem]">
-          <div className="relative flex items-end justify-center">
+        <div className="flex max-w-full justify-center pr-[3.85rem]">
+          <div className="relative flex max-w-full items-end justify-center">
             {hand.map((card, index) => (
               <HandCard
                 key={card.instanceId}
@@ -347,7 +356,7 @@ function HandCard({
   const z = dragging ? 90 : inspecting ? 60 : index;
 
   const restTransform = inspecting
-    ? `translateX(${shiftX}px) translateY(-40px) scale(1.12) rotate(0deg)`
+    ? `translateX(${shiftX}px) translateY(-50px) scale(1.1) rotate(0deg)`
     : `translateX(${shiftX}px) translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
 
   // 核心效果：描述首句或前 ~18 字
