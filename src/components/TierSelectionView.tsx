@@ -20,7 +20,6 @@ export function TierSelectionView({
   tiers,
   unlockedAchievements,
   onSelectTier,
-  onBack,
 }: TierSelectionViewProps) {
   const initialIndex = useMemo(() => {
     for (let i = 0; i < tiers.length; i++) {
@@ -56,157 +55,138 @@ export function TierSelectionView({
   );
   const cleared = unlockedAchievements.includes(tier.achievementId);
   const unlockHint = getDungeonUnlockHint(tiers, focusIndex);
+  const realmTitle = `${meta.realmLabel.replace("期", "")}秘境 · ${meta.locationName}`;
 
   return (
-    <div className="realm-select relative flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-2 pt-3">
-      {/* 頂部品牌區 */}
-      <header className="shrink-0 text-center">
-        <p
-          className="text-[1.05rem] font-bold tracking-[0.72em] text-[rgba(201,168,76,0.78)]"
-          style={{ textIndent: "0.72em" }}
-        >
-          仙途
-        </p>
-        <p className="mt-1 text-[10px] tracking-[0.28em] text-[rgba(198,216,208,0.55)]">
-          天下秘境 · 試煉
-        </p>
-        {onBack && (
+    <div className="realm-select relative flex min-h-0 flex-1 flex-col overflow-hidden">
+      {/* 中央舞台：佔主體高度，預留秘境背景層 */}
+      <section className="realm-stage relative flex min-h-0 flex-1 flex-col">
+        <div className="realm-stage-bg" aria-hidden />
+
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-5 py-2">
+          <p className="text-[10px] tracking-[0.32em] text-stone-500">
+            ───── 秘境
+            {meta.stage === 1 ? "一" : meta.stage === 2 ? "二" : "三"} ─────
+          </p>
+
+          <h2 className="mt-3 text-[1.15rem] font-bold tracking-[0.28em] text-[#d5e8dc]">
+            {realmTitle}
+          </h2>
+          <p className="mt-1.5 text-[10px] tracking-[0.22em] text-stone-500">
+            {meta.chapterLabel}
+          </p>
+
+          <p className="mt-3 max-w-[17rem] text-center text-[12px] leading-relaxed tracking-wide text-stone-400">
+            {tier.description}
+          </p>
+
+          {tier.passiveDescription && meta.lawName && (
+            <div className="mt-2.5">
+              <button
+                type="button"
+                onClick={() => setLawOpen((v) => !v)}
+                className="border-none bg-transparent px-1 py-0.5 text-[10px] tracking-[0.16em] text-[#c9b07a]/90"
+              >
+                ◇ 秘境法則　{meta.lawName}
+              </button>
+              {lawOpen && (
+                <p className="mt-1.5 max-w-[16rem] text-center text-[10px] leading-relaxed text-stone-500">
+                  {tier.passiveDescription}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* 關卡進度 */}
+          <div className="mt-4 flex items-center gap-2">
+            {Array.from({ length: tier.floors }, (_, i) => {
+              const floor = i + 1;
+              const state = cleared
+                ? "done"
+                : unlocked && floor === 1
+                  ? "current"
+                  : "locked";
+              return (
+                <div key={floor} className="flex items-center gap-2">
+                  <div
+                    className={`flex h-7 w-7 flex-col items-center justify-center ${
+                      state === "current"
+                        ? "text-[#c9a84c]"
+                        : state === "done"
+                          ? "text-[#8eb8a8]"
+                          : "text-stone-600"
+                    }`}
+                  >
+                    <span className="text-[9px] opacity-70">◇</span>
+                    <span className="text-[11px] font-semibold">{floor}</span>
+                  </div>
+                  {floor < tier.floors && (
+                    <span className="text-stone-700">─</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {unlocked && !cleared && (
+            <p className="mt-0.5 text-[9px] tracking-wide text-stone-600">
+              ↑ 當前進度
+            </p>
+          )}
+
+          {/* 一行資訊 */}
+          <p className="mt-3 text-[11px] tracking-[0.08em] text-[#a8c4b8]">
+            <span>{meta.realmLabel}</span>
+            <span className="mx-2 text-stone-600">｜</span>
+            <span>{tier.floors}關</span>
+            <span className="mx-2 text-stone-600">｜</span>
+            <span className="text-[#c9a84c]">
+              {tier.bonusSpiritStones}靈石
+            </span>
+          </p>
+
+          {!unlocked && (
+            <div className="mt-3 text-center">
+              <p className="text-sm tracking-[0.28em] text-stone-400">
+                🔒 尚未解鎖
+              </p>
+              <p className="mt-1 text-[10px] text-stone-500">{unlockHint}</p>
+            </div>
+          )}
+
+          {unlocked && cleared && (
+            <p className="mt-2 text-[10px] tracking-wide text-[#8a7340]">
+              已通關 · 可再挑戰
+            </p>
+          )}
+
           <button
             type="button"
-            onClick={onBack}
-            className="mt-2 text-[10px] tracking-[0.18em] text-stone-500 transition hover:text-[#c9a84c]"
+            disabled={!unlocked}
+            onClick={() => unlocked && onSelectTier(tier.id)}
+            className={`btn-start-game mt-4 w-auto min-w-[10rem] px-2 ${
+              unlocked ? "" : "pointer-events-none opacity-35"
+            }`}
+            aria-label={unlocked ? `進入${meta.locationName}` : "尚未解鎖"}
           >
-            ← 返回山門
+            <span className="relative block text-[1.02rem] font-bold tracking-[0.36em]">
+              {unlocked ? (cleared ? "再次進入" : "進入秘境") : "尚未解鎖"}
+            </span>
+            <span className="btn-start-divider" aria-hidden>
+              <i className="btn-start-diamond" />
+            </span>
+            <span className="relative block text-[10px] font-semibold tracking-[0.2em] text-[#b8a878]/90">
+              {unlocked ? meta.locationName : unlockHint}
+            </span>
           </button>
-        )}
-      </header>
-
-      {/* 中央當前秘境 */}
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center py-3">
-        <p className="text-[10px] tracking-[0.32em] text-stone-500">
-          ───── 秘境{meta.stage === 1 ? "一" : meta.stage === 2 ? "二" : "三"}{" "}
-          ─────
-        </p>
-
-        <h2 className="mt-3 text-xl font-bold tracking-[0.36em] text-[#d5e8dc]">
-          {meta.realmLabel.replace("期", "")}秘境
-        </h2>
-        <p className="mt-1.5 text-[15px] font-semibold tracking-[0.28em] text-[rgba(201,168,76,0.88)]">
-          「{meta.locationName}」
-        </p>
-        <p className="mt-1 text-[10px] tracking-[0.2em] text-stone-500">
-          {meta.chapterLabel}
-        </p>
-
-        <p className="mt-4 max-w-[17rem] text-center text-[12px] leading-relaxed tracking-wide text-stone-400">
-          {tier.description}
-        </p>
-
-        {/* 秘境法則標籤 */}
-        {tier.passiveDescription && meta.lawName && (
-          <div className="mt-3">
-            <button
-              type="button"
-              onClick={() => setLawOpen((v) => !v)}
-              className="rounded-sm border border-[#8a7340]/25 bg-black/25 px-2.5 py-1 text-[10px] tracking-[0.16em] text-[#c9b07a]"
-            >
-              ◇ 秘境法則　{meta.lawName}
-            </button>
-            {lawOpen && (
-              <p className="mt-2 max-w-[16rem] text-center text-[10px] leading-relaxed text-stone-500">
-                {tier.passiveDescription}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* 關卡進度 */}
-        <div className="mt-5 flex items-center gap-2">
-          {Array.from({ length: tier.floors }, (_, i) => {
-            const floor = i + 1;
-            const state = cleared
-              ? "done"
-              : unlocked && floor === 1
-                ? "current"
-                : "locked";
-            return (
-              <div key={floor} className="flex items-center gap-2">
-                <div
-                  className={`flex h-7 w-7 flex-col items-center justify-center ${
-                    state === "current"
-                      ? "text-[#c9a84c]"
-                      : state === "done"
-                        ? "text-[#8eb8a8]"
-                        : "text-stone-600"
-                  }`}
-                >
-                  <span className="text-[9px] opacity-70">◇</span>
-                  <span className="text-[11px] font-semibold">{floor}</span>
-                </div>
-                {floor < tier.floors && (
-                  <span className="text-stone-700">─</span>
-                )}
-              </div>
-            );
-          })}
         </div>
-        {unlocked && !cleared && (
-          <p className="mt-1 text-[9px] tracking-wide text-stone-600">
-            ↑ 當前進度
-          </p>
-        )}
+      </section>
 
-        {/* 推薦 / 獎勵 */}
-        <div className="mt-5 grid w-full max-w-[16rem] grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 text-[11px]">
-          <span className="text-stone-500">推薦境界</span>
-          <span className="text-right text-[#a8c4b8]">{meta.realmLabel}</span>
-          <span className="text-stone-500">關卡</span>
-          <span className="text-right text-[#a8c4b8]">{tier.floors} 關</span>
-          <span className="text-stone-500">首通獎勵</span>
-          <span className="text-right text-[#c9a84c]">
-            {tier.bonusSpiritStones} 靈石
-          </span>
-        </div>
-
-        {/* 鎖定狀態 */}
-        {!unlocked && (
-          <div className="mt-4 text-center">
-            <p className="text-sm tracking-[0.28em] text-stone-400">🔒 尚未解鎖</p>
-            <p className="mt-1 text-[10px] text-stone-500">{unlockHint}</p>
-          </div>
-        )}
-
-        {unlocked && cleared && (
-          <p className="mt-3 text-[10px] tracking-wide text-[#8a7340]">
-            已通關 · 可再挑戰
-          </p>
-        )}
-
-        {/* CTA */}
-        <button
-          type="button"
-          disabled={!unlocked}
-          onClick={() => unlocked && onSelectTier(tier.id)}
-          className={`btn-start-game mt-5 w-full max-w-[16rem] ${
-            unlocked ? "" : "pointer-events-none opacity-35"
-          }`}
-          aria-label={unlocked ? `進入${meta.locationName}` : "尚未解鎖"}
-        >
-          <span className="relative block text-[1.02rem] font-bold tracking-[0.36em]">
-            {unlocked ? (cleared ? "再次進入" : "進入秘境") : "尚未解鎖"}
-          </span>
-          <span className="btn-start-divider" aria-hidden>
-            <i className="btn-start-diamond" />
-          </span>
-          <span className="relative block text-[10px] font-semibold tracking-[0.2em] text-[#b8a878]/90">
-            {unlocked ? meta.locationName : unlockHint}
-          </span>
-        </button>
-      </div>
-
-      {/* 階段選擇器 */}
-      <div className="shrink-0 pb-1 pt-1">
-        <div className="flex items-start justify-around px-1">
+      {/* 階段選擇器：成長目標可見 */}
+      <nav
+        className="realm-tabs relative z-10 shrink-0 px-2 pb-1 pt-1"
+        aria-label="秘境階段"
+      >
+        <div className="flex items-start justify-around">
           {tiers.map((t, i) => {
             const m = getDungeonChapterMeta(t);
             const active = i === focusIndex;
@@ -217,16 +197,10 @@ export function TierSelectionView({
                 type="button"
                 onClick={() => setFocusIndex(i)}
                 className={`flex min-w-[4.5rem] flex-col items-center gap-0.5 border-none bg-transparent py-1 ${
-                  active
-                    ? "text-[#c9a84c]"
-                    : "text-stone-500 opacity-60"
+                  active ? "text-[#c9a84c]" : "text-stone-500 opacity-60"
                 }`}
               >
-                <span
-                  className={`text-[11px] font-semibold tracking-[0.2em] ${
-                    active ? "" : ""
-                  }`}
-                >
+                <span className="text-[11px] font-semibold tracking-[0.2em]">
                   {m.stageTab}
                 </span>
                 <span
@@ -248,7 +222,7 @@ export function TierSelectionView({
             );
           })}
         </div>
-      </div>
+      </nav>
     </div>
   );
 }

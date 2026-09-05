@@ -795,9 +795,9 @@ export default function GamePage() {
       case "combat":
         if (combatScreen === "tier-select") {
           return (
-            <div className="flex flex-col gap-3">
+            <div className="flex min-h-0 flex-1 flex-col">
               {lastRunMessage && (
-                <div className="mx-3 mt-3 glass-panel-gold px-3 py-2.5 text-center text-xs text-[#c9a84c]">
+                <div className="mx-3 mt-2 shrink-0 text-center text-[11px] tracking-wide text-[#c9a84c]">
                   {lastRunMessage}
                 </div>
               )}
@@ -806,7 +806,6 @@ export default function GamePage() {
                 unlockedAchievements={unlockedAchievements}
                 playerAttack={heroStats.attack}
                 onSelectTier={startTierRun}
-                onBack={() => returnToLobby(null, false)}
               />
             </div>
           );
