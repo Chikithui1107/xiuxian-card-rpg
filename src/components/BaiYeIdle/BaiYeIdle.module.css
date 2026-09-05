@@ -1,0 +1,321 @@
+.scene {
+  --mx: 0;
+  --my: 0;
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+
+  background: #d9e2ea;
+}
+
+/* -------------------------
+   背景（可微跟指針；人物不動）
+------------------------- */
+
+.background {
+  position: absolute;
+  inset: -2%;
+  width: 104%;
+  height: 104%;
+  object-fit: cover;
+  object-position: center 40%;
+
+  transform: translate(
+    calc(var(--mx) * -4px),
+    calc(var(--my) * -3px)
+  );
+
+  transition: transform 0.5s ease-out;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* -------------------------
+   男主：完全不做 transform 動畫
+------------------------- */
+
+.character {
+  position: absolute;
+  left: 50%;
+  bottom: 11.5%;
+  width: min(88%, 24rem);
+  max-height: 78%;
+  height: auto;
+
+  object-fit: contain;
+  object-position: center bottom;
+
+  transform: translateX(-50%);
+
+  z-index: 10;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.45));
+
+  user-select: none;
+  pointer-events: none;
+}
+
+/* -------------------------
+   遠霧
+------------------------- */
+
+.mist {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+
+  filter: blur(28px);
+  opacity: 0.22;
+
+  background: radial-gradient(
+    ellipse,
+    rgba(231, 242, 250, 0.8),
+    rgba(203, 221, 235, 0.25) 50%,
+    transparent 72%
+  );
+}
+
+.mistBack {
+  z-index: 4;
+  width: 120%;
+  height: 30%;
+  left: -15%;
+  top: 35%;
+  animation: mistBack 15s ease-in-out infinite alternate;
+}
+
+@keyframes mistBack {
+  from {
+    transform: translateX(-2%);
+  }
+  to {
+    transform: translateX(5%);
+  }
+}
+
+/* -------------------------
+   前景霧
+------------------------- */
+
+.mistFront {
+  z-index: 18;
+  width: 85%;
+  height: 14%;
+  left: -10%;
+  bottom: 16%;
+  opacity: 0.13;
+  animation: mistFront 11s ease-in-out infinite alternate;
+}
+
+@keyframes mistFront {
+  from {
+    transform: translateX(-3%);
+  }
+  to {
+    transform: translateX(9%);
+  }
+}
+
+/* -------------------------
+   劍身流光（假光，按立繪微調）
+------------------------- */
+
+.swordGlow {
+  position: absolute;
+  z-index: 14;
+
+  left: 24%;
+  bottom: 22%;
+  width: 3px;
+  height: 34%;
+
+  transform: rotate(22deg);
+  transform-origin: bottom center;
+
+  border-radius: 50%;
+
+  background: linear-gradient(
+    to top,
+    rgba(180, 230, 255, 0),
+    rgba(190, 234, 255, 0.8),
+    rgba(245, 252, 255, 1),
+    rgba(160, 215, 255, 0)
+  );
+
+  filter: blur(0.6px) drop-shadow(0 0 5px rgba(177, 225, 255, 0.65));
+
+  opacity: 0;
+  animation: swordPulse 4.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes swordPulse {
+  0%,
+  35%,
+  100% {
+    opacity: 0.18;
+  }
+  48% {
+    opacity: 0.75;
+  }
+  60% {
+    opacity: 0.26;
+  }
+}
+
+/* -------------------------
+   寒氣
+------------------------- */
+
+.frost {
+  position: absolute;
+  z-index: 13;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgba(211, 239, 255, 0.35),
+    transparent 68%
+  );
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+.frostOne {
+  width: 20%;
+  height: 12%;
+  left: 17%;
+  bottom: 26%;
+  animation: frost1 7s ease-in-out infinite;
+}
+
+.frostTwo {
+  width: 16%;
+  height: 10%;
+  left: 30%;
+  bottom: 38%;
+  animation: frost2 9s ease-in-out infinite;
+}
+
+@keyframes frost1 {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(-5px, 6px);
+  }
+  45% {
+    opacity: 0.28;
+  }
+  70% {
+    opacity: 0.08;
+    transform: translate(15px, -12px);
+  }
+}
+
+@keyframes frost2 {
+  0%,
+  100% {
+    opacity: 0.04;
+    transform: translate(0, 5px);
+  }
+  50% {
+    opacity: 0.2;
+    transform: translate(10px, -9px);
+  }
+}
+
+/* -------------------------
+   微量霜粒
+------------------------- */
+
+.particles {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.particles i {
+  --n: calc(var(--i) * 9.1%);
+
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  left: calc(12% + var(--n));
+  bottom: calc(18% + (var(--i) * 1.8%));
+  border-radius: 50%;
+  background: rgba(232, 247, 255, 0.8);
+  box-shadow: 0 0 4px rgba(187, 229, 255, 0.55);
+  opacity: 0;
+  animation: particleRise calc(7s + var(--i) * 0.32s) ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.63s);
+}
+
+@keyframes particleRise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  25% {
+    opacity: 0.4;
+  }
+  75% {
+    opacity: 0.15;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(10px, -100px);
+  }
+}
+
+/* -------------------------
+   月白冷光
+------------------------- */
+
+.coldLight {
+  position: absolute;
+  z-index: 12;
+  width: 65%;
+  height: 65%;
+  left: 17.5%;
+  top: 8%;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse,
+    rgba(212, 236, 255, 0.14),
+    transparent 67%
+  );
+  mix-blend-mode: screen;
+  animation: coldLight 6s ease-in-out infinite;
+}
+
+@keyframes coldLight {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mist,
+  .swordGlow,
+  .frost,
+  .particles i,
+  .coldLight {
+    animation: none;
+  }
+
+  .swordGlow {
+    opacity: 0.22;
+  }
+
+  .background {
+    transition: none;
+  }
+}

@@ -2,7 +2,7 @@
 
 import type { Hero, HeroStats } from "@/lib/stats";
 import { formatNumber } from "@/lib/stats";
-import { publicAsset } from "@/lib/paths";
+import BaiYeIdle from "@/components/BaiYeIdle/BaiYeIdle";
 
 interface LobbyViewProps {
   hero: Hero;
@@ -34,31 +34,19 @@ export function LobbyView({
   onContinueGame,
   onAbandonGame,
 }: LobbyViewProps) {
-  // 分層：背景可低一點，主角用高清去背 PNG，避免聊天壓縮合成圖被全螢幕放大變糊
-  const bgSrc = publicAsset("/backgrounds/lobby-cloud-terrace.jpg");
-  const cutoutSrc = publicAsset(
-    hero.lobbyPortrait ?? "/heroes/baiye-cutout.png"
-  );
   const hpPercent = Math.max(0, (playerHp / stats.maxHp) * 100);
 
   return (
     <div className="lobby-home animate-fade-in relative min-h-0 flex-1 overflow-hidden">
-      <img
-        src={bgSrc}
-        alt=""
-        className="lobby-bg absolute inset-0 h-full w-full object-cover object-[center_40%]"
-        draggable={false}
+      <BaiYeIdle
+        className="absolute inset-0"
+        characterSrc={hero.lobbyPortrait ?? "/images/baiye/baiye.png"}
+        backgroundSrc="/images/baiye/bg-day-sect.webp"
+        characterName={hero.name}
       />
-      <div className="lobby-bg-veil pointer-events-none absolute inset-0" />
 
-      <div className="lobby-actor pointer-events-none absolute inset-x-0 bottom-[9.5rem] top-[4%] flex items-end justify-center sm:bottom-40">
-        <img
-          src={cutoutSrc}
-          alt={hero.name}
-          className="lobby-actor-art h-[92%] w-auto max-w-[min(100%,24rem)] object-contain object-bottom drop-shadow-[0_20px_32px_rgba(0,0,0,0.45)]"
-          draggable={false}
-        />
-      </div>
+      {/* 只壓底部，讓 dock 可讀；不蓋住立繪主體 */}
+      <div className="lobby-bg-veil pointer-events-none absolute inset-0 z-[19]" />
 
       {lastRunMessage && (
         <div className="absolute left-3 right-3 top-3 z-20 rounded border border-[#8a7340]/40 bg-stone-950/80 px-3 py-2 text-center text-[11px] text-[#c9a84c]">
@@ -66,7 +54,7 @@ export function LobbyView({
         </div>
       )}
 
-      <div className="lobby-dock absolute inset-x-0 bottom-0 z-10 px-3 pb-3 pt-10">
+      <div className="lobby-dock absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-10">
         <div className="mb-2.5 text-center">
           <h2 className="text-[1.55rem] font-bold tracking-[0.36em] text-[#f5efe4] drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
             {hero.name}
