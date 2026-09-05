@@ -75,7 +75,10 @@ export function TierSelectionView({
       ) : (
         <div className="realm-select-bg realm-select-bg-fallback" aria-hidden />
       )}
-      <div className="realm-select-veil pointer-events-none" aria-hidden />
+      {/* 三層：背景原圖 → 氣氛壓暗 → UI */}
+      <div className="realm-select-dim pointer-events-none" aria-hidden />
+      <div className="realm-select-sky pointer-events-none" aria-hidden />
+      <div className="realm-select-floor pointer-events-none" aria-hidden />
 
       <section className="realm-stage relative z-10 flex min-h-0 flex-1 flex-col">
         {/*
