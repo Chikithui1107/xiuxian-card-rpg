@@ -4,8 +4,10 @@ const BGM_URL = publicAsset("/music/bgm.m4a");
 const BGM_VOLUME = 0.35;
 
 let audio: HTMLAudioElement | null = null;
-let started = false;
+let unlocked = false;
 let muted = false;
+/** 非戰鬥階段才允許播放 */
+let allowed = true;
 
 function getAudio(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
@@ -18,26 +20,35 @@ function getAudio(): HTMLAudioElement | null {
   return audio;
 }
 
-/** 首次點擊後開始循環播放（繞過瀏覽器自動播放限制） */
-export function startBgm(): void {
+function syncPlayback(): void {
   const el = getAudio();
-  if (!el || started) return;
-  started = true;
+  if (!el) return;
   el.volume = muted ? 0 : BGM_VOLUME;
-  void el.play().catch(() => {
-    // 若仍被阻擋，下次互動再試
-    started = false;
-  });
+
+  if (!unlocked || muted || !allowed) {
+    if (!el.paused) el.pause();
+    return;
+  }
+
+  if (el.paused) {
+    void el.play().catch(() => undefined);
+  }
+}
+
+/** 首次點擊後解鎖（繞過瀏覽器自動播放限制） */
+export function unlockBgm(): void {
+  unlocked = true;
+  syncPlayback();
+}
+
+export function setBgmAllowed(next: boolean): void {
+  allowed = next;
+  syncPlayback();
 }
 
 export function setBgmMuted(next: boolean): void {
   muted = next;
-  const el = getAudio();
-  if (!el) return;
-  el.volume = muted ? 0 : BGM_VOLUME;
-  if (!muted && started && el.paused) {
-    void el.play().catch(() => undefined);
-  }
+  syncPlayback();
 }
 
 export function toggleBgmMuted(): boolean {
@@ -49,6 +60,11 @@ export function isBgmMuted(): boolean {
   return muted;
 }
 
+/** @deprecated 用 unlockBgm + setBgmAllowed */
+export function startBgm(): void {
+  unlockBgm();
+}
+
 export function unlockAndStartBgm(): void {
-  startBgm();
+  unlockBgm();
 }

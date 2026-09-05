@@ -868,6 +868,7 @@ export default function GamePage() {
           ? `${selectedTier.name} · 修行中`
           : TAB_LABELS[activeTab]
       }
+      bgmEnabled={!isInCombat}
       inGameMenu={
         showRunMenu ? <InGameMenu onQuit={quitRun} /> : null
       }

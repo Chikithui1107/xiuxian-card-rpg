@@ -8,6 +8,8 @@ interface MobileFrameProps {
   title?: string;
   subtitle?: string;
   inGameMenu?: React.ReactNode;
+  /** 非戰鬥階段播放 BGM */
+  bgmEnabled?: boolean;
 }
 
 export function MobileFrame({
@@ -16,12 +18,13 @@ export function MobileFrame({
   title,
   subtitle,
   inGameMenu,
+  bgmEnabled = true,
 }: MobileFrameProps) {
   return (
     <div className="mobile-shell">
       <div className="mobile-shell-mist pointer-events-none" aria-hidden />
       <div className="mobile-frame">
-        <BgmController />
+        <BgmController enabled={bgmEnabled} />
         {inGameMenu}
         {(title || subtitle) && (
           <header

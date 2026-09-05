@@ -3,18 +3,23 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   isBgmMuted,
-  startBgm,
+  setBgmAllowed,
   toggleBgmMuted,
-  unlockAndStartBgm,
+  unlockBgm,
 } from "@/lib/bgm";
 
-export function BgmController() {
+interface BgmControllerProps {
+  /** 非戰鬥階段為 true，戰鬥中為 false */
+  enabled?: boolean;
+}
+
+export function BgmController({ enabled = true }: BgmControllerProps) {
   const [muted, setMuted] = useState(false);
 
   useEffect(() => {
     setMuted(isBgmMuted());
     const onFirst = () => {
-      unlockAndStartBgm();
+      unlockBgm();
       window.removeEventListener("pointerdown", onFirst);
       window.removeEventListener("keydown", onFirst);
     };
@@ -26,8 +31,12 @@ export function BgmController() {
     };
   }, []);
 
+  useEffect(() => {
+    setBgmAllowed(enabled);
+  }, [enabled]);
+
   const onToggle = useCallback(() => {
-    startBgm();
+    unlockBgm();
     setMuted(toggleBgmMuted());
   }, []);
 
