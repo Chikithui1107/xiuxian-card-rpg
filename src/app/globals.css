@@ -852,6 +852,12 @@ html.combat-scroll-lock {
 .realm-select {
   min-height: 100%;
   background: #0a0c0e;
+  /* 境界身份色：煉氣／青嵐谷預設 */
+  --realm-accent: #9ebdb0;
+  --realm-title: #d8ebe3;
+  --realm-muted: #9aaba3;
+  --realm-body: #c5d0c9;
+  --realm-enter: #d4e8df;
 }
 
 .realm-select-bg {
@@ -882,6 +888,15 @@ html.combat-scroll-lock {
     );
 }
 
+.realm-tone-2 {
+  /* 築基：冷月紫灰（預留，切換時 UI accent 跟著變） */
+  --realm-accent: #a8a0b8;
+  --realm-title: #ddd6e8;
+  --realm-muted: #9a94a6;
+  --realm-body: #c8c2d0;
+  --realm-enter: #ddd6e8;
+}
+
 .realm-tone-2 .realm-select-bg-fallback {
   background:
     radial-gradient(
@@ -890,6 +905,15 @@ html.combat-scroll-lock {
       transparent 72%
     ),
     linear-gradient(180deg, #0e1420 0%, #0a0e16 50%, #07090c 100%);
+}
+
+.realm-tone-3 {
+  /* 金丹：丹金（預留） */
+  --realm-accent: #c9a84c;
+  --realm-title: #e8d9a8;
+  --realm-muted: #a89870;
+  --realm-body: #d0c8b0;
+  --realm-enter: #e8d9a8;
 }
 
 .realm-tone-3 .realm-select-bg-fallback {
@@ -962,20 +986,20 @@ html.combat-scroll-lock {
   flex-shrink: 0;
 }
 
-/* 秘境進入：無框、大點擊區、輕呼吸金光 */
+/* 秘境進入：主文青玉白，◇／細線保留暗金 */
 .btn-enter-realm {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
-  min-width: 16.25rem; /* ~260px */
-  min-height: 4.375rem; /* ~70px */
+  min-width: 16.25rem;
+  min-height: 4.375rem;
   padding: 0.85rem 1rem;
   border: none;
   border-radius: 0;
   background: transparent;
-  color: rgba(214, 186, 110, 0.92);
+  color: var(--realm-enter);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: color 0.2s ease, transform 0.15s ease, filter 0.2s ease;
@@ -986,48 +1010,102 @@ html.combat-scroll-lock {
   font-weight: 700;
   letter-spacing: 0.42em;
   text-indent: 0.42em;
+  color: var(--realm-enter);
   animation: enter-realm-breathe 3.2s ease-in-out infinite;
 }
 
 .btn-enter-realm-diamond {
   font-size: 0.7rem;
-  opacity: 0.75;
-  animation: enter-realm-breathe 3.2s ease-in-out infinite;
+  color: rgba(201, 168, 76, 0.72);
+  opacity: 0.9;
 }
 
 .btn-enter-realm-line {
   font-size: 0.75rem;
   letter-spacing: 0.05em;
-  color: rgba(201, 168, 76, 0.45);
+  color: rgba(201, 168, 76, 0.42);
 }
 
 .btn-enter-realm:hover:not(:disabled) {
-  color: rgba(232, 208, 140, 0.98);
-  filter: drop-shadow(0 0 10px rgba(201, 168, 76, 0.28));
+  filter: drop-shadow(0 0 8px rgba(158, 189, 176, 0.22));
+}
+
+.btn-enter-realm:hover:not(:disabled) .btn-enter-realm-label {
+  color: #e8f4ee;
 }
 
 .btn-enter-realm:active:not(:disabled) {
   transform: scale(0.985);
-  filter: drop-shadow(0 0 14px rgba(201, 168, 76, 0.38));
+  filter: drop-shadow(0 0 12px rgba(158, 189, 176, 0.28));
 }
 
 @keyframes enter-realm-breathe {
   0%,
   100% {
     text-shadow: 0 0 0 transparent;
-    opacity: 0.88;
+    opacity: 0.9;
   }
   50% {
-    text-shadow: 0 0 12px rgba(201, 168, 76, 0.35);
+    text-shadow: 0 0 10px rgba(158, 189, 176, 0.28);
     opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .btn-enter-realm-label,
-  .btn-enter-realm-diamond {
+  .btn-enter-realm-label {
     animation: none;
   }
+}
+
+.realm-title {
+  color: var(--realm-title);
+}
+
+.realm-eyebrow {
+  color: var(--realm-muted);
+}
+
+.realm-body {
+  color: var(--realm-body);
+}
+
+.realm-accent {
+  color: var(--realm-accent);
+}
+
+.realm-floor-active {
+  color: var(--realm-accent);
+}
+
+.realm-floor-idle {
+  color: rgba(138, 158, 150, 0.45);
+}
+
+.realm-floor-sep {
+  color: rgba(106, 122, 114, 0.4);
+}
+
+.realm-reward {
+  color: rgba(201, 168, 76, 0.92);
+}
+
+.realm-meta-dim {
+  color: rgba(197, 208, 201, 0.78);
+}
+
+.realm-tab-active {
+  color: var(--realm-accent);
+  opacity: 1;
+}
+
+.realm-tab-idle {
+  color: rgba(168, 162, 154, 0.95);
+  opacity: 0.4;
+}
+
+.realm-tab-dot-active {
+  background: var(--realm-accent);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--realm-accent) 45%, transparent);
 }
 
 .run-toast {
