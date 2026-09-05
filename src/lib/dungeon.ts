@@ -26,7 +26,19 @@ export const ENEMY_INTENT_CYCLE = [
 
 export function getEnemyIntent(enemy: CombatEnemy) {
   const index = enemy.intentIndex ?? 0;
-  return ENEMY_INTENT_CYCLE[index % ENEMY_INTENT_CYCLE.length];
+  const base = ENEMY_INTENT_CYCLE[index % ENEMY_INTENT_CYCLE.length];
+  if (base.damage <= 0) {
+    return { ...base };
+  }
+  // 依節點攻擊力縮放（基準為普通戰 7）
+  const scale = Math.max(0.5, enemy.attackDamage / NODE_BASE_ATTACK.combat);
+  const damage = Math.max(1, Math.floor(base.damage * scale));
+  return {
+    ...base,
+    damage,
+    description:
+      base.id === "heavy" ? `造成 ${damage} 點重擊傷害` : `造成 ${damage} 點傷害`,
+  };
 }
 
 export function advanceEnemyIntent(enemy: CombatEnemy): CombatEnemy {
@@ -163,7 +175,8 @@ export function getMapNodeSpiritReward(
     (tier.bonusSpiritStones / 10) * tier.rewardMultiplier
   );
   if (node.type === "elite") return Math.floor(base * 1.5);
-  if (node.type === "boss") return getCompletionSpiritReward(tier);
+  // Boss 節點只發戰鬥層獎勵；通關加成在 STAGE_CLEAR 時另發，避免重複
+  if (node.type === "boss") return Math.floor(base * 2.5);
   return base;
 }
 

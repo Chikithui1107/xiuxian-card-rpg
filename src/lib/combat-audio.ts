@@ -16,15 +16,15 @@ type WebkitWindow = Window & {
  * 支援 .mp3 / .wav / .ogg
  */
 const SAMPLE_CANDIDATES: Record<string, string[]> = {
-  sword_whoosh: ["sword_whoosh", "whoosh", "slash"],
-  sword_impact: ["sword_impact", "impact", "hit"],
+  sword_whoosh: ["sword_whoosh", "whoosh", "slash", "tuxu-whoosh"],
+  sword_impact: ["sword_impact", "impact", "hit", "fuxue-slash"],
   fuxue_slash: ["fuxue-slash", "fuxue_slash", "sword_impact"],
   tuxu_whoosh: ["tuxu-whoosh", "tuxu_whoosh", "soft_whoosh"],
-  yijian_whoosh: ["yijian_whoosh", "heavy_whoosh", "sword_whoosh"],
-  yijian_impact: ["yijian_impact", "heavy_impact", "sword_impact"],
-  soft_whoosh: ["soft_whoosh", "whoosh", "sword_whoosh"],
-  soft_impact: ["soft_impact", "impact", "sword_impact"],
-  deny: ["deny", "error", "sword_impact"],
+  yijian_whoosh: ["yijian_whoosh", "heavy_whoosh", "sword_whoosh", "tuxu-whoosh"],
+  yijian_impact: ["yijian_impact", "heavy_impact", "sword_impact", "fuxue-slash"],
+  soft_whoosh: ["soft_whoosh", "whoosh", "tuxu-whoosh", "sword_whoosh"],
+  soft_impact: ["soft_impact", "impact", "tuxu-whoosh", "sword_impact"],
+  deny: ["deny", "error", "tuxu-whoosh"],
 };
 
 const EXT = [".mp3", ".wav", ".ogg"] as const;

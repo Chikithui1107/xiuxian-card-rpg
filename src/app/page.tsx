@@ -145,6 +145,10 @@ export default function GamePage() {
   const [battlePhase, setBattlePhase] = useState<BattlePhase>("IN_BATTLE");
   const victoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const victoryStartedRef = useRef(false);
+  const playLockRef = useRef(false);
+  const mapActionLockRef = useRef(false);
+  const eventChoiceLockRef = useRef(false);
+  const rewardDoneRef = useRef(false);
   const [stageClearMessage, setStageClearMessage] = useState<string | null>(
     null
   );
@@ -289,7 +293,14 @@ export default function GamePage() {
 
   const handleMapNodeSelect = useCallback(
     (node: MapNode) => {
-      if (!selectedTier || node.status !== "available" || activeEvent) return;
+      if (
+        !selectedTier ||
+        node.status !== "available" ||
+        activeEvent ||
+        mapActionLockRef.current
+      ) {
+        return;
+      }
 
       switch (node.type) {
         case "combat":
@@ -298,18 +309,27 @@ export default function GamePage() {
           startBattleForMapNode(selectedTier, node);
           break;
         case "rest": {
+          mapActionLockRef.current = true;
           const heal = Math.floor(heroStats.maxHp * 0.3);
           setPlayerHp((hp) => Math.min(heroStats.maxHp, hp + heal));
           finishMapNode(node.id, `休整恢復 ${heal} 氣血`);
+          queueMicrotask(() => {
+            mapActionLockRef.current = false;
+          });
           break;
         }
         case "shop": {
+          mapActionLockRef.current = true;
           const stones = 80;
           setSpiritStones((s) => s + stones);
           finishMapNode(node.id, `坊市購得靈物，獲得 ${stones} 靈石`);
+          queueMicrotask(() => {
+            mapActionLockRef.current = false;
+          });
           break;
         }
         case "event": {
+          eventChoiceLockRef.current = false;
           setActiveEvent(pickStoryEvent(node.title));
           setActiveEventNodeId(node.id);
           break;
@@ -321,7 +341,10 @@ export default function GamePage() {
 
   const handleEventChoice = useCallback(
     (choice: EventChoice) => {
-      if (!activeEvent || !activeEventNodeId) return;
+      if (!activeEvent || !activeEventNodeId || eventChoiceLockRef.current) {
+        return;
+      }
+      eventChoiceLockRef.current = true;
       const { nextHp, spiritDelta, summary } = applyEventChoice(choice, {
         maxHp: heroStats.maxHp,
         currentHp: playerHp,
@@ -446,6 +469,7 @@ export default function GamePage() {
       setTimeout(() => setIsShaking(false), 500);
 
       victoryTimerRef.current = setTimeout(() => {
+        rewardDoneRef.current = false;
         setBattlePhase("REWARD");
         victoryTimerRef.current = null;
       }, 1500);
@@ -475,8 +499,14 @@ export default function GamePage() {
 
   const playCard = useCallback(
     (card: Card) => {
-      if (phase !== "playing" || battlePhase !== "IN_BATTLE" || enemy.currentHp <= 0)
+      if (
+        playLockRef.current ||
+        phase !== "playing" ||
+        battlePhase !== "IN_BATTLE" ||
+        enemy.currentHp <= 0
+      ) {
         return;
+      }
       if (energy < card.cost) return;
 
       const template = getCardTemplate(card);
@@ -487,6 +517,8 @@ export default function GamePage() {
         card.instanceId
       );
       if (!played) return;
+
+      playLockRef.current = true;
 
       const { player: nextPlayer, damage, draw, energyDelta } =
         resolveCardEffects(template, {
@@ -520,11 +552,17 @@ export default function GamePage() {
           currentMapNodeId,
           dungeonMap
         );
+        queueMicrotask(() => {
+          playLockRef.current = false;
+        });
         return;
       }
 
       setLastDamage(null);
       setDeckState(newDeck);
+      queueMicrotask(() => {
+        playLockRef.current = false;
+      });
     },
     [
       phase,
@@ -604,7 +642,8 @@ export default function GamePage() {
 
   const completeRewardNode = useCallback(
     (cardName: string | null) => {
-      if (!selectedTier || !currentMapNodeId) return;
+      if (!selectedTier || !currentMapNodeId || rewardDoneRef.current) return;
+      rewardDoneRef.current = true;
 
       setSpiritStones((s) => s + pendingFloorReward);
 
@@ -786,6 +825,8 @@ export default function GamePage() {
   const showRunMenu =
     hasActiveRun &&
     activeTab === "combat" &&
+    // 結算／選牌／通關期間禁止退出，避免吞掉通關獎勵
+    !(isInCombat && battlePhase !== "IN_BATTLE") &&
     (combatScreen === "path" ||
       combatScreen === "battle" ||
       isInCombat);
