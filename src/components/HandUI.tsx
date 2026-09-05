@@ -391,6 +391,11 @@ function HandCard({
         <p className={`text-[8px] font-semibold ${typeAccent}`}>
           {template?.type}
         </p>
+        {card.pulledByKarma && (
+          <p className="text-[8px] font-semibold tracking-[0.18em] text-[#9ec9b8]">
+            牽引
+          </p>
+        )}
         {card.isExhaust && (
           <p className="text-[8px] text-amber-500/70">消耗</p>
         )}
@@ -414,8 +419,8 @@ function HandCard({
     createPortal(
       <div
         className={`ink-card ink-card-drag-portal pointer-events-none select-none ${typeStyle} ${
-          readyHint ? "ring-2 ring-[#7aab9a]/75" : ""
-        }`}
+          card.pulledByKarma ? "ink-card-pulled" : ""
+        } ${readyHint ? "ring-2 ring-[#7aab9a]/75" : ""}`}
         style={{
           position: "fixed",
           left: dragBox.x,
@@ -481,7 +486,9 @@ function HandCard({
           dragging
             ? "ink-card-drag-source"
             : "transition-transform duration-200 ease-out"
-        } ${preview ? "ink-card-selected" : ""}`}
+        } ${preview ? "ink-card-selected" : ""} ${
+          card.pulledByKarma ? "ink-card-pulled" : ""
+        }`}
         style={{
           touchAction: "none",
           transform: restTransform,

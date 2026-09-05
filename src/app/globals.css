@@ -1832,6 +1832,42 @@ html.combat-scroll-lock {
     0 0 22px var(--card-glow);
 }
 
+/* 【因果相生】牽引臨時手牌 */
+@keyframes karma-pull-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(200, 230, 210, 0.1),
+      inset 0 0 0 1px rgba(122, 171, 154, 0.22),
+      0 4px 14px rgba(0, 0, 0, 0.35),
+      0 0 14px rgba(122, 171, 154, 0.35),
+      0 0 28px rgba(158, 201, 184, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.45),
+      inset 0 1px 0 rgba(200, 230, 210, 0.14),
+      inset 0 0 0 1px rgba(158, 201, 184, 0.35),
+      0 4px 14px rgba(0, 0, 0, 0.35),
+      0 0 20px rgba(122, 171, 154, 0.55),
+      0 0 36px rgba(158, 201, 184, 0.28);
+  }
+}
+
+.ink-card-pulled {
+  --card-border: rgba(122, 171, 154, 0.72);
+  --card-border-inner: rgba(158, 201, 184, 0.28);
+  --card-glow: rgba(122, 171, 154, 0.35);
+  animation: karma-pull-glow 2.2s ease-in-out infinite;
+}
+
+.ink-card-pulled.ink-card-selected,
+.ink-card-pulled:hover {
+  --card-border: rgba(158, 201, 184, 0.85);
+  animation: karma-pull-glow 1.6s ease-in-out infinite;
+}
+
 .slot-empty {
   color: rgba(107, 101, 96, 0.55);
   letter-spacing: 0.12em;
