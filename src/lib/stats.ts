@@ -11,6 +11,8 @@ export interface Hero {
   critMultiplier: number;
   maxHp: number;
   spiritStones: number;
+  avatar?: string;
+  portrait?: string;
 }
 
 export interface HeroStats {

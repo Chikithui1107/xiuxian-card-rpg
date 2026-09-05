@@ -4,6 +4,7 @@ import type { Hero, HeroStats } from "@/lib/stats";
 import { formatNumber } from "@/lib/stats";
 import type { CombatBuffs } from "@/lib/battle-resolve";
 import { getStackDodgeChance } from "@/lib/battle-resolve";
+import { publicAsset } from "@/lib/paths";
 
 interface CombatPlayerBarProps {
   hero: Hero;
@@ -24,13 +25,25 @@ export function CombatPlayerBar({
 }: CombatPlayerBarProps) {
   const hpPercent = Math.max(0, (currentHp / stats.maxHp) * 100);
   const dodgeChance = getStackDodgeChance(combatBuffs.dodge);
+  const avatarSrc = hero.avatar ? publicAsset(hero.avatar) : null;
 
   return (
     <div className="glass-panel-gold shrink-0 px-3 py-2.5">
       <div className="mb-2 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-bold text-[#c9a84c]">{hero.name}</p>
-          <p className="text-[10px] text-[#7aab9a]">{hero.realm}</p>
+        <div className="flex min-w-0 items-center gap-2.5">
+          {avatarSrc && (
+            <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full border border-[#8a7340]/40">
+              <img
+                src={avatarSrc}
+                alt=""
+                className="h-full w-full object-cover object-[center_18%]"
+              />
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="truncate text-sm font-bold text-[#c9a84c]">{hero.name}</p>
+            <p className="text-[10px] text-[#7aab9a]">{hero.realm}</p>
+          </div>
         </div>
         <div className="flex flex-wrap justify-end gap-1 text-[9px]">
           <BuffPill

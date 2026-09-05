@@ -2,6 +2,7 @@
 
 import type { Hero, HeroStats } from "@/lib/stats";
 import { formatNumber } from "@/lib/stats";
+import { publicAsset } from "@/lib/paths";
 
 interface CultivatorPanelProps {
   hero: Hero;
@@ -23,13 +24,24 @@ export function CultivatorPanel({
   deckCount,
 }: CultivatorPanelProps) {
   const hpPercent = Math.max(0, (playerHp / stats.maxHp) * 100);
+  const avatarSrc = hero.avatar ? publicAsset(hero.avatar) : null;
 
   return (
     <div className="glass-panel-gold overflow-hidden p-3.5">
       <div className="mb-3 flex items-center gap-3">
-        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center">
-          <div className="absolute inset-0 animate-seal-pulse rounded-full border border-[#4a7c6f]/40 bg-gradient-to-br from-stone-900/80 to-stone-950/90" />
-          <span className="relative text-2xl font-black text-[#c9a84c]">仙</span>
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full border border-[#8a7340]/45 bg-stone-950">
+          <div className="absolute inset-0 animate-seal-pulse rounded-full border border-[#4a7c6f]/30" />
+          {avatarSrc ? (
+            <img
+              src={avatarSrc}
+              alt={hero.name}
+              className="relative h-full w-full object-cover object-[center_18%]"
+            />
+          ) : (
+            <span className="relative flex h-full w-full items-center justify-center text-2xl font-black text-[#c9a84c]">
+              仙
+            </span>
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="text-base font-bold tracking-wider text-[#c9a84c]">
