@@ -15,12 +15,13 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
   // 新檔名避開舊 start-cultivation.mp3 的瀏覽器快取
   start_cultivation: ["horror-hit", "start-cultivation"],
   card_draw: ["card-draw", "card_draw"],
+  reward_click: ["reward-click", "reward_click"],
 };
 
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
 
 /** 換樣本時遞增，強制繞過 HTTP 快取 */
-const SFX_CACHE_BUST = "v4";
+const SFX_CACHE_BUST = "v5";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -149,9 +150,16 @@ export function playCardDrawSfx(count = 1): void {
   }
 }
 
+/** 勝利擇劍訣時的點選音 */
+export function playRewardClickSfx(): void {
+  unlockCombatAudio();
+  void playSample("reward_click", 0.95);
+}
+
 export function preloadCombatSfx(): void {
   void loadBuffer("fuxue_slash");
   void loadBuffer("tuxu_whoosh");
   void loadBuffer("start_cultivation");
   void loadBuffer("card_draw");
+  void loadBuffer("reward_click");
 }
