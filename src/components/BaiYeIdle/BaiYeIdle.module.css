@@ -24,10 +24,16 @@
   object-fit: cover;
   object-position: center center;
 
-  filter: brightness(0.84) saturate(0.85) contrast(1.04);
+  /* 預設輕壓；角色資料可設 backgroundFilter: none 以保留原圖銳度 */
+  filter: brightness(0.9) saturate(0.92) contrast(1.02);
 
   user-select: none;
   pointer-events: none;
+}
+
+.scene[data-lobby-theme="ink"] .background {
+  /* 墨弈：不另壓曝光，避免小圖放大後更髒 */
+  filter: none;
 }
 
 /* 已移除全屏 vignette／四角暗角；上下功能性漸變改由 header／lobby veil／底欄負責 */

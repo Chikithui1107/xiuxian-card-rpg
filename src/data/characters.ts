@@ -64,14 +64,14 @@ export const PLAYABLE_CHARACTERS: PlayableCharacter[] = [
     avatar: "/images/moyi/moyi-character.png",
     portrait: "/images/moyi/moyi-character.png",
     lobbyPortrait: "/images/moyi/moyi-character.png",
-    lobbyBackground: "/images/moyi/moyi-bg.jpg",
+    lobbyBackground: "/images/moyi/moyi-bg.png",
     startingDeck: [...BAIYE_DECK],
     skillLabels: ["陰陽鎖", "因果子", "一子定局"],
     lobbyTheme: "ink",
     lobbyArt: {
-      /* 圓形道場偏下，保留山寺與天際陰陽 */
+      /* 圓形道場偏下，保留山寺與天際陰陽；不壓暗濾鏡以免糊 */
       backgroundPosition: "center 42%",
-      backgroundFilter: "brightness(0.92) contrast(1.02)",
+      backgroundFilter: "none",
       characterBottom: "3%",
       characterHeight: "80%",
     },
