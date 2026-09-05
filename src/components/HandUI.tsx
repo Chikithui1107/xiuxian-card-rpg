@@ -445,7 +445,9 @@ function HandCard({
               ? "cursor-grab opacity-55"
               : "cursor-grab active:cursor-grabbing"
         } ${typeStyle} ${
-          dragging ? "invisible" : "transition-transform duration-150 ease-out"
+          dragging
+            ? "ink-card-drag-source"
+            : "transition-transform duration-150 ease-out"
         } ${selected && !dragging ? "ink-card-selected" : ""}`}
         style={{
           touchAction: "none",
@@ -453,10 +455,11 @@ function HandCard({
           zIndex: selected ? 80 : undefined,
         }}
       >
-        {renderCardFace({
-          showSelectHint: selected && !readyHint && !dragging,
-          showReady: false,
-        })}
+        {!dragging &&
+          renderCardFace({
+            showSelectHint: selected && !readyHint,
+            showReady: false,
+          })}
       </div>
       {dragPortal}
     </div>

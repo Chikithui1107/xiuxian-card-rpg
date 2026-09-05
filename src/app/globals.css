@@ -601,8 +601,18 @@ body {
   box-sizing: border-box;
 }
 
-/* 拖曳幽靈（portal 到 body）：實心底，避開祖先 filter / overflow */
-.ink-card-drag-portal {
+/* 拖曳中：原位牌完全隱藏（只留槽位空間），幽靈在 body portal */
+.ink-card-drag-source {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  box-shadow: none !important;
+}
+
+.ink-card-drag-source::before,
+.ink-card-drag-source::after {
+  display: none !important;
+}
   position: fixed !important;
   inset: auto !important;
   background-image: none !important;
