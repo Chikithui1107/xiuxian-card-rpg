@@ -24,8 +24,8 @@ interface HandUIProps {
 }
 
 /** 上滑多少像素算出牌（相對起點） */
-const PLAY_SWIPE_Y = -64;
-const TAP_SLOP = 12;
+const PLAY_SWIPE_Y = -56;
+const TAP_SLOP = 10;
 
 function getOverlapClass(total: number) {
   if (total <= 4) return "-space-x-3";
@@ -59,7 +59,7 @@ export function HandUI({
 
   return (
     <div
-      className={`relative overflow-visible px-1 pb-1 pt-20 ${
+      className={`relative overflow-visible px-1 pb-1 pt-16 ${
         denyShake ? "animate-deny-shake" : ""
       }`}
     >
@@ -113,10 +113,6 @@ function HandCard({
     pointerId: number;
     startX: number;
     startY: number;
-    grabX: number;
-    grabY: number;
-    width: number;
-    height: number;
     moved: boolean;
     active: boolean;
   } | null>(null);
@@ -135,43 +131,18 @@ function HandCard({
   const clearGhostStyles = useCallback(() => {
     const ghost = ghostRef.current;
     if (!ghost) return;
-    ghost.style.position = "";
-    ghost.style.left = "";
-    ghost.style.top = "";
-    ghost.style.width = "";
-    ghost.style.height = "";
-    ghost.style.zIndex = "";
-    ghost.style.margin = "";
     ghost.style.transform = "";
-    ghost.style.pointerEvents = "";
+    ghost.style.zIndex = "";
     ghost.style.transition = "";
+    ghost.style.opacity = "";
   }, []);
 
   const finishDrag = useCallback(() => {
-    const ghost = ghostRef.current;
-    const slot = slotRef.current;
-    if (ghost && slot && ghost.parentElement !== slot) {
-      slot.appendChild(ghost);
-    }
     dragRef.current = null;
     setDragging(false);
     setReadyHint(false);
     clearGhostStyles();
   }, [clearGhostStyles]);
-
-  useEffect(() => {
-    return () => {
-      const ghost = ghostRef.current;
-      const slot = slotRef.current;
-      if (ghost && slot && ghost.parentElement !== slot) {
-        try {
-          slot.appendChild(ghost);
-        } catch {
-          /* unmounting */
-        }
-      }
-    };
-  }, []);
 
   const tryPlay = useCallback(
     (origin: DOMRect) => {
@@ -195,43 +166,15 @@ function HandCard({
     if (e.button !== 0) return;
     const ghost = ghostRef.current;
     if (!ghost) return;
-    const rect = ghost.getBoundingClientRect();
     ghost.setPointerCapture(e.pointerId);
 
     dragRef.current = {
       pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
-      grabX: e.clientX - rect.left,
-      grabY: e.clientY - rect.top,
-      width: rect.width,
-      height: rect.height,
       moved: false,
       active: false,
     };
-  };
-
-  const promoteToFreeDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    const ghost = ghostRef.current;
-    if (!drag || !ghost || drag.active) return;
-
-    drag.active = true;
-    setDragging(true);
-    setHovered(false);
-
-    ghost.style.position = "fixed";
-    ghost.style.left = `${e.clientX - drag.grabX}px`;
-    ghost.style.top = `${e.clientY - drag.grabY}px`;
-    ghost.style.width = `${drag.width}px`;
-    ghost.style.height = `${drag.height}px`;
-    ghost.style.zIndex = "9999";
-    ghost.style.margin = "0";
-    ghost.style.pointerEvents = "auto";
-    ghost.style.transform = "none";
-    ghost.style.transition = "none";
-    /* 脫離可能帶 filter/overflow 的祖先，避免拖上去被裁切 */
-    document.body.appendChild(ghost);
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -244,15 +187,19 @@ function HandCard({
 
     if (!drag.moved && (Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP)) {
       drag.moved = true;
-      promoteToFreeDrag(e);
+      drag.active = true;
+      setDragging(true);
+      setHovered(false);
+      ghost.style.transition = "none";
+      ghost.style.zIndex = "80";
     }
 
     if (!drag.active) return;
 
-    ghost.style.left = `${e.clientX - drag.grabX}px`;
-    ghost.style.top = `${e.clientY - drag.grabY}px`;
+    // 用 transform 跟隨手指，不搬 DOM、不用 fixed，避免牌被裁切或 React 節點錯亂
+    ghost.style.transform = `translate(${dx}px, ${dy}px)`;
 
-    const upEnough = e.clientY - drag.startY <= PLAY_SWIPE_Y;
+    const upEnough = dy <= PLAY_SWIPE_Y;
     setReadyHint(upEnough);
   };
 
@@ -288,7 +235,7 @@ function HandCard({
   };
 
   const inspecting = !dragging && (selected || hovered);
-  const z = dragging ? 1 : inspecting ? 60 : index;
+  const z = dragging ? 80 : inspecting ? 60 : index;
 
   return (
     <div
@@ -325,27 +272,25 @@ function HandCard({
             if (origin) tryPlay(origin);
           }
         }}
-        className={`ink-card absolute inset-0 origin-bottom touch-none select-none will-change-transform ${
+        className={`ink-card absolute inset-0 origin-bottom touch-none select-none ${
           locked
             ? "cursor-not-allowed opacity-40"
             : !canAfford
               ? "cursor-grab opacity-55"
               : "cursor-grab active:cursor-grabbing"
         } ${typeStyle} ${
+          dragging ? "" : "transition-transform duration-200 ease-out"
+        } ${inspecting ? "ink-card-selected" : ""} ${
+          readyHint ? "ring-2 ring-[#7aab9a]/70" : ""
+        }`}
+        style={
           dragging
-            ? ""
-            : "transition-transform duration-200 ease-out"
-        } ${inspecting ? "ink-card-selected" : ""}`}
-        style={{
-          ...(dragging
-            ? {}
+            ? undefined
             : {
-                transform: inspecting
-                  ? "translateY(-22px)"
-                  : "translateY(0)",
+                transform: inspecting ? "translateY(-22px)" : "translateY(0)",
                 zIndex: inspecting ? 60 : undefined,
-              }),
-        }}
+              }
+        }
       >
         <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-2">
           <div className="flex items-start justify-between gap-1">

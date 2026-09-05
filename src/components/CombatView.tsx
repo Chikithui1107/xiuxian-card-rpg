@@ -270,7 +270,7 @@ export function CombatView({
       {/* 手牌區不加 backdrop-blur / overflow-hidden，避免拖牌被裁切 */}
       <div
         ref={playerTargetRef}
-        className="relative z-30 shrink-0 border-t border-[#8a7340]/25 bg-[#121110]/78 px-3 pb-2.5 pt-1"
+        className="relative z-30 shrink-0 overflow-visible border-t border-[#8a7340]/25 bg-[#121110]/78 px-3 pb-2.5 pt-1"
       >
         <CardHand
           hand={hand}
