@@ -53,7 +53,6 @@ export function EnemyPanel({
     prevHpRef.current = enemy.currentHp;
   }, [enemy.currentHp]);
 
-  // 敵方攻擊發生後短暫浮字，不常駐
   useEffect(() => {
     let label: string | null = null;
     if (lastDodge) {
@@ -85,12 +84,12 @@ export function EnemyPanel({
 
   return (
     <div
-      className={`enemy-panel relative flex h-full min-h-0 flex-col items-center justify-end ${
+      className={`enemy-panel relative flex h-full min-h-0 flex-col items-center justify-start pt-[1.5vh] ${
         isDefeated ? "opacity-70" : ""
       }`}
     >
-      {/* 頭頂輕量 HUD */}
-      <div className="enemy-hud pointer-events-none z-20 mb-1 w-full max-w-[14rem] shrink-0 text-center">
+      {/* 頭頂輕量 HUD：名稱 + 境界，細血條 */}
+      <div className="enemy-hud pointer-events-none z-20 mb-1.5 w-full max-w-[13rem] shrink-0 text-center">
         <p className="flex items-baseline justify-center gap-2 text-[11px] tracking-wide">
           <span
             className={`font-bold ${
@@ -100,16 +99,18 @@ export function EnemyPanel({
             {displayName}
           </span>
           <span className="text-stone-400">{enemy.realm}</span>
-          <span className="tabular-nums text-[#e0a8a8]">
+        </p>
+        <div className="mx-auto mt-1 flex w-[90%] items-center gap-1.5">
+          <div className="h-[3px] min-w-0 flex-1 overflow-hidden rounded-full bg-black/45">
+            <div
+              className="enemy-hp-fill h-full rounded-full transition-all duration-300"
+              style={{ width: `${hpPercent}%` }}
+            />
+          </div>
+          <span className="shrink-0 text-[9px] tabular-nums text-[#e0a8a8]">
             {formatNumber(Math.max(0, enemy.currentHp))}/
             {formatNumber(enemy.maxHp)}
           </span>
-        </p>
-        <div className="mx-auto mt-1 h-[3px] w-[88%] overflow-hidden rounded-full bg-black/45">
-          <div
-            className="enemy-hp-fill h-full rounded-full transition-all duration-300"
-            style={{ width: `${hpPercent}%` }}
-          />
         </div>
         {enemy.passiveLabel && (
           <p className="mt-0.5 text-[9px] tracking-wide text-[#a8a0c8]/80">
@@ -118,18 +119,18 @@ export function EnemyPanel({
         )}
       </div>
 
+      {/* 敵人上移並放大：頭部落在畫面約 35–40% */}
       <div
-        className={`enemy-sprite-stage relative mx-auto flex h-[min(42vh,15.5rem)] w-full max-w-[18rem] shrink-0 items-end justify-center ${
+        className={`enemy-sprite-stage relative mx-auto flex h-[min(52vh,19.25rem)] w-full max-w-[21rem] shrink-0 items-end justify-center ${
           shaking ? "animate-shake" : ""
         } ${hitFlash ? "enemy-hit-flash" : ""}`}
       >
-        {/* 淡接地影／霧，無黑底方塊 */}
         <div
           className="pointer-events-none absolute bottom-[2%] left-1/2 h-[12%] w-[58%] -translate-x-1/2 rounded-[100%] bg-[radial-gradient(ellipse,rgba(4,8,14,0.45)_0%,rgba(4,8,14,0.12)_55%,transparent_75%)] blur-[6px]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute bottom-[4%] left-1/2 h-[18%] w-[70%] -translate-x-1/2 rounded-[100%] bg-[radial-gradient(ellipse,rgba(90,130,150,0.12)_0%,transparent_70%)] blur-[10px]"
+          className="pointer-events-none absolute bottom-[4%] left-1/2 h-[18%] w-[70%] -translate-x-1/2 rounded-[100%] bg-[radial-gradient(ellipse,rgba(90,130,150,0.1)_0%,transparent_70%)] blur-[10px]"
           aria-hidden
         />
 

@@ -101,12 +101,14 @@ export function CombatView({
 }: CombatViewProps) {
   const isPlaying = phase === "playing" && battlePhase === "IN_BATTLE";
   const placeLabel = locationName ?? tierName ?? "秘境";
+  const progressFloor = Math.min(
+    Math.max(1, tierFloor ?? 1),
+    totalFloors ?? 3
+  );
   const battleLabel =
-    tierFloor && totalFloors
-      ? `${placeLabel} · 第 ${tierFloor} / ${totalFloors} 戰`
-      : tierFloor
-        ? `${placeLabel} · 第 ${tierFloor} 戰`
-        : placeLabel;
+    totalFloors != null
+      ? `${placeLabel} · ${progressFloor} / ${totalFloors}`
+      : placeLabel;
 
   const enemyTargetRef = useRef<HTMLDivElement>(null);
   const playerTargetRef = useRef<HTMLDivElement>(null);

@@ -31,7 +31,7 @@ export function CombatPlayerBar({
     <div className="combat-player-hud">
       <div className="flex items-center gap-2">
         {avatarSrc && (
-          <div className="h-7 w-7 shrink-0 overflow-hidden rounded-full border border-[#c9a84c]/30">
+          <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#c9a84c]/28">
             <img
               src={avatarSrc}
               alt=""
@@ -40,16 +40,15 @@ export function CombatPlayerBar({
           </div>
         )}
 
-        <p className="shrink-0 text-[12px] font-bold tracking-wide text-[#e4d4a8]">
-          {hero.name}
-        </p>
-
         <div className="min-w-0 flex-1">
-          <div className="mb-0.5 flex items-center justify-between gap-2 text-[10px]">
-            <span className="tabular-nums text-[#c5d8cc]">
-              {formatNumber(currentHp)}/{formatNumber(stats.maxHp)}
-            </span>
-            <div className="flex shrink-0 items-center gap-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-[12px] font-bold tracking-wide text-[#e4d4a8]">
+              {hero.name}{" "}
+              <span className="font-semibold tabular-nums text-[#c5d8cc]">
+                {formatNumber(currentHp)}/{formatNumber(stats.maxHp)}
+              </span>
+            </p>
+            <div className="flex shrink-0 items-center gap-1.5">
               {Array.from({ length: maxEnergy }, (_, i) => (
                 <span
                   key={i}
@@ -58,79 +57,47 @@ export function CombatPlayerBar({
               ))}
             </div>
           </div>
-          <div className="h-1 overflow-hidden rounded-full bg-black/40">
+          <div className="mt-1 h-1 overflow-hidden rounded-full bg-black/40">
             <div
               className="hp-bar-fill h-full rounded-full transition-all"
               style={{ width: `${hpPercent}%` }}
             />
           </div>
+          <div className="mt-1 flex items-center gap-3 text-[10px] tracking-wide text-stone-500">
+            <span>
+              劍意{" "}
+              <span
+                className={
+                  combatBuffs.swordIntent > 0
+                    ? "font-semibold text-[#e4d4a8]"
+                    : "tabular-nums"
+                }
+              >
+                {combatBuffs.swordIntent}
+              </span>
+            </span>
+            <span>
+              閃避{" "}
+              <span
+                className={
+                  combatBuffs.dodge > 0
+                    ? "font-semibold text-[#9fd0c0]"
+                    : "tabular-nums"
+                }
+              >
+                {combatBuffs.dodge > 0
+                  ? `${combatBuffs.dodge}·${Math.round(dodgeChance * 100)}%`
+                  : "0"}
+              </span>
+            </span>
+            {combatBuffs.nextSwordBonus > 0 && (
+              <span className="font-semibold text-[#e0a0a0]">
+                養劍 +{Math.round(combatBuffs.nextSwordBonus * 100)}%
+              </span>
+            )}
+          </div>
         </div>
       </div>
-
-      <div className="mt-1 flex items-center gap-2.5 text-[10px] tracking-wide">
-        <StatusChip
-          icon="劍"
-          label="劍意"
-          value={String(combatBuffs.swordIntent)}
-          active={combatBuffs.swordIntent > 0}
-          tone="gold"
-        />
-        <StatusChip
-          icon="閃"
-          label="閃避"
-          value={
-            combatBuffs.dodge > 0
-              ? `${combatBuffs.dodge}·${Math.round(dodgeChance * 100)}%`
-              : "0"
-          }
-          active={combatBuffs.dodge > 0}
-          tone="jade"
-        />
-        {combatBuffs.nextSwordBonus > 0 && (
-          <StatusChip
-            icon="養"
-            label="養劍"
-            value={`+${Math.round(combatBuffs.nextSwordBonus * 100)}%`}
-            active
-            tone="crimson"
-          />
-        )}
-      </div>
     </div>
-  );
-}
-
-function StatusChip({
-  icon,
-  label,
-  value,
-  active,
-  tone,
-}: {
-  icon: string;
-  label: string;
-  value: string;
-  active: boolean;
-  tone: "gold" | "jade" | "crimson";
-}) {
-  const color = {
-    gold: active ? "text-[#e4d4a8]" : "text-stone-500",
-    jade: active ? "text-[#9fd0c0]" : "text-stone-500",
-    crimson: "text-[#e0a0a0]",
-  }[tone];
-
-  return (
-    <span className={`inline-flex items-center gap-1 ${color}`} title={label}>
-      <span
-        className={`flex h-3.5 w-3.5 items-center justify-center rounded-sm border text-[8px] ${
-          active
-            ? "border-current/40 bg-black/25"
-            : "border-stone-600/40 bg-transparent"
-        }`}
-      >
-        {icon}
-      </span>
-      <span className="font-semibold tabular-nums">{value}</span>
-    </span>
   );
 }

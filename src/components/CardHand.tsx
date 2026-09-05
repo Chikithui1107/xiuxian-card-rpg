@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { HandUI } from "@/components/HandUI";
 import type { Card } from "@/types/battle";
 import type { ReactNode } from "react";
@@ -21,6 +22,8 @@ interface CardHandProps {
   playerBar?: ReactNode;
 }
 
+const TIP_KEY = "xiuxian_swipe_tip_seen";
+
 export function CardHand({
   hand,
   energy,
@@ -31,16 +34,29 @@ export function CardHand({
   onPlayCard,
   onDenyPlay,
   onEndTurn,
-  lastDamage,
+  lastDamage: _lastDamage,
   disabled,
   denyShake = false,
   feelToast = null,
   playerBar,
 }: CardHandProps) {
+  const [showTip, setShowTip] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(TIP_KEY)) return;
+      sessionStorage.setItem(TIP_KEY, "1");
+      setShowTip(true);
+      const t = window.setTimeout(() => setShowTip(false), 2400);
+      return () => window.clearTimeout(t);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   return (
     <div className="relative flex h-full flex-col gap-1">
-      <div className="flex shrink-0 items-center justify-between gap-2 px-0.5">
-        <p className="text-[9px] tracking-[0.16em] text-stone-500">上拖出牌</p>
+      <div className="flex shrink-0 items-center justify-end gap-2 px-0.5">
         <p className="text-[9px] tabular-nums text-stone-500">
           <span className="text-[#9ab8aa]">{drawPileCount}</span>
           <span className="mx-0.5 text-stone-600">/</span>
@@ -63,9 +79,9 @@ export function CardHand({
           onPlayCard={onPlayCard}
           onDenyPlay={onDenyPlay}
         />
-        {feelToast && (
-          <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-2 z-20 -translate-x-1/2 rounded-sm border border-[#a85555]/35 bg-stone-950/75 px-2.5 py-0.5 text-[10px] font-semibold text-[#c48888]">
-            {feelToast}
+        {(feelToast || showTip) && (
+          <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2 rounded-sm border border-stone-600/30 bg-stone-950/70 px-2.5 py-0.5 text-[10px] tracking-wide text-stone-300">
+            {feelToast ?? "上拖出牌"}
           </p>
         )}
 
@@ -73,23 +89,15 @@ export function CardHand({
           type="button"
           onClick={onEndTurn}
           disabled={disabled}
-          className="btn-end-turn-seal absolute bottom-1 right-0 z-30 disabled:cursor-not-allowed disabled:opacity-35"
-          aria-label="收功結束回合"
+          className="btn-end-turn-seal absolute bottom-0 right-0 z-30 disabled:cursor-not-allowed disabled:opacity-35"
+          aria-label="結束回合"
         >
-          <span className="btn-end-turn-seal-label">收功</span>
+          <span className="btn-end-turn-seal-label">
+            <span>結束</span>
+            <span>回合</span>
+          </span>
         </button>
       </div>
-
-      <p
-        className={`shrink-0 text-center text-[8px] leading-3 ${
-          lastDamage !== null ? "text-stone-600" : "invisible"
-        }`}
-      >
-        上式{" "}
-        <span className="text-[#c9a84c]/80">
-          {(lastDamage ?? 0).toLocaleString()}
-        </span>
-      </p>
     </div>
   );
 }

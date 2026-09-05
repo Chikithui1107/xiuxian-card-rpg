@@ -13,6 +13,8 @@ interface MobileFrameProps {
   bgmScene?: BgmScene;
   /** 山門沉浸：背景頂到底，標題浮在天空上 */
   immersive?: boolean;
+  /** 戰鬥：壓扁 Header，把空間留給敵人 */
+  compactHeader?: boolean;
 }
 
 export function MobileFrame({
@@ -23,6 +25,7 @@ export function MobileFrame({
   inGameMenu,
   bgmScene = "lobby",
   immersive = false,
+  compactHeader = false,
 }: MobileFrameProps) {
   const showHeader = Boolean(title || subtitle);
 
@@ -38,6 +41,7 @@ export function MobileFrame({
               "mobile-header",
               "mobile-header-overlay",
               immersive ? "mobile-header-immersive" : "",
+              compactHeader ? "mobile-header-compact" : "",
               inGameMenu ? "has-in-game-menu" : "has-bgm-toggle",
             ]
               .filter(Boolean)
@@ -55,6 +59,7 @@ export function MobileFrame({
           className={[
             "mobile-content flex min-h-0 flex-1 flex-col",
             showHeader ? "has-overlay-header" : "",
+            compactHeader ? "has-compact-header" : "",
             immersive ? "is-immersive" : "",
             bottomNav ? "has-bottom-nav" : "combat-lock-scroll",
           ]

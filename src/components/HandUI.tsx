@@ -29,7 +29,8 @@ const TAP_SLOP = 8;
 
 function fanAngle(index: number, total: number) {
   if (total <= 1) return 0;
-  const spread = Math.min(10, 3.2 * (total - 1));
+  /* 左側逆時針、右側順時針；中間近乎正直 */
+  const spread = Math.min(16, 4.2 * (total - 1));
   const start = -spread / 2;
   const step = spread / (total - 1);
   return start + step * index;
@@ -39,14 +40,34 @@ function fanLift(index: number, total: number) {
   if (total <= 1) return 0;
   const mid = (total - 1) / 2;
   const dist = Math.abs(index - mid);
-  return dist * 2.5;
+  return dist * 3.2;
 }
 
+/** 重疊約 22–30% 卡寬 */
 function overlapPx(total: number) {
-  if (total <= 3) return 14;
-  if (total === 4) return 22;
-  if (total === 5) return 30;
-  return 36;
+  const w =
+    typeof window !== "undefined"
+      ? parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue(
+            "--game-card-width"
+          )
+        ) * 16 || 110
+      : 110;
+  if (total <= 3) return Math.round(w * 0.22);
+  if (total === 4) return Math.round(w * 0.26);
+  if (total === 5) return Math.round(w * 0.28);
+  return Math.round(w * 0.3);
+}
+
+function neighborShift(index: number, selectedIndex: number | null) {
+  if (selectedIndex == null || index === selectedIndex) return 0;
+  return index < selectedIndex ? -12 : 12;
+}
+
+function setDropReady(on: boolean, el: HTMLElement | null) {
+  const shell = el?.closest(".combat-shell");
+  if (!shell) return;
+  shell.classList.toggle("combat-drop-ready", on);
 }
 
 export function HandUI({
@@ -67,17 +88,17 @@ export function HandUI({
 
   return (
     <div
-      className={`hand-fan relative px-1 pb-7 pt-10 ${
+      className={`hand-fan relative px-1 pb-8 pt-9 ${
         denyShake ? "animate-deny-shake" : ""
       }`}
-      style={{ minHeight: "calc(2.5rem + var(--game-card-height))" }}
+      style={{ minHeight: "calc(2.75rem + var(--game-card-height))" }}
     >
       {hand.length === 0 ? (
         <p className="flex min-h-[var(--game-card-height)] items-center justify-center text-xs text-stone-500">
           手牌已空
         </p>
       ) : (
-        <div className="flex justify-center">
+        <div className="flex justify-center pr-[4.25rem]">
           <div className="relative flex items-end justify-center">
             {hand.map((card, index) => (
               <HandCard
@@ -88,6 +109,11 @@ export function HandUI({
                 energy={energy}
                 locked={disabled}
                 selected={selectedId === card.instanceId}
+                selectedIndex={
+                  selectedId
+                    ? hand.findIndex((c) => c.instanceId === selectedId)
+                    : null
+                }
                 onSelect={(id) =>
                   setSelectedId((prev) => (prev === id ? null : id))
                 }
@@ -109,6 +135,7 @@ function HandCard({
   energy,
   locked,
   selected,
+  selectedIndex,
   onSelect,
   onPlayCard,
   onDenyPlay,
@@ -119,6 +146,7 @@ function HandCard({
   energy: number;
   locked: boolean;
   selected: boolean;
+  selectedIndex: number | null;
   onSelect: (id: string) => void;
   onPlayCard: (card: Card, origin: DOMRect) => void;
   onDenyPlay?: (reason: "energy" | "locked") => void;
@@ -150,6 +178,7 @@ function HandCard({
 
   const angle = fanAngle(index, total);
   const baseLift = fanLift(index, total);
+  const shiftX = neighborShift(index, selectedIndex);
   const marginLeft = index === 0 ? 0 : -overlapPx(total);
 
   const clearGhostStyles = useCallback(() => {
@@ -171,6 +200,7 @@ function HandCard({
     dragRef.current = null;
     setDragging(false);
     setReadyHint(false);
+    setDropReady(false, slotRef.current);
     clearGhostStyles();
   }, [clearGhostStyles]);
 
@@ -279,6 +309,7 @@ function HandCard({
 
     const upEnough = dy <= PLAY_SWIPE_Y;
     setReadyHint((prev) => (prev === upEnough ? prev : upEnough));
+    setDropReady(upEnough, slotRef.current);
   };
 
   const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -316,8 +347,8 @@ function HandCard({
   const z = dragging ? 90 : inspecting ? 60 : index;
 
   const restTransform = inspecting
-    ? `translateY(-22px) scale(1.1) rotate(0deg)`
-    : `translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
+    ? `translateX(${shiftX}px) translateY(-40px) scale(1.12) rotate(0deg)`
+    : `translateX(${shiftX}px) translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
 
   // 核心效果：描述首句或前 ~18 字
   const coreLine = (template?.description ?? "")
@@ -416,10 +447,8 @@ function HandCard({
             {card.isExhaust && (
               <p className="text-[8px] text-amber-500/70">消耗</p>
             )}
-            {inspecting && !readyHint && (
-              <p className="mt-0.5 text-[8px] text-stone-500">
-                {selected ? "上拖出牌 · 再點取消" : "點選鎖定 · 上拖出牌"}
-              </p>
+            {selected && !readyHint && (
+              <p className="mt-0.5 text-[8px] text-stone-500">再點取消</p>
             )}
             {readyHint && (
               <p className="mt-0.5 text-[9px] font-bold text-[#7aab9a]">

@@ -299,6 +299,23 @@ body {
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
 }
 
+/* 戰鬥：壓扁 Header，把垂直空間留給敵人與手牌 */
+.mobile-header-compact {
+  padding: 0.28rem 2.85rem 0.35rem;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 10, 12, 0.36) 0%,
+    rgba(8, 10, 12, 0.1) 55%,
+    transparent 100%
+  );
+}
+
+.mobile-header-compact .mobile-header-title.title-ink {
+  font-size: 0.92rem;
+  letter-spacing: 0.72em;
+  text-indent: 0.72em;
+}
+
 .bgm-toggle-btn {
   position: absolute;
   top: calc(0.55rem + env(safe-area-inset-top, 0px));
@@ -454,6 +471,10 @@ body {
   padding-top: 2.55rem;
 }
 
+.mobile-content.has-overlay-header.has-compact-header:not(.is-immersive) {
+  padding-top: 1.7rem;
+}
+
 .mobile-content.is-immersive {
   padding-top: 0;
 }
@@ -488,9 +509,9 @@ body {
   min-height: 0;
 }
 
-/* 戰鬥殼：上半戰場、下半卡牌；無厚黑容器感 */
+/* 戰鬥殼：Header~10% / 戰場~48% / HUD+手牌~40%；無厚黑容器感 */
 .combat-shell {
-  --combat-dock-h: 19.75rem;
+  --combat-dock-h: clamp(21.5rem, 40vh, 24.5rem);
   position: relative;
   height: 100%;
   min-height: 0;
@@ -517,22 +538,47 @@ body {
 
 .combat-shell-top {
   position: absolute;
-  top: 0;
+  top: 1.55rem;
   left: 0;
   right: 0;
   z-index: 10;
-  height: 1.35rem;
+  height: 1.15rem;
 }
 
 .combat-shell-stage {
   position: absolute;
-  top: 1.35rem;
+  top: 2.75rem;
   left: 0;
   right: 0;
   bottom: var(--combat-dock-h);
   z-index: 10;
   overflow: hidden;
-  padding: 0.15rem 0.5rem 0;
+  padding: 0 0.5rem 0;
+}
+
+/* 上拖到戰場時的輕微高亮 */
+.combat-shell-stage::after {
+  content: "";
+  position: absolute;
+  inset: 8% 6% 4%;
+  border-radius: 1.25rem;
+  border: 1px solid transparent;
+  background: transparent;
+  pointer-events: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.combat-shell.combat-drop-ready .combat-shell-stage::after {
+  border-color: rgba(158, 201, 184, 0.28);
+  background: radial-gradient(
+    ellipse at 50% 55%,
+    rgba(122, 171, 154, 0.1) 0%,
+    transparent 68%
+  );
+  box-shadow: inset 0 0 24px rgba(122, 171, 154, 0.08);
 }
 
 .combat-shell-dock {
@@ -546,13 +592,13 @@ body {
   border-top: 1px solid rgba(138, 115, 64, 0.14);
   background: linear-gradient(
     180deg,
-    rgba(10, 12, 14, 0.28) 0%,
-    rgba(10, 12, 14, 0.62) 38%,
-    rgba(8, 10, 12, 0.82) 100%
+    rgba(10, 12, 14, 0.22) 0%,
+    rgba(10, 12, 14, 0.55) 32%,
+    rgba(8, 10, 12, 0.8) 100%
   );
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  padding: 0.35rem 0.65rem 0.45rem;
+  padding: 0.25rem 0.55rem 0.4rem;
   box-sizing: border-box;
 }
 
@@ -560,46 +606,63 @@ body {
   border: none;
   border-radius: 0;
   background: transparent;
-  padding: 0.15rem 0.1rem 0.25rem;
+  padding: 0.1rem 0.05rem 0.2rem;
+  max-height: 6.5rem;
 }
 
 .btn-end-turn-seal {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2.85rem;
-  height: 2.85rem;
+  width: 4.75rem;
+  height: 4.75rem;
   border-radius: 9999px;
-  border: 1px solid rgba(201, 168, 76, 0.45);
+  border: 1px solid rgba(201, 168, 76, 0.42);
   background:
     radial-gradient(
       circle at 35% 30%,
-      rgba(201, 168, 76, 0.22),
-      rgba(18, 16, 12, 0.88) 62%
+      rgba(201, 168, 76, 0.18),
+      rgba(18, 16, 12, 0.86) 62%
     );
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.35),
-    0 4px 14px rgba(0, 0, 0, 0.35);
-  color: rgba(232, 212, 160, 0.92);
+    0 4px 14px rgba(0, 0, 0, 0.32);
+  color: rgba(210, 188, 140, 0.88);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.15s ease, border-color 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .btn-end-turn-seal:hover:not(:disabled) {
-  border-color: rgba(201, 168, 76, 0.7);
-  transform: scale(1.04);
+  border-color: rgba(201, 168, 76, 0.62);
+  color: rgba(232, 212, 160, 0.95);
+  transform: scale(1.03);
 }
 
 .btn-end-turn-seal:active:not(:disabled) {
-  transform: scale(0.96);
+  transform: scale(0.97);
+  border-color: rgba(201, 168, 76, 0.75);
+  box-shadow:
+    0 0 0 1px rgba(201, 168, 76, 0.2),
+    0 0 16px rgba(201, 168, 76, 0.18),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+  color: rgba(240, 220, 170, 0.98);
 }
 
 .btn-end-turn-seal-label {
-  font-size: 0.72rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.28em;
-  text-indent: 0.28em;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  line-height: 1.15;
 }
 
 @keyframes combat-float {
@@ -1459,8 +1522,9 @@ html.combat-scroll-lock {
 }
 
 :root {
-  --game-card-width: 5.65rem;
-  --game-card-height: 8.35rem;
+  /* 手牌較原尺寸約 +22%，適配手機卡牌戰鬥 */
+  --game-card-width: 6.9rem;
+  --game-card-height: 10.15rem;
 }
 
 .hand-card-slot {

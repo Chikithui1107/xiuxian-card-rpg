@@ -844,7 +844,7 @@ export default function GamePage() {
                 : undefined
             }
             tierFloor={tierFloor}
-            totalFloors={MOON_NIGHT_STEPS}
+            totalFloors={selectedTier?.floors ?? 3}
             playerHp={playerHp}
             energy={energy}
             combatBuffs={combatBuffs}
@@ -890,13 +890,16 @@ export default function GamePage() {
     <MobileFrame
       title="仙途"
       subtitle={
-        hasActiveRun && selectedTier
-          ? `${selectedTier.name} · 修行中`
-          : activeTab === "lobby"
-            ? "天樞聖宗"
-            : TAB_LABELS[activeTab]
+        isInCombat
+          ? undefined
+          : hasActiveRun && selectedTier
+            ? `${selectedTier.name} · 修行中`
+            : activeTab === "lobby"
+              ? "天樞聖宗"
+              : TAB_LABELS[activeTab]
       }
       immersive={activeTab === "lobby" && !isInCombat}
+      compactHeader={isInCombat}
       bgmScene={isInCombat ? "combat" : "lobby"}
       inGameMenu={
         showRunMenu ? <InGameMenu onQuit={quitRun} /> : null
