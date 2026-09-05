@@ -641,7 +641,7 @@ function HandCard({
           }
         }}
         className={`ink-card absolute inset-0 origin-bottom select-none ${
-          isDragging ? "ink-card-drag-placeholder" : ""
+          isDragging ? "invisible" : ""
         } ${
           locked
             ? "cursor-not-allowed opacity-40"
@@ -657,24 +657,26 @@ function HandCard({
           zIndex: isFocus ? 80 : undefined,
         }}
       >
-        <CardFace
-          name={card.name}
-          cost={card.cost}
-          canAfford={canAfford}
-          description={template?.description ?? ""}
-          typeLabel={template?.type}
-          typeAccent={typeAccent}
-          isExhaust={card.isExhaust}
-          full={inspecting && !isDragging}
-          coreLine={coreLine}
-          footer={
-            selected && !isDragging ? (
-              <p className="mt-0.5 text-[8px] text-stone-500">
-                再點出牌 · 上拖亦可
-              </p>
-            ) : null
-          }
-        />
+        {!isDragging && (
+          <CardFace
+            name={card.name}
+            cost={card.cost}
+            canAfford={canAfford}
+            description={template?.description ?? ""}
+            typeLabel={template?.type}
+            typeAccent={typeAccent}
+            isExhaust={card.isExhaust}
+            full={inspecting}
+            coreLine={coreLine}
+            footer={
+              selected ? (
+                <p className="mt-0.5 text-[8px] text-stone-500">
+                  再點出牌 · 上拖亦可
+                </p>
+              ) : null
+            }
+          />
+        )}
       </div>
     </div>
   );

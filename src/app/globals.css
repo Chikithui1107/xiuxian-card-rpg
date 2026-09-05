@@ -1600,13 +1600,6 @@ html.combat-scroll-lock {
   display: none;
 }
 
-/* 原位占位：淡影保留形狀，不是無字空白卡 */
-.ink-card-drag-placeholder {
-  opacity: 0.28;
-  filter: grayscale(0.35);
-  pointer-events: none;
-}
-
 /* 類型色邊：降低亮度，避免網頁感 */
 .ink-card-type-basic {
   --card-border: rgba(168, 140, 72, 0.48);
