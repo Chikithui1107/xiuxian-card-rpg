@@ -12,10 +12,14 @@ type WebkitWindow = Window & {
 const SAMPLE_CANDIDATES: Record<string, string[]> = {
   fuxue_slash: ["fuxue-slash", "fuxue_slash"],
   tuxu_whoosh: ["tuxu-whoosh", "tuxu_whoosh"],
-  start_cultivation: ["start-cultivation", "start_cultivation"],
+  // 新檔名避開舊 start-cultivation.mp3 的瀏覽器快取
+  start_cultivation: ["horror-hit", "start-cultivation"],
 };
 
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
+
+/** 換樣本時遞增，強制繞過 HTTP 快取 */
+const SFX_CACHE_BUST = "v3";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -49,9 +53,9 @@ async function loadBuffer(logicalKey: string): Promise<AudioBuffer | null> {
   const names = SAMPLE_CANDIDATES[logicalKey] ?? [logicalKey];
   for (const name of names) {
     for (const ext of EXT) {
-      const url = publicAsset(`/sfx/${name}${ext}`);
+      const url = `${publicAsset(`/sfx/${name}${ext}`)}?${SFX_CACHE_BUST}`;
       try {
-        const res = await fetch(url);
+        const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) continue;
         const raw = await res.arrayBuffer();
         if (raw.byteLength < 256) continue;
@@ -127,8 +131,10 @@ export function playImpact(kind: PlayFxKind): void {
 
 /** 開始 / 繼續修行時的過渡音 */
 export function playStartCultivationSfx(): void {
+  // 換樣本後清掉舊 buffer，避免同 session 仍播舊音
+  bufferCache.delete("start_cultivation");
   unlockCombatAudio();
-  void playSample("start_cultivation", 0.95);
+  void playSample("start_cultivation", 1);
 }
 
 export function preloadCombatSfx(): void {

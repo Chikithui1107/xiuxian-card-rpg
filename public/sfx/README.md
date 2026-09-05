@@ -4,7 +4,7 @@
 
 | 用途 | 檔名 |
 |---|---|
-| 開始 / 繼續修行 | `start-cultivation.mp3` |
+| 開始 / 繼續修行 | `horror-hit.mp3` |
 | 拂雪流光命中 | `fuxue-slash.mp3` |
 | 踏虛掠影起手 | `tuxu-whoosh.mp3` |
 
