@@ -148,11 +148,30 @@ function HandCard({
   }, []);
 
   const finishDrag = useCallback(() => {
+    const ghost = ghostRef.current;
+    const slot = slotRef.current;
+    if (ghost && slot && ghost.parentElement !== slot) {
+      slot.appendChild(ghost);
+    }
     dragRef.current = null;
     setDragging(false);
     setReadyHint(false);
     clearGhostStyles();
   }, [clearGhostStyles]);
+
+  useEffect(() => {
+    return () => {
+      const ghost = ghostRef.current;
+      const slot = slotRef.current;
+      if (ghost && slot && ghost.parentElement !== slot) {
+        try {
+          slot.appendChild(ghost);
+        } catch {
+          /* unmounting */
+        }
+      }
+    };
+  }, []);
 
   const tryPlay = useCallback(
     (origin: DOMRect) => {
@@ -206,11 +225,13 @@ function HandCard({
     ghost.style.top = `${e.clientY - drag.grabY}px`;
     ghost.style.width = `${drag.width}px`;
     ghost.style.height = `${drag.height}px`;
-    ghost.style.zIndex = "300";
+    ghost.style.zIndex = "9999";
     ghost.style.margin = "0";
     ghost.style.pointerEvents = "auto";
-                ghost.style.transform = "none";
+    ghost.style.transform = "none";
     ghost.style.transition = "none";
+    /* 脫離可能帶 filter/overflow 的祖先，避免拖上去被裁切 */
+    document.body.appendChild(ghost);
   };
 
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {

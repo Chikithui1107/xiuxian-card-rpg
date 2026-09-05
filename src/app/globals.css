@@ -402,6 +402,11 @@ body {
   padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
 }
 
+.mobile-content.combat-lock-scroll {
+  overflow: hidden;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .bottom-nav {
   position: absolute;
   bottom: 0;
@@ -881,7 +886,7 @@ body {
 }
 @keyframes fx-ring {
   0% { opacity: 1; transform: translate(-50%, -50%) scale(0.15); }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(4.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(2.1); }
 }
 
 .fx-core-glow {

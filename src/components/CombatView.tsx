@@ -229,49 +229,49 @@ export function CombatView({
 
   return (
     <div
-      className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
+      className="relative flex min-h-0 flex-1 flex-col"
       onPointerDown={unlockCombatAudio}
     >
-      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
+      <div
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        aria-hidden
+      >
         <img
           src={COMBAT_BG}
           alt=""
-          className="h-full w-full object-cover object-[center_32%]"
+          className="h-full w-full object-cover object-[center_30%]"
           draggable={false}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/15 to-[#121110]/88" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-[#121110]/90" />
       </div>
 
-      <div className="relative z-10 flex shrink-0 items-center justify-center border-b border-white/5 bg-stone-950/35 px-3 py-1 backdrop-blur-[2px]">
-        <p className="truncate text-[10px] tracking-wide text-[#a8c4b8]">
+      <div className="relative z-10 flex shrink-0 items-center justify-center px-3 py-1">
+        <p className="truncate text-[10px] tracking-wide text-[#a8c4b8] drop-shadow">
           {floorLabel}
         </p>
       </div>
 
-      <div className="relative z-10 flex min-h-0 flex-1 flex-col px-3 pb-1 pt-2">
-        <div ref={enemyTargetRef} className="min-h-0 flex-1">
-          <EnemyPanel
-            enemy={enemy}
-            damagePopups={damagePopups}
-            isShaking={isShaking}
-            hitFlash={hitFlash}
-            lastEnemyDamage={lastEnemyDamage}
-            lastDodge={lastDodge}
-            lastPassiveHeal={lastPassiveHeal}
-          />
-        </div>
-        <div ref={playerTargetRef} className="mt-2 shrink-0">
-          <CombatPlayerBar
-            hero={hero}
-            stats={heroStats}
-            currentHp={playerHp}
-            energy={energy}
-            combatBuffs={combatBuffs}
-          />
-        </div>
+      {/* 上方只放敵人，高度固定比例，避免出牌後舞台被撐大 */}
+      <div
+        ref={enemyTargetRef}
+        className="relative z-10 min-h-0 flex-[1.15] px-3 pt-1"
+      >
+        <EnemyPanel
+          enemy={enemy}
+          damagePopups={damagePopups}
+          isShaking={isShaking}
+          hitFlash={hitFlash}
+          lastEnemyDamage={lastEnemyDamage}
+          lastDodge={lastDodge}
+          lastPassiveHeal={lastPassiveHeal}
+        />
       </div>
 
-      <div className="relative z-20 shrink-0 overflow-visible border-t border-[#8a7340]/20 bg-[#121110]/82 px-3 pb-2.5 pt-1.5 backdrop-blur-[3px]">
+      {/* 手牌區不加 backdrop-blur / overflow-hidden，避免拖牌被裁切 */}
+      <div
+        ref={playerTargetRef}
+        className="relative z-30 shrink-0 border-t border-[#8a7340]/25 bg-[#121110]/78 px-3 pb-2.5 pt-1"
+      >
         <CardHand
           hand={hand}
           energy={energy}
@@ -286,6 +286,15 @@ export function CombatView({
           disabled={!isPlaying || enemy.currentHp <= 0}
           denyShake={denyShake}
           feelToast={feelToast}
+          playerBar={
+            <CombatPlayerBar
+              hero={hero}
+              stats={heroStats}
+              currentHp={playerHp}
+              energy={energy}
+              combatBuffs={combatBuffs}
+            />
+          }
         />
       </div>
 

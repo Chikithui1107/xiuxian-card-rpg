@@ -2,6 +2,7 @@
 
 import { HandUI } from "@/components/HandUI";
 import type { Card } from "@/types/battle";
+import type { ReactNode } from "react";
 
 interface CardHandProps {
   hand: Card[];
@@ -17,6 +18,8 @@ interface CardHandProps {
   disabled: boolean;
   denyShake?: boolean;
   feelToast?: string | null;
+  /** 主角狀態條：放在手牌下方 */
+  playerBar?: ReactNode;
 }
 
 export function CardHand({
@@ -33,6 +36,7 @@ export function CardHand({
   disabled,
   denyShake = false,
   feelToast = null,
+  playerBar,
 }: CardHandProps) {
   return (
     <div className="relative space-y-1.5">
@@ -63,6 +67,8 @@ export function CardHand({
           {feelToast}
         </p>
       )}
+
+      {playerBar}
 
       <button
         onClick={onEndTurn}

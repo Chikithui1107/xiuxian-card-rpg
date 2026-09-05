@@ -43,7 +43,11 @@ export function MobileFrame({
             )}
           </header>
         )}
-        <div className="mobile-content has-bottom-nav flex min-h-0 flex-1 flex-col">
+        <div
+          className={`mobile-content flex min-h-0 flex-1 flex-col${
+            bottomNav ? " has-bottom-nav" : " combat-lock-scroll"
+          }`}
+        >
           {children}
         </div>
         {bottomNav}

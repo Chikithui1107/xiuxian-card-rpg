@@ -62,9 +62,13 @@ export function EnemyPanel({
     (lastPassiveHeal != null && lastPassiveHeal > 0);
 
   return (
-    <div className={`relative ${isDefeated ? "opacity-70" : ""}`}>
+    <div
+      className={`flex h-full min-h-0 flex-col items-center justify-end pb-1 ${
+        isDefeated ? "opacity-70" : ""
+      }`}
+    >
       <div
-        className={`enemy-sprite-stage relative mx-auto flex h-52 w-full max-w-[18rem] items-end justify-center sm:h-56 ${
+        className={`enemy-sprite-stage relative mx-auto flex min-h-0 w-full max-w-[20rem] flex-1 items-end justify-center ${
           shaking ? "animate-shake" : ""
         } ${hitFlash ? "enemy-hit-flash" : ""}`}
       >
@@ -72,7 +76,7 @@ export function EnemyPanel({
           <img
             src={monster.image}
             alt={displayName}
-            className={`enemy-sprite max-h-full w-auto object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.55)] ${
+            className={`enemy-sprite max-h-full w-auto max-w-[88%] object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.55)] ${
               isDefeated
                 ? "scale-90 opacity-40 grayscale transition-all duration-500"
                 : "enemy-sprite-float"
@@ -88,11 +92,13 @@ export function EnemyPanel({
         )}
 
         {!isDefeated && (
-          <div className="pointer-events-none absolute left-1/2 top-1 z-10 -translate-x-1/2">
-            <div className="rounded-full border border-amber-400/45 bg-stone-950/75 px-3 py-1 shadow-[0_4px_16px_rgba(0,0,0,0.45)] backdrop-blur-[2px]">
+          <div className="pointer-events-none absolute left-1/2 top-2 z-10 -translate-x-1/2">
+            <div className="rounded-full border border-amber-400/50 bg-black/70 px-3 py-1 shadow-lg">
               <p className="whitespace-nowrap text-center text-[11px] font-semibold tracking-wide text-amber-200">
                 {intent.label}
-                {intentDamage > 0 ? ` · ${intentDamage} 傷${intentDamageHint}` : ""}
+                {intentDamage > 0
+                  ? ` · ${intentDamage} 傷${intentDamageHint}`
+                  : ""}
               </p>
             </div>
           </div>
@@ -103,36 +109,37 @@ export function EnemyPanel({
         ))}
       </div>
 
-      <div className="mx-auto mt-1 max-w-sm rounded-lg border border-[#8b3a3a]/35 bg-stone-950/55 px-3 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-[3px]">
-        <div className="mb-1.5 flex items-baseline justify-between gap-2">
+      {/* 血條貼在立繪腳下 */}
+      <div className="w-full max-w-[16rem] px-1">
+        <div className="mb-1 flex items-baseline justify-between gap-2">
           <h2
-            className={`text-[15px] font-bold tracking-[0.12em] ${
-              isDefeated ? "text-stone-500 line-through" : "text-[#e0a8a8]"
+            className={`text-sm font-bold tracking-[0.14em] drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] ${
+              isDefeated ? "text-stone-500 line-through" : "text-[#f0c8c8]"
             }`}
           >
             {displayName}
           </h2>
-          <span className="shrink-0 text-[10px] text-stone-400">{enemy.realm}</span>
+          <span className="shrink-0 text-[10px] text-stone-300 drop-shadow">
+            {enemy.realm}
+          </span>
         </div>
-
-        <div className="mb-0.5 flex justify-between text-[10px]">
-          <span className="text-[#c48888]/90">氣血</span>
-          <span className="stat-value font-bold text-[#e0b0b0]">
+        <div className="mb-0.5 flex justify-between text-[10px] drop-shadow">
+          <span className="text-[#e0a0a0]">氣血</span>
+          <span className="stat-value font-bold text-[#f0d0d0]">
             {formatNumber(Math.max(0, enemy.currentHp))} /{" "}
             {formatNumber(enemy.maxHp)}
           </span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-black/50">
+        <div className="h-2.5 overflow-hidden rounded-full border border-black/40 bg-black/55 shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
           <div
             className="enemy-hp-fill h-full rounded-full transition-all duration-300"
             style={{ width: `${hpPercent}%` }}
           />
         </div>
-
         {(enemy.passiveLabel || hasFeedback) && (
-          <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[10px]">
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[10px] drop-shadow">
             {enemy.passiveLabel && (
-              <span className="text-[#a8a8c8]">{enemy.passiveLabel}</span>
+              <span className="text-[#c0c0e0]">{enemy.passiveLabel}</span>
             )}
             {lastDodge && <span className="text-[#8bc4b0]">閃避成功</span>}
             {lastEnemyDamage != null && lastEnemyDamage > 0 && (

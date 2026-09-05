@@ -28,10 +28,10 @@ export function CombatPlayerBar({
   const avatarSrc = hero.avatar ? publicAsset(hero.avatar) : null;
 
   return (
-    <div className="rounded-lg border border-[#8a7340]/40 bg-stone-950/60 px-2.5 py-2 shadow-[0_8px_20px_rgba(0,0,0,0.35)] backdrop-blur-[3px]">
-      <div className="flex items-center gap-2.5">
+    <div className="rounded-md border border-[#8a7340]/35 bg-stone-950/80 px-2.5 py-1.5">
+      <div className="flex items-center gap-2">
         {avatarSrc && (
-          <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-[#c9a84c]/40">
+          <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#c9a84c]/40">
             <img
               src={avatarSrc}
               alt=""
@@ -41,12 +41,10 @@ export function CombatPlayerBar({
         )}
 
         <div className="min-w-0 flex-1">
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <div className="min-w-0">
-              <p className="truncate text-[13px] font-bold tracking-wide text-[#e4d4a8]">
-                {hero.name}
-              </p>
-            </div>
+          <div className="mb-0.5 flex items-center justify-between gap-2">
+            <p className="truncate text-[12px] font-bold tracking-wide text-[#e4d4a8]">
+              {hero.name}
+            </p>
             <div className="flex shrink-0 items-center gap-1">
               {Array.from({ length: maxEnergy }, (_, i) => (
                 <span
@@ -56,7 +54,6 @@ export function CombatPlayerBar({
               ))}
             </div>
           </div>
-
           <div className="mb-0.5 flex justify-between text-[10px]">
             <span className="text-[#9ab8aa]">氣血</span>
             <span className="stat-value text-[#c5d8cc]">
@@ -72,7 +69,7 @@ export function CombatPlayerBar({
         </div>
       </div>
 
-      <div className="mt-1.5 flex flex-wrap gap-1">
+      <div className="mt-1 flex flex-wrap gap-1">
         <BuffPill
           label="劍意"
           value={String(combatBuffs.swordIntent)}
