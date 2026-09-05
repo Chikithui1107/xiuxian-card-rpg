@@ -34,20 +34,32 @@ export function LobbyView({
   onContinueGame,
   onAbandonGame,
 }: LobbyViewProps) {
-  const portraitSrc = publicAsset(
-    hero.lobbyPortrait ?? hero.portrait ?? "/heroes/baiye-lobby.png"
+  const bgSrc = publicAsset("/backgrounds/lobby-moon-path.jpg");
+  const cutoutSrc = publicAsset(
+    hero.lobbyPortrait ?? "/heroes/baiye-cutout.png"
   );
   const hpPercent = Math.max(0, (playerHp / stats.maxHp) * 100);
 
   return (
     <div className="lobby-home animate-fade-in relative min-h-0 flex-1 overflow-hidden">
+      {/* 層 1：場景背景 */}
       <img
-        src={portraitSrc}
-        alt={hero.name}
-        className="lobby-hero-art absolute inset-0 h-full w-full object-cover object-[center_12%]"
+        src={bgSrc}
+        alt=""
+        className="lobby-bg absolute inset-0 h-full w-full object-cover object-[center_35%]"
         draggable={false}
       />
-      <div className="lobby-hero-veil pointer-events-none absolute inset-0" />
+      <div className="lobby-bg-veil pointer-events-none absolute inset-0" />
+
+      {/* 層 2：無背景主角 */}
+      <div className="lobby-actor pointer-events-none absolute inset-x-0 bottom-[9.5rem] top-6 flex items-end justify-center sm:bottom-40">
+        <img
+          src={cutoutSrc}
+          alt={hero.name}
+          className="lobby-actor-art h-full w-auto max-w-[min(100%,22rem)] object-contain object-bottom drop-shadow-[0_18px_28px_rgba(0,0,0,0.55)]"
+          draggable={false}
+        />
+      </div>
 
       {lastRunMessage && (
         <div className="absolute left-3 right-3 top-3 z-20 rounded border border-[#8a7340]/40 bg-stone-950/80 px-3 py-2 text-center text-[11px] text-[#c9a84c]">
@@ -55,18 +67,18 @@ export function LobbyView({
         </div>
       )}
 
-      {/* 底部一體：名字 + 狀態 + CTA，疊在立繪上，避免黑空一塊 */}
-      <div className="lobby-dock absolute inset-x-0 bottom-0 z-10 px-3 pb-3 pt-24">
-        <div className="mb-3">
-          <h2 className="text-[1.65rem] font-bold tracking-[0.36em] text-[#f5efe4]">
+      {/* 層 3：底部資訊 + CTA */}
+      <div className="lobby-dock absolute inset-x-0 bottom-0 z-10 px-3 pb-3 pt-10">
+        <div className="mb-2.5 text-center">
+          <h2 className="text-[1.55rem] font-bold tracking-[0.36em] text-[#f5efe4] drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
             {hero.name}
           </h2>
-          <p className="mt-1 text-[11px] tracking-[0.22em] text-[#a8c4b8]">
+          <p className="mt-1 text-[11px] tracking-[0.22em] text-[#a8c4b8] drop-shadow">
             {hero.title} · {hero.realm}
           </p>
         </div>
 
-        <div className="lobby-stat-sheet mb-3 rounded-lg border border-[#8a7340]/30 bg-stone-950/55 px-3 py-2.5 backdrop-blur-[3px]">
+        <div className="lobby-stat-sheet mb-3 rounded-lg border border-[#8a7340]/30 bg-stone-950/60 px-3 py-2.5 backdrop-blur-[3px]">
           <div className="mb-1 flex items-center justify-between text-[10px]">
             <span className="text-[#8eb8a8]">氣血</span>
             <span className="stat-value text-[#d5e8dc]">

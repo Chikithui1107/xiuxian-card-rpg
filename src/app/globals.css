@@ -643,27 +643,30 @@ html.combat-scroll-lock {
   }
 }
 
-/* ── 大廳海報首頁 ── */
+/* ── 大廳：背景 + 透明主角 ── */
 .lobby-home {
   min-height: 100%;
 }
 
-.lobby-hero-art {
-  animation: lobby-hero-breathe 7s ease-in-out infinite;
-  will-change: transform;
+.lobby-bg {
+  transform: translateZ(0);
 }
 
-.lobby-hero-veil {
+.lobby-bg-veil {
   background:
     linear-gradient(
       180deg,
-      rgba(8, 7, 6, 0.55) 0%,
-      rgba(8, 7, 6, 0.12) 22%,
-      transparent 42%,
-      rgba(10, 9, 8, 0.35) 58%,
-      rgba(10, 9, 8, 0.82) 78%,
-      rgba(10, 9, 8, 0.97) 100%
+      rgba(8, 7, 6, 0.45) 0%,
+      rgba(8, 7, 6, 0.12) 28%,
+      transparent 48%,
+      rgba(10, 9, 8, 0.4) 68%,
+      rgba(10, 9, 8, 0.92) 100%
     );
+}
+
+.lobby-actor-art {
+  animation: lobby-hero-breathe 6.5s ease-in-out infinite;
+  will-change: transform;
 }
 
 .lobby-dock {
@@ -671,16 +674,16 @@ html.combat-scroll-lock {
 }
 
 .lobby-stat-sheet {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes lobby-hero-breathe {
   0%,
   100% {
-    transform: scale(1) translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
   }
   50% {
-    transform: scale(1.02) translate3d(0, -0.35%, 0);
+    transform: translate3d(0, -1.1%, 0);
   }
 }
 
