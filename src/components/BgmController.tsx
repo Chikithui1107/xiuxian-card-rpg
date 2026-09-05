@@ -4,18 +4,25 @@ import { useCallback, useEffect, useState } from "react";
 import {
   isBgmMuted,
   isBgmUnlocked,
-  setBgmAllowed,
+  setBgmScene,
   toggleBgmMuted,
   tryAutoPlayBgm,
   unlockAndStartBgm,
+  type BgmScene,
 } from "@/lib/bgm";
 
 interface BgmControllerProps {
-  /** 非戰鬥階段為 true，進入戰鬥為 false */
-  enabled: boolean;
+  /** 山門播輪回之脈；戰鬥播戰鼓催征 */
+  scene?: BgmScene;
+  /** @deprecated 改用 scene；true=lobby false=combat */
+  enabled?: boolean;
 }
 
-export function BgmController({ enabled }: BgmControllerProps) {
+export function BgmController({
+  scene,
+  enabled = true,
+}: BgmControllerProps) {
+  const activeScene: BgmScene = scene ?? (enabled ? "lobby" : "combat");
   const [muted, setMuted] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
 
@@ -40,8 +47,8 @@ export function BgmController({ enabled }: BgmControllerProps) {
   }, []);
 
   useEffect(() => {
-    setBgmAllowed(enabled);
-    if (!enabled || muted) {
+    setBgmScene(activeScene);
+    if (muted) {
       setNeedsTap(false);
       return;
     }
@@ -53,7 +60,7 @@ export function BgmController({ enabled }: BgmControllerProps) {
     return () => {
       cancelled = true;
     };
-  }, [enabled, muted]);
+  }, [activeScene, muted]);
 
   const onToggle = useCallback(() => {
     unlockAndStartBgm();
@@ -68,17 +75,11 @@ export function BgmController({ enabled }: BgmControllerProps) {
         className="bgm-toggle-btn"
         onClick={onToggle}
         aria-label={muted ? "開啟背景音樂" : "關閉背景音樂"}
-        title={
-          muted
-            ? "開音樂"
-            : enabled
-              ? "關音樂"
-              : "戰鬥中已暫停 · 點擊可靜音設定"
-        }
+        title={muted ? "開音樂" : "關音樂"}
       >
         {muted ? "音" : "樂"}
       </button>
-      {needsTap && enabled && !muted && (
+      {needsTap && !muted && (
         <p className="bgm-tap-hint" role="status">
           輕觸畫面開啟音樂
         </p>

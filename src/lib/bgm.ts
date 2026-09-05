@@ -1,48 +1,58 @@
 import { publicAsset } from "@/lib/paths";
 
-const BGM_URL = publicAsset("/music/bgm.m4a");
+export type BgmScene = "lobby" | "combat";
+
+const TRACKS: Record<BgmScene, string> = {
+  lobby: publicAsset("/music/bgm.m4a"),
+  combat: publicAsset("/music/combat-bgm.m4a"),
+};
+
 const BGM_VOLUME = 0.35;
 
-let audio: HTMLAudioElement | null = null;
+const players: Partial<Record<BgmScene, HTMLAudioElement>> = {};
 let unlocked = false;
 let muted = false;
-/** 是否允許播放（非戰鬥階段為 true） */
-let allowed = true;
+let scene: BgmScene = "lobby";
 
-function getAudio(): HTMLAudioElement | null {
+function getPlayer(which: BgmScene): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
-  if (!audio) {
-    audio = new Audio(BGM_URL);
-    audio.loop = true;
-    audio.preload = "auto";
-    audio.volume = muted ? 0 : BGM_VOLUME;
+  let el = players[which];
+  if (!el) {
+    el = new Audio(TRACKS[which]);
+    el.loop = true;
+    el.preload = "auto";
+    el.volume = muted ? 0 : BGM_VOLUME;
+    players[which] = el;
   }
-  return audio;
+  return el;
 }
 
 function syncPlayback(): void {
-  const el = getAudio();
-  if (!el) return;
-  el.volume = muted ? 0 : BGM_VOLUME;
+  (Object.keys(TRACKS) as BgmScene[]).forEach((which) => {
+    const el = getPlayer(which);
+    if (!el) return;
+    el.volume = muted ? 0 : BGM_VOLUME;
 
-  const shouldPlay = unlocked && allowed && !muted;
-  if (shouldPlay) {
-    if (el.paused) {
-      void el.play().catch(() => undefined);
+    const shouldPlay = unlocked && !muted && which === scene;
+    if (shouldPlay) {
+      if (el.paused) {
+        void el.play().catch(() => undefined);
+      }
+    } else if (!el.paused) {
+      el.pause();
     }
-  } else if (!el.paused) {
-    el.pause();
-  }
+  });
 }
 
-/** 進遊戲就嘗試自動播放；成功則標記已解鎖 */
+/** 進遊戲就嘗試自動播放當前場景；成功則標記已解鎖 */
 export async function tryAutoPlayBgm(): Promise<boolean> {
-  if (muted || !allowed) return false;
-  const el = getAudio();
+  if (muted) return false;
+  const el = getPlayer(scene);
   if (!el) return false;
   try {
     await el.play();
     unlocked = true;
+    syncPlayback();
     return true;
   } catch {
     return false;
@@ -55,17 +65,23 @@ export function unlockBgm(): void {
   syncPlayback();
 }
 
-/** 非戰鬥：允許 BGM；進入戰鬥：暫停 */
-export function setBgmAllowed(next: boolean): void {
-  allowed = next;
-  if (next && unlocked && !muted) {
+/** 山門 / 戰鬥切換曲目 */
+export function setBgmScene(next: BgmScene): void {
+  scene = next;
+  // 預載另一軌，減少進戰切歌延遲
+  void getPlayer(next === "lobby" ? "combat" : "lobby");
+  if (unlocked && !muted) {
     syncPlayback();
-  } else if (!next) {
-    syncPlayback();
-  } else if (next && !unlocked) {
-    // 剛進非戰鬥、尚未解鎖：再試一次自動播放
+  } else if (!unlocked) {
     void tryAutoPlayBgm();
+  } else {
+    syncPlayback();
   }
+}
+
+/** @deprecated 改用 setBgmScene；true=山門 false=戰鬥 */
+export function setBgmAllowed(next: boolean): void {
+  setBgmScene(next ? "lobby" : "combat");
 }
 
 export function setBgmMuted(next: boolean): void {
@@ -85,6 +101,10 @@ export function isBgmMuted(): boolean {
 
 export function isBgmUnlocked(): boolean {
   return unlocked;
+}
+
+export function getBgmScene(): BgmScene {
+  return scene;
 }
 
 export function unlockAndStartBgm(): void {
