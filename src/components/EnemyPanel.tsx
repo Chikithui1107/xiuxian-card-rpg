@@ -119,9 +119,9 @@ export function EnemyPanel({
         )}
       </div>
 
-      {/* 普通怪約 55–65% 寬；略下移，留給戰場呼吸空間 */}
+      {/* 人形基準舞台；各怪用 visualScale / visualOffsetY 個別調整 */}
       <div
-        className={`enemy-sprite-stage relative mx-auto flex h-[min(45vh,16.6rem)] w-[min(62vw,17.5rem)] max-w-[17.5rem] shrink-0 items-end justify-center ${
+        className={`enemy-sprite-stage relative mx-auto flex h-[min(42vh,15.5rem)] w-[min(56vw,15.75rem)] max-w-[15.75rem] shrink-0 items-end justify-center ${
           shaking ? "animate-shake" : ""
         } ${hitFlash ? "enemy-hit-flash" : ""}`}
       >
@@ -135,20 +135,28 @@ export function EnemyPanel({
         />
 
         {monster ? (
-          <img
-            src={monster.image}
-            alt={displayName}
-            className={`enemy-sprite relative z-[1] h-[100%] w-auto max-w-[100%] object-contain object-bottom ${
-              isDefeated
-                ? "scale-90 opacity-40 grayscale transition-all duration-500"
-                : "enemy-sprite-float"
-            }`}
+          <div
+            className="relative z-[1] flex h-full w-full items-end justify-center"
             style={{
-              filter:
-                "drop-shadow(0 8px 14px rgba(0,0,0,0.55)) contrast(1.08) saturate(1.02) brightness(1.04)",
+              transform: `translateY(${monster.visualOffsetY}vh) scale(${monster.visualScale})`,
+              transformOrigin: "bottom center",
             }}
-            draggable={false}
-          />
+          >
+            <img
+              src={monster.image}
+              alt={displayName}
+              className={`enemy-sprite h-full w-auto max-w-full object-contain object-bottom ${
+                isDefeated
+                  ? "scale-90 opacity-40 grayscale transition-all duration-500"
+                  : "enemy-sprite-float"
+              }`}
+              style={{
+                filter:
+                  "drop-shadow(0 8px 14px rgba(0,0,0,0.55)) contrast(1.08) saturate(1.02) brightness(1.04)",
+              }}
+              draggable={false}
+            />
+          </div>
         ) : (
           <div className="relative z-[1] mb-2 flex h-24 w-24 items-center justify-center rounded-full border border-[#8b3a3a]/35 bg-stone-950/50">
             <span className="text-3xl font-black text-[#c48888]">

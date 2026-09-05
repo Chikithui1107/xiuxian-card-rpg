@@ -13,8 +13,6 @@ interface CombatPlayerBarProps {
   energy: number;
   combatBuffs: CombatBuffs;
   maxEnergy?: number;
-  drawPileCount?: number;
-  discardPileCount?: number;
 }
 
 export function CombatPlayerBar({
@@ -24,8 +22,6 @@ export function CombatPlayerBar({
   energy,
   combatBuffs,
   maxEnergy = 3,
-  drawPileCount,
-  discardPileCount,
 }: CombatPlayerBarProps) {
   const hpPercent = Math.max(0, (currentHp / stats.maxHp) * 100);
   const dodgeChance = getStackDodgeChance(combatBuffs.dodge);
@@ -33,7 +29,7 @@ export function CombatPlayerBar({
 
   return (
     <div className="combat-player-hud">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         {avatarSrc && (
           <div className="h-8 w-8 shrink-0 overflow-hidden rounded-full border border-[#c9a84c]/28">
             <img
@@ -45,15 +41,15 @@ export function CombatPlayerBar({
         )}
 
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
-            <p className="truncate text-[12px] font-bold tracking-wide text-[#e4d4a8]">
-              {hero.name}{" "}
-              <span className="font-semibold tabular-nums text-[#c5d8cc]">
+          <div className="flex items-center justify-between gap-3">
+            <p className="min-w-0 truncate text-[12px] font-bold tracking-wide text-[#e4d4a8]">
+              {hero.name}
+              <span className="ml-2 font-semibold tabular-nums text-[#c5d8cc]">
                 {formatNumber(currentHp)}/{formatNumber(stats.maxHp)}
               </span>
             </p>
             <div
-              className="flex shrink-0 items-center gap-1.5"
+              className="flex shrink-0 items-center gap-2"
               aria-label={`真元 ${energy}/${maxEnergy}`}
             >
               {Array.from({ length: maxEnergy }, (_, i) => (
@@ -63,18 +59,6 @@ export function CombatPlayerBar({
                 />
               ))}
             </div>
-            {(drawPileCount != null || discardPileCount != null) && (
-              <p className="ml-auto flex items-center gap-2.5 text-[9px] tracking-wide text-stone-500">
-                <span className="tabular-nums">
-                  <span className="text-stone-600">抽</span>{" "}
-                  <span className="text-[#9ab8aa]">{drawPileCount ?? 0}</span>
-                </span>
-                <span className="tabular-nums">
-                  <span className="text-stone-600">棄</span>{" "}
-                  <span className="text-stone-400">{discardPileCount ?? 0}</span>
-                </span>
-              </p>
-            )}
           </div>
           <div className="mt-1 h-1 max-w-[14rem] overflow-hidden rounded-full bg-black/40">
             <div
@@ -82,7 +66,7 @@ export function CombatPlayerBar({
               style={{ width: `${hpPercent}%` }}
             />
           </div>
-          <div className="mt-1 flex items-center gap-3 text-[10px] tracking-wide text-stone-500">
+          <div className="mt-1.5 flex items-center gap-4 text-[10px] tracking-wide text-stone-500">
             <span>
               劍意{" "}
               <span
