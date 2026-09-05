@@ -30,7 +30,6 @@
   pointer-events: none;
 }
 
-/* 背景分級：冷灰藍、壓天空／濕石反光、輕暗角；z 在人物之下 */
 .bgGrade {
   position: absolute;
   inset: 0;
@@ -38,34 +37,29 @@
   pointer-events: none;
 
   background:
-    /* 男主一帶保留柔和冷白天光 */
     radial-gradient(
       ellipse at 50% 38%,
       rgba(196, 220, 236, 0.07) 0%,
       transparent 34%
     ),
-    /* 四周極輕暗角 */
     radial-gradient(
       ellipse at 50% 40%,
       transparent 25%,
       rgba(5, 15, 24, 0.1) 65%,
       rgba(3, 10, 18, 0.24) 100%
     ),
-    /* 天空與遠山略壓暗 */
     linear-gradient(
       180deg,
       rgba(10, 26, 38, 0.24) 0%,
       rgba(8, 20, 32, 0.12) 26%,
       transparent 48%
     ),
-    /* 減弱濕石地白色反光 */
     linear-gradient(
       0deg,
       rgba(5, 12, 20, 0.32) 0%,
       rgba(8, 16, 26, 0.14) 16%,
       transparent 36%
     ),
-    /* 整體玄青冷罩（別成純灰／黑夜） */
     linear-gradient(
       180deg,
       rgba(18, 38, 52, 0.14),
@@ -76,9 +70,6 @@
 
 /* -------------------------
    男主：完全靜止
-   - object-fit: contain（不拉伸）
-   - 水平置中，腳靠近底部
-   - 不加 blur / 不降解析度
 ------------------------- */
 
 .character {
@@ -95,10 +86,8 @@
   object-fit: contain;
   object-position: center bottom;
 
-  /* 僅用於水平置中；不做動畫 */
   transform: translateX(-50%);
 
-  /* 輕陰影不糊圖；禁止 blur() */
   filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.4));
 
   user-select: none;
@@ -107,7 +96,7 @@
 }
 
 /* -------------------------
-   遠霧
+   遠霧：非常慢、很淡
 ------------------------- */
 
 .mist {
@@ -115,13 +104,13 @@
   pointer-events: none;
   border-radius: 999px;
 
-  filter: blur(28px);
-  opacity: 0.12;
+  filter: blur(32px);
+  opacity: 0.09;
 
   background: radial-gradient(
     ellipse,
-    rgba(168, 196, 216, 0.42),
-    rgba(130, 162, 188, 0.14) 50%,
+    rgba(168, 196, 216, 0.36),
+    rgba(130, 162, 188, 0.1) 50%,
     transparent 72%
   );
 }
@@ -129,153 +118,23 @@
 .mistBack {
   z-index: 4;
   width: 120%;
-  height: 30%;
+  height: 28%;
   left: -15%;
-  top: 35%;
-  animation: mistBack 15s ease-in-out infinite alternate;
+  top: 34%;
+  animation: mistBack 22s ease-in-out infinite alternate;
 }
 
 @keyframes mistBack {
   from {
-    transform: translateX(-2%);
+    transform: translateX(-1.5%);
   }
   to {
-    transform: translateX(5%);
+    transform: translateX(3.5%);
   }
 }
 
 /* -------------------------
-   前景霧
-------------------------- */
-
-.mistFront {
-  z-index: 18;
-  width: 85%;
-  height: 14%;
-  left: -10%;
-  bottom: 7%;
-  opacity: 0.07;
-  animation: mistFront 11s ease-in-out infinite alternate;
-}
-
-@keyframes mistFront {
-  from {
-    transform: translateX(-3%);
-  }
-  to {
-    transform: translateX(9%);
-  }
-}
-
-/* -------------------------
-   劍身流光
-------------------------- */
-
-.swordGlow {
-  position: absolute;
-  z-index: 14;
-
-  left: 23%;
-  bottom: 14%;
-  width: 3px;
-  height: 40%;
-
-  transform: rotate(24deg);
-  transform-origin: bottom center;
-
-  border-radius: 50%;
-
-  background: linear-gradient(
-    to top,
-    rgba(180, 230, 255, 0),
-    rgba(190, 234, 255, 0.8),
-    rgba(245, 252, 255, 1),
-    rgba(160, 215, 255, 0)
-  );
-
-  filter: blur(0.6px) drop-shadow(0 0 5px rgba(177, 225, 255, 0.65));
-
-  opacity: 0;
-  animation: swordPulse 4.2s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes swordPulse {
-  0%,
-  35%,
-  100% {
-    opacity: 0.18;
-  }
-  48% {
-    opacity: 0.75;
-  }
-  60% {
-    opacity: 0.26;
-  }
-}
-
-/* -------------------------
-   寒氣
-------------------------- */
-
-.frost {
-  position: absolute;
-  z-index: 13;
-  border-radius: 50%;
-  background: radial-gradient(
-    ellipse,
-    rgba(211, 239, 255, 0.35),
-    transparent 68%
-  );
-  filter: blur(12px);
-  pointer-events: none;
-}
-
-.frostOne {
-  width: 20%;
-  height: 12%;
-  left: 17%;
-  bottom: 22%;
-  animation: frost1 7s ease-in-out infinite;
-}
-
-.frostTwo {
-  width: 16%;
-  height: 10%;
-  left: 30%;
-  bottom: 34%;
-  animation: frost2 9s ease-in-out infinite;
-}
-
-@keyframes frost1 {
-  0%,
-  100% {
-    opacity: 0;
-    transform: translate(-5px, 6px);
-  }
-  45% {
-    opacity: 0.28;
-  }
-  70% {
-    opacity: 0.08;
-    transform: translate(15px, -12px);
-  }
-}
-
-@keyframes frost2 {
-  0%,
-  100% {
-    opacity: 0.04;
-    transform: translate(0, 5px);
-  }
-  50% {
-    opacity: 0.2;
-    transform: translate(10px, -9px);
-  }
-}
-
-/* -------------------------
-   微量霜粒
+   少量環境粒子
 ------------------------- */
 
 .particles {
@@ -287,19 +146,19 @@
 }
 
 .particles i {
-  --n: calc(var(--i) * 9.1%);
+  --n: calc(var(--i) * 14%);
 
   position: absolute;
-  width: 2px;
-  height: 2px;
-  left: calc(12% + var(--n));
-  bottom: calc(5% + (var(--i) * 1.8%));
+  width: 1.5px;
+  height: 1.5px;
+  left: calc(18% + var(--n));
+  bottom: calc(12% + (var(--i) * 2.2%));
   border-radius: 50%;
-  background: rgba(232, 247, 255, 0.8);
-  box-shadow: 0 0 4px rgba(187, 229, 255, 0.55);
+  background: rgba(220, 236, 248, 0.55);
+  box-shadow: 0 0 3px rgba(170, 210, 235, 0.35);
   opacity: 0;
-  animation: particleRise calc(7s + var(--i) * 0.32s) ease-in-out infinite;
-  animation-delay: calc(var(--i) * -0.63s);
+  animation: particleRise calc(11s + var(--i) * 0.55s) ease-in-out infinite;
+  animation-delay: calc(var(--i) * -1.1s);
 }
 
 @keyframes particleRise {
@@ -307,59 +166,21 @@
     opacity: 0;
     transform: translate(0, 0);
   }
-  25% {
-    opacity: 0.4;
+  30% {
+    opacity: 0.28;
   }
-  75% {
-    opacity: 0.15;
+  70% {
+    opacity: 0.1;
   }
   100% {
     opacity: 0;
-    transform: translate(10px, -100px);
-  }
-}
-
-/* -------------------------
-   月白冷光
-------------------------- */
-
-.coldLight {
-  position: absolute;
-  z-index: 12;
-  width: 58%;
-  height: 58%;
-  left: 21%;
-  top: 10%;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse,
-    rgba(186, 214, 232, 0.1),
-    transparent 68%
-  );
-  mix-blend-mode: screen;
-  animation: coldLight 6s ease-in-out infinite;
-}
-
-@keyframes coldLight {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 0.7;
+    transform: translate(8px, -90px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .mist,
-  .swordGlow,
-  .frost,
-  .particles i,
-  .coldLight {
+  .particles i {
     animation: none;
-  }
-
-  .swordGlow {
-    opacity: 0.22;
   }
 }

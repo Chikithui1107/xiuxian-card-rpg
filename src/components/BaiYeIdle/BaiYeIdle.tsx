@@ -19,7 +19,6 @@ export default function BaiYeIdle({
 }: BaiYeIdleProps) {
   return (
     <div className={[styles.scene, className].filter(Boolean).join(" ")}>
-      {/* 層 1：高清背景全螢幕 cover — 位置固定，無 pointer 視差 */}
       <img
         className={styles.background}
         src={publicAsset(backgroundSrc)}
@@ -28,12 +27,12 @@ export default function BaiYeIdle({
         decoding="async"
       />
 
-      {/* 只壓背景：暗角／冷調／減反光；在人物之下，不碰男主 PNG */}
       <div className={styles.bgGrade} aria-hidden />
 
+      {/* 遠處薄霧：極慢 */}
       <div className={`${styles.mist} ${styles.mistBack}`} />
 
-      {/* 層 2：透明男主 — 完全靜止 */}
+      {/* 男主完全靜止；劍光用原圖自帶，不加 CSS 假光 */}
       <img
         className={styles.character}
         src={publicAsset(characterSrc)}
@@ -43,20 +42,12 @@ export default function BaiYeIdle({
         fetchPriority="high"
       />
 
-      <div className={styles.swordGlow} />
-
-      <div className={`${styles.frost} ${styles.frostOne}`} />
-      <div className={`${styles.frost} ${styles.frostTwo}`} />
-
-      <div className={`${styles.mist} ${styles.mistFront}`} />
-
+      {/* 少量環境粒子即可 */}
       <div className={styles.particles}>
-        {Array.from({ length: 10 }).map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <i key={i} style={{ "--i": i } as CSSProperties} />
         ))}
       </div>
-
-      <div className={styles.coldLight} />
     </div>
   );
 }
