@@ -15,13 +15,16 @@ export function StageClearOverlay({ tierName, onContinue }: StageClearOverlayPro
       {tierName && (
         <p className="mt-3 text-sm text-stone-400">【{tierName}】通關</p>
       )}
+      <p className="mt-2 max-w-xs text-center text-[11px] leading-relaxed text-stone-500">
+        本章秘境已封印。若要再入，須從山門重新開啟挑戰。
+      </p>
       <button
         type="button"
         onClick={onContinue}
         className="btn-start-game mt-8 !px-10"
       >
         <span className="relative block text-base font-bold tracking-[0.28em]">
-          踏入下一重天 →
+          返回山門
         </span>
       </button>
     </div>

@@ -57,24 +57,24 @@ export function LobbyView({
           <button
             onClick={onContinueGame}
             className="btn-start-game"
-            aria-label="繼續遊戲"
+            aria-label="繼續修行"
           >
             <span className="relative block text-xl font-bold tracking-[0.32em]">
-              繼續遊戲
+              繼續修行
             </span>
             <span className="relative mt-1.5 block text-[11px] font-semibold tracking-[0.22em] text-[#8a7340]">
-              {runLabel ?? "返回本次試煉"}
+              {runLabel ?? "返回本次秘境"}
             </span>
           </button>
           <button
             onClick={onAbandonGame}
             className="btn-abandon"
-            aria-label="放棄遊戲"
+            aria-label="退出本次修行"
           >
-            放棄遊戲
+            退出本次修行
           </button>
           <p className="text-center text-[10px] tracking-wide text-stone-500">
-            繼續則回到當前祕境 · 放棄則結束本局
+            繼續則回到當前岔路 · 退出則清空本局進度
           </p>
         </div>
       ) : (
