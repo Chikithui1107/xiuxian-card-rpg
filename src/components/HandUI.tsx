@@ -26,8 +26,8 @@ interface HandUIProps {
 }
 
 /** 上滑超過此距離算出牌 */
-const PLAY_SWIPE_Y = -52;
-const TAP_SLOP = 10;
+const PLAY_SWIPE_Y = -48;
+const TAP_SLOP = 8;
 
 const FAN_ANGLES: Record<number, number[]> = {
   1: [0],
@@ -63,14 +63,12 @@ function overlapPx(total: number) {
   const w = raw.includes("rem")
     ? (parseFloat(raw) || 8.05) * 16
     : parseFloat(raw) || 128;
-  /* 不用整組 scale；靠重疊把 4–5 張塞進 viewport */
   if (total <= 3) return Math.round(w * 0.34);
   if (total === 4) return Math.round(w * 0.42);
   if (total === 5) return Math.round(w * 0.48);
   return Math.round(w * 0.5);
 }
 
-/** 檢視／拖牌時鄰牌讓路（距離衰減） */
 function fanSpreadX(index: number, focusIndex: number | null) {
   if (focusIndex == null || index === focusIndex) return 0;
   const dir = index < focusIndex ? -1 : 1;
@@ -103,7 +101,6 @@ export function HandUI({
   onDenyPlay,
 }: HandUIProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  /** 僅桌面 hover；拖牌時強制清空，避免與 drag 搶 transform */
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [ghost, setGhost] = useState<DragGhost | null>(null);
@@ -151,7 +148,6 @@ export function HandUI({
         </p>
       ) : (
         <div className="flex max-w-full justify-center overflow-visible">
-          {/* 禁止對整組手牌做 scale——拖牌也不改這個 wrapper */}
           <div className="relative flex items-end justify-center overflow-visible">
             {hand.map((card, index) => (
               <HandCard
@@ -386,6 +382,30 @@ function HandCard({
     moved: boolean;
     active: boolean;
   } | null>(null);
+  const detachRef = useRef<(() => void) | null>(null);
+
+  const cbRef = useRef({
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    onDenyPlay,
+    onSelect,
+    locked,
+    canAfford,
+    selected,
+    card,
+  });
+  cbRef.current = {
+    onDragStart,
+    onDragMove,
+    onDragEnd,
+    onDenyPlay,
+    onSelect,
+    locked,
+    canAfford,
+    selected,
+    card,
+  };
 
   const template = CARD_TEMPLATES[card.id as CardTemplateId];
   const typeStyle =
@@ -401,46 +421,38 @@ function HandCard({
   const isFocus = !isDragging && focusIndex === index;
   const inspecting = isFocus;
 
-  const finishPointer = useCallback(() => {
-    dragRef.current = null;
+  const detachWindow = useCallback(() => {
+    detachRef.current?.();
+    detachRef.current = null;
   }, []);
+
+  useEffect(() => () => detachWindow(), [detachWindow]);
 
   useEffect(() => {
     if (!isDragging) return;
     const blockTouchMove = (e: TouchEvent) => {
       e.preventDefault();
     };
-    const y = window.scrollY;
-    const lockScroll = () => {
-      if (window.scrollY !== y) window.scrollTo(0, y);
-    };
     document.addEventListener("touchmove", blockTouchMove, { passive: false });
-    window.addEventListener("scroll", lockScroll, { passive: true });
     return () => {
       document.removeEventListener("touchmove", blockTouchMove);
-      window.removeEventListener("scroll", lockScroll);
     };
   }, [isDragging]);
 
-  const tryPlay = useCallback(
-    (origin: DOMRect) => {
-      if (locked) {
-        onDenyPlay?.("locked");
-        onDragEnd({ kind: "cancel" });
-        finishPointer();
-        return;
-      }
-      if (!canAfford) {
-        onDenyPlay?.("energy");
-        onDragEnd({ kind: "cancel" });
-        finishPointer();
-        return;
-      }
-      onDragEnd({ kind: "play", card, origin });
-      finishPointer();
-    },
-    [canAfford, card, finishPointer, locked, onDenyPlay, onDragEnd]
-  );
+  const finishPlayOrDeny = useCallback((origin: DOMRect) => {
+    const cur = cbRef.current;
+    if (cur.locked) {
+      cur.onDenyPlay?.("locked");
+      cur.onDragEnd({ kind: "cancel" });
+      return;
+    }
+    if (!cur.canAfford) {
+      cur.onDenyPlay?.("energy");
+      cur.onDragEnd({ kind: "cancel" });
+      return;
+    }
+    cur.onDragEnd({ kind: "play", card: cur.card, origin });
+  }, []);
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -467,91 +479,96 @@ function HandCard({
       moved: false,
       active: false,
     };
-  };
 
-  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== e.pointerId) return;
-    e.preventDefault();
+    const onWinMove = (ev: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== ev.pointerId) return;
+      ev.preventDefault();
 
-    const dx = e.clientX - drag.startX;
-    const dy = e.clientY - drag.startY;
+      const dx = ev.clientX - drag.startX;
+      const dy = ev.clientY - drag.startY;
 
-    if (!drag.moved && (Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP)) {
-      drag.moved = true;
-      drag.active = true;
-      onDragStart({
-        card,
-        x: e.clientX - drag.grabX,
-        y: e.clientY - drag.grabY,
-        width: drag.width,
-        height: drag.height,
-      });
-    }
-
-    if (!drag.active) return;
-
-    const x = e.clientX - drag.grabX;
-    const y = e.clientY - drag.grabY;
-    const ready = dy <= PLAY_SWIPE_Y;
-    onDragMove(x, y, ready);
-  };
-
-  const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== e.pointerId) return;
-
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-
-    const dy = e.clientY - drag.startY;
-    const origin = new DOMRect(
-      e.clientX - drag.grabX,
-      e.clientY - drag.grabY,
-      drag.width,
-      drag.height
-    );
-
-    if (drag.active) {
-      if (dy <= PLAY_SWIPE_Y) {
-        tryPlay(origin);
-      } else {
-        onDragEnd({ kind: "cancel" });
-        finishPointer();
+      if (
+        !drag.moved &&
+        (Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP)
+      ) {
+        drag.moved = true;
+        drag.active = true;
+        cbRef.current.onDragStart({
+          card: cbRef.current.card,
+          x: ev.clientX - drag.grabX,
+          y: ev.clientY - drag.grabY,
+          width: drag.width,
+          height: drag.height,
+        });
       }
-      return;
-    }
 
-    /* 輕點：第一次選中，第二次出牌 */
-    if (selected) {
-      tryPlay(
-        cardRef.current?.getBoundingClientRect() ??
-          slotRef.current?.getBoundingClientRect() ??
-          origin
+      if (!drag.active) return;
+
+      cbRef.current.onDragMove(
+        ev.clientX - drag.grabX,
+        ev.clientY - drag.grabY,
+        dy <= PLAY_SWIPE_Y
       );
-      return;
-    }
+    };
 
-    onDragEnd({ kind: "select", cardId: card.instanceId });
-    finishPointer();
-  };
+    const onWinUp = (ev: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== ev.pointerId) return;
 
-  const onPointerCancel = () => {
-    if (dragRef.current?.active) {
-      onDragEnd({ kind: "cancel" });
-    }
-    finishPointer();
+      detachWindow();
+      try {
+        el.releasePointerCapture(ev.pointerId);
+      } catch {
+        /* ignore */
+      }
+
+      const dy = ev.clientY - drag.startY;
+      const origin = new DOMRect(
+        ev.clientX - drag.grabX,
+        ev.clientY - drag.grabY,
+        drag.width,
+        drag.height
+      );
+      const wasActive = drag.active;
+      dragRef.current = null;
+
+      if (wasActive) {
+        if (dy <= PLAY_SWIPE_Y) finishPlayOrDeny(origin);
+        else cbRef.current.onDragEnd({ kind: "cancel" });
+        return;
+      }
+
+      if (cbRef.current.selected) {
+        finishPlayOrDeny(
+          cardRef.current?.getBoundingClientRect() ??
+            slotRef.current?.getBoundingClientRect() ??
+            origin
+        );
+        return;
+      }
+
+      cbRef.current.onDragEnd({
+        kind: "select",
+        cardId: cbRef.current.card.instanceId,
+      });
+    };
+
+    detachWindow();
+    window.addEventListener("pointermove", onWinMove, { passive: false });
+    window.addEventListener("pointerup", onWinUp);
+    window.addEventListener("pointercancel", onWinUp);
+    detachRef.current = () => {
+      window.removeEventListener("pointermove", onWinMove);
+      window.removeEventListener("pointerup", onWinUp);
+      window.removeEventListener("pointercancel", onWinUp);
+    };
   };
 
   const z = isDragging ? 1 : isFocus ? 80 : 10 + index;
-
   const restTransform = inspecting
     ? `translateX(${shiftX}px) translateY(-74px) scale(1.1) rotate(0deg)`
     : `translateX(${shiftX}px) translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
-
   const coreLine = (template?.description ?? "")
     .split(/[。；;\n]/)[0]
     ?.slice(0, 22);
@@ -571,7 +588,6 @@ function HandCard({
         if (!isDragging) onHoverChange(card.instanceId, false);
       }}
     >
-      {/* placeholder：拖走時保留扇形占位，其餘牌不重排、不縮放 */}
       <div
         ref={cardRef}
         role="button"
@@ -579,9 +595,6 @@ function HandCard({
         aria-pressed={selected}
         aria-disabled={locked || !canAfford}
         onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerCancel}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -589,7 +602,7 @@ function HandCard({
               const origin =
                 cardRef.current?.getBoundingClientRect() ??
                 slotRef.current?.getBoundingClientRect();
-              if (origin) tryPlay(origin);
+              if (origin) finishPlayOrDeny(origin);
             } else {
               onSelect(card.instanceId);
             }
@@ -599,20 +612,20 @@ function HandCard({
             const origin =
               cardRef.current?.getBoundingClientRect() ??
               slotRef.current?.getBoundingClientRect();
-            if (origin) tryPlay(origin);
+            if (origin) finishPlayOrDeny(origin);
           }
         }}
         className={`ink-card absolute inset-0 origin-bottom select-none ${
-          isDragging ? "pointer-events-none opacity-0" : ""
+          isDragging ? "opacity-0" : ""
         } ${
           locked
             ? "cursor-not-allowed opacity-40"
             : !canAfford
               ? "cursor-grab opacity-55"
               : "cursor-grab active:cursor-grabbing"
-        } ${typeStyle} transition-transform duration-200 ease-out ${
-          inspecting ? "ink-card-selected" : ""
-        }`}
+        } ${typeStyle} ${
+          isDragging ? "" : "transition-transform duration-200 ease-out"
+        } ${inspecting ? "ink-card-selected" : ""}`}
         style={{
           touchAction: "none",
           transform: isDragging ? "none" : restTransform,
@@ -631,7 +644,7 @@ function HandCard({
             full={inspecting}
             coreLine={coreLine}
             footer={
-              selected && !isDragging ? (
+              selected ? (
                 <p className="mt-0.5 text-[8px] text-stone-500">
                   再點出牌 · 上拖亦可
                 </p>
