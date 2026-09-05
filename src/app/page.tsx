@@ -888,9 +888,10 @@ export default function GamePage() {
         hasActiveRun && selectedTier
           ? `${selectedTier.name} · 修行中`
           : activeTab === "lobby"
-            ? undefined
+            ? "── 天樞聖宗 ──"
             : TAB_LABELS[activeTab]
       }
+      immersive={activeTab === "lobby" && !isInCombat}
       bgmScene={isInCombat ? "combat" : "lobby"}
       inGameMenu={
         showRunMenu ? <InGameMenu onQuit={quitRun} /> : null

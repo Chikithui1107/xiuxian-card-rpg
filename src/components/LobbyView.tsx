@@ -67,7 +67,7 @@ export function LobbyView({
       </div>
 
       <div className="lobby-dock absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-3">
-        <div className="lobby-stat-sheet mb-3 rounded-lg border border-[#8a7340]/30 bg-stone-950/60 px-3 py-2.5 backdrop-blur-[3px]">
+        <div className="lobby-stat-sheet mb-3 px-3 py-2.5">
           <div className="mb-1 flex items-center justify-between text-[10px]">
             <span className="text-[#8eb8a8]">氣血</span>
             <span className="stat-value text-[#d5e8dc]">
@@ -105,10 +105,11 @@ export function LobbyView({
               className="btn-start-game"
               aria-label="繼續修行"
             >
-              <span className="relative block text-lg font-bold tracking-[0.32em]">
+              <span className="relative block text-[1.05rem] font-bold tracking-[0.4em]">
                 繼續修行
               </span>
-              <span className="relative mt-1 block text-[11px] font-semibold tracking-[0.2em] text-[#8a7340]">
+              <span className="btn-start-divider" aria-hidden />
+              <span className="relative block text-[10px] font-semibold tracking-[0.22em] text-[#a8925a]">
                 {runLabel ?? "返回本次秘境"}
               </span>
             </button>
@@ -126,10 +127,11 @@ export function LobbyView({
             className="btn-start-game"
             aria-label="開始修行，前往祕境試煉"
           >
-            <span className="relative block text-lg font-bold tracking-[0.32em]">
+            <span className="relative block text-[1.05rem] font-bold tracking-[0.4em]">
               開始修行
             </span>
-            <span className="relative mt-1 block text-[11px] font-semibold tracking-[0.2em] text-[#8a7340]">
+            <span className="btn-start-divider" aria-hidden />
+            <span className="relative block text-[10px] font-semibold tracking-[0.22em] text-[#a8925a]">
               前往祕境試煉
             </span>
           </button>

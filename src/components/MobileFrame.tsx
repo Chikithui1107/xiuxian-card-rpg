@@ -11,6 +11,8 @@ interface MobileFrameProps {
   inGameMenu?: React.ReactNode;
   /** 山門 / 戰鬥 BGM 場景 */
   bgmScene?: BgmScene;
+  /** 山門沉浸：背景頂到底，標題浮在天空上 */
+  immersive?: boolean;
 }
 
 export function MobileFrame({
@@ -20,33 +22,44 @@ export function MobileFrame({
   subtitle,
   inGameMenu,
   bgmScene = "lobby",
+  immersive = false,
 }: MobileFrameProps) {
+  const showHeader = Boolean(title || subtitle);
+
   return (
     <div className="mobile-shell">
       <div className="mobile-shell-mist pointer-events-none" aria-hidden />
-      <div className="mobile-frame">
+      <div className={`mobile-frame${immersive ? " mobile-frame-immersive" : ""}`}>
         <BgmController scene={bgmScene} />
         {inGameMenu}
-        {(title || subtitle) && (
+        {showHeader && (
           <header
-            className={`mobile-header shrink-0${
-              inGameMenu ? " has-in-game-menu" : " has-bgm-toggle"
-            }`}
+            className={[
+              "mobile-header",
+              "mobile-header-overlay",
+              immersive ? "mobile-header-immersive" : "",
+              inGameMenu ? "has-in-game-menu" : "has-bgm-toggle",
+            ]
+              .filter(Boolean)
+              .join(" ")}
           >
             {title && (
-              <h1 className="title-ink text-lg font-bold">{title}</h1>
+              <h1 className="mobile-header-title title-ink">{title}</h1>
             )}
             {subtitle && (
-              <p className="mt-0.5 text-[10px] tracking-widest text-stone-500">
-                {subtitle}
-              </p>
+              <p className="mobile-header-subtitle">{subtitle}</p>
             )}
           </header>
         )}
         <div
-          className={`mobile-content flex min-h-0 flex-1 flex-col${
-            bottomNav ? " has-bottom-nav" : " combat-lock-scroll"
-          }`}
+          className={[
+            "mobile-content flex min-h-0 flex-1 flex-col",
+            showHeader ? "has-overlay-header" : "",
+            immersive ? "is-immersive" : "",
+            bottomNav ? "has-bottom-nav" : "combat-lock-scroll",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
           {children}
         </div>
