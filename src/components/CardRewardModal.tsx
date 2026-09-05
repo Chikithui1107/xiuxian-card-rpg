@@ -1,6 +1,7 @@
 "use client";
 
 import { CARD_TEMPLATES, type CardTemplateId } from "@/lib/battle-deck";
+import { playRewardClickSfx } from "@/lib/combat-audio";
 import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
 
 interface CardRewardModalProps {
@@ -37,6 +38,11 @@ export function CardRewardModal({
   ]
     .filter(Boolean)
     .join(" | ");
+
+  const handleSelect = (templateId: CardTemplateId) => {
+    playRewardClickSfx();
+    onSelect(templateId);
+  };
 
   return (
     <div className="animate-fade-in fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/80 px-4 backdrop-blur-md">
