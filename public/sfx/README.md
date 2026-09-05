@@ -5,6 +5,7 @@
 | 用途 | 檔名 |
 |---|---|
 | 開始 / 繼續修行 | `horror-hit.mp3` |
+| 戰鬥抽牌 | `card-draw.mp3` |
 | 拂雪流光命中 | `fuxue-slash.mp3` |
 | 踏虛掠影起手 | `tuxu-whoosh.mp3` |
 

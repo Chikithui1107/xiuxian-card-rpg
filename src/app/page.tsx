@@ -70,7 +70,7 @@ import {
   rollStackDodge,
   type CombatBuffs,
 } from "@/lib/battle-resolve";
-import { playStartCultivationSfx } from "@/lib/combat-audio";
+import { playStartCultivationSfx, playCardDrawSfx } from "@/lib/combat-audio";
 import type { BattleDeckState } from "@/types/battle";
 import type { Card } from "@/types/battle";
 import type {
@@ -398,6 +398,7 @@ export default function GamePage() {
       setIsInCombat(true);
       setCombatScreen("battle");
       setActiveTab("combat");
+      playCardDrawSfx(COMBAT_HAND_SIZE);
     },
     [permanentDeck]
   );
@@ -670,6 +671,9 @@ export default function GamePage() {
       setEnergy(Math.min(MAX_ENERGY, energy + energyDelta));
 
       const newDeck = drawCards(afterPlay, draw);
+      if (draw > 0) {
+        playCardDrawSfx(draw);
+      }
 
       if (damage > 0) {
         const newHp = Math.max(0, enemy.currentHp - damage);
@@ -778,6 +782,7 @@ export default function GamePage() {
     newDeck = drawCards(newDeck, COMBAT_HAND_SIZE);
     setDeckState(newDeck);
     setLastDamage(null);
+    playCardDrawSfx(COMBAT_HAND_SIZE);
   }, [phase, battlePhase, enemy, deckState, playerHp, combatBuffs]);
 
   useEffect(() => {
