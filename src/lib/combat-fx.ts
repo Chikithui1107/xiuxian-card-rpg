@@ -8,7 +8,14 @@ export function getPlayFxKind(template?: CardTemplate): PlayFxKind {
 }
 
 export function isDamagePlayFx(kind: PlayFxKind): boolean {
-  return kind === "fuxue" || kind === "yijian";
+  return (
+    kind === "fuxue" ||
+    kind === "yijian" ||
+    kind === "qiandhen" ||
+    kind === "zhongyin" ||
+    kind === "suye" ||
+    kind === "yinian"
+  );
 }
 
 export function shouldScreenFlash(kind: PlayFxKind): boolean {

@@ -10,9 +10,11 @@ import {
 import { createPortal } from "react-dom";
 import {
   CARD_TEMPLATES,
+  getCardTemplate,
   type CardTemplateId,
 } from "@/lib/battle-deck";
 import type { Card } from "@/types/battle";
+import { getEffectiveCost } from "@/types/battle";
 import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
 
 interface HandUIProps {
@@ -158,8 +160,9 @@ function HandCard({
     h: number;
   } | null>(null);
 
-  const template = CARD_TEMPLATES[card.id as CardTemplateId];
-  const canAfford = energy >= card.cost;
+  const template = getCardTemplate(card) ?? CARD_TEMPLATES[card.id as CardTemplateId];
+  const effectiveCost = getEffectiveCost(card);
+  const canAfford = energy >= effectiveCost;
   const typeStyle =
     CARD_TYPE_COLORS[template?.type ?? ""] ??
     "ink-card-type-basic bg-[#1a1814]";
@@ -353,7 +356,7 @@ function HandCard({
               : "bg-[#a85555]/85 text-stone-100"
           }`}
         >
-          {card.cost}
+              {effectiveCost}
         </span>
       </div>
 

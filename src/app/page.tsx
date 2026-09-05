@@ -34,14 +34,28 @@ import {
   CARD_TEMPLATES,
   COMBAT_HAND_SIZE,
   createBattleDeck,
+  createCard,
   discardHand,
   drawCards,
   MAX_ENERGY,
   pickRandomTemplateIds,
   playCardFromHand,
   getCardTemplate,
+  SWORD_TEMPLATE_IDS,
   type CardTemplateId,
 } from "@/lib/battle-deck";
+import { KARMA_REWARD_IDS, getKarmaTemplate, cardMatchesAspect } from "@/lib/karma-deck";
+import {
+  INITIAL_KARMA_STATE,
+  beginKarmaPlayerTurn,
+  endKarmaPlayerTurn,
+  convertLunzhuanAfterEnemyAttack,
+  applyPlayerDamageThroughBlock,
+  resolveKarmaCardPlay,
+  finishAspectDiscardAndDraw,
+  type KarmaCombatState,
+} from "@/lib/karma-combat";
+import { AspectDiscardModal } from "@/components/AspectDiscardModal";
 import {
   advanceEnemyIntent,
   applyBurnPassive,
@@ -73,6 +87,7 @@ import {
 import { playStartCultivationSfx, playCardDrawSfx } from "@/lib/combat-audio";
 import type { BattleDeckState } from "@/types/battle";
 import type { Card } from "@/types/battle";
+import { getEffectiveCost } from "@/types/battle";
 import type {
   AppTab,
   BattlePhase,
@@ -213,6 +228,12 @@ export default function GamePage() {
   const [combatBuffs, setCombatBuffs] = useState<CombatBuffs>(
     INITIAL_COMBAT_BUFFS
   );
+  const [karmaState, setKarmaState] =
+    useState<KarmaCombatState>(INITIAL_KARMA_STATE);
+  const [pendingDiscard, setPendingDiscard] = useState<{
+    aspect: "yin" | "yang";
+  } | null>(null);
+  const [combatFeelToast, setCombatFeelToast] = useState<string | null>(null);
 
   const character = useMemo(
     () => getCharacter(activeCharacterId),
@@ -393,6 +414,9 @@ export default function GamePage() {
       setLastPassiveHeal(null);
       setTotalDamage(0);
       setCombatBuffs(INITIAL_COMBAT_BUFFS);
+      setKarmaState(INITIAL_KARMA_STATE);
+      setPendingDiscard(null);
+      setCombatFeelToast(null);
       setLastRunMessage(null);
       setMapMessage(null);
       setIsInCombat(true);
@@ -594,7 +618,14 @@ export default function GamePage() {
 
       const node = getMapNode(mapNodes, mapNodeId);
       setDefeatedEnemyName(enemyName);
-      setRewardTemplateIds(pickRandomTemplateIds(3));
+      setRewardTemplateIds(
+        pickRandomTemplateIds(
+          3,
+          character.combatPath === "karma"
+            ? KARMA_REWARD_IDS
+            : SWORD_TEMPLATE_IDS
+        )
+      );
       const floorReward = node
         ? getMapNodeSpiritReward(tier, node)
         : getFloorSpiritReward(tier);
@@ -610,7 +641,7 @@ export default function GamePage() {
         victoryTimerRef.current = null;
       }, 1500);
     },
-    []
+    [character.combatPath]
   );
 
   const checkVictory = useCallback(
@@ -640,14 +671,167 @@ export default function GamePage() {
         victoryStartedRef.current ||
         phase !== "playing" ||
         battlePhase !== "IN_BATTLE" ||
-        enemy.currentHp <= 0
+        enemy.currentHp <= 0 ||
+        pendingDiscard
       ) {
         return false;
       }
-      if (energy < card.cost) return false;
 
       const template = getCardTemplate(card);
       if (!template) return false;
+
+      /* —— 因果道 —— */
+      if (character.combatPath === "karma") {
+        const kt0 = getKarmaTemplate(card.id);
+        if (!kt0) return false;
+
+        let deck = deckState;
+        let en = energy;
+        let karma = karmaState;
+        let dealt = 0;
+        let toast: string | undefined;
+        let waitDiscard: "yin" | "yang" | null = null;
+
+        type PlayOpts = {
+          free?: boolean;
+          suppressPassive?: boolean;
+          skipRemoveFromHand?: boolean;
+        };
+
+        const resolveOne = (c: Card, opts: PlayOpts = {}): boolean => {
+          const tpl = getCardTemplate(c);
+          const kt = getKarmaTemplate(c.id);
+          if (!tpl || !kt) return false;
+
+          const cost = opts.free ? 0 : getEffectiveCost(c);
+          if (!opts.free && en < cost) return false;
+
+          if (!opts.skipRemoveFromHand) {
+            const { deck: after, played } = playCardFromHand(deck, c.instanceId);
+            if (!played) return false;
+            deck = after;
+          } else {
+            deck = {
+              ...deck,
+              discardPile: [
+                ...deck.discardPile,
+                { ...c, costModifier: undefined },
+              ],
+            };
+          }
+
+          en -= cost;
+
+          const result = resolveKarmaCardPlay({
+            template: tpl,
+            karmaTemplate: kt,
+            card: c,
+            deck,
+            energy: en,
+            karma,
+            freeReplay: Boolean(opts.free),
+            suppressPassive: Boolean(opts.suppressPassive || opts.free),
+          });
+
+          deck = result.deck;
+          karma = result.karma;
+          dealt += result.damage;
+          if (result.feelToast) toast = result.feelToast;
+
+          if (result.needsDiscardChoice) {
+            waitDiscard = result.needsDiscardChoice.aspect;
+            return true;
+          }
+
+          if (result.autoPlayCard) {
+            resolveOne(result.autoPlayCard, {
+              free: true,
+              suppressPassive: true,
+              skipRemoveFromHand: true,
+            });
+          }
+
+          if (result.replayQueue && result.replayQueue.length > 0) {
+            for (const rec of result.replayQueue) {
+              const replayCard = createCard(rec.templateId as CardTemplateId);
+              resolveOne(replayCard, {
+                free: true,
+                suppressPassive: true,
+                skipRemoveFromHand: true,
+              });
+            }
+          }
+
+          return true;
+        };
+
+        playLockRef.current = true;
+        if (!resolveOne(card)) {
+          playLockRef.current = false;
+          return false;
+        }
+
+        setDeckState(deck);
+        setEnergy(en);
+        setKarmaState(karma);
+        if (toast) {
+          setCombatFeelToast(toast);
+          window.setTimeout(() => setCombatFeelToast(null), 1600);
+        }
+
+        if (waitDiscard) {
+          setPendingDiscard({ aspect: waitDiscard });
+          if (dealt > 0) {
+            const newHp = Math.max(0, enemy.currentHp - dealt);
+            setEnemy((prev) => ({ ...prev, currentHp: newHp }));
+            setTotalDamage((prev) => prev + dealt);
+            addDamagePopup(dealt);
+            setLastDamage(dealt);
+            checkVictory(
+              newHp,
+              enemy.name,
+              selectedTier,
+              currentMapNodeId,
+              dungeonMap
+            );
+          } else {
+            setLastDamage(null);
+          }
+          queueMicrotask(() => {
+            if (!victoryStartedRef.current) playLockRef.current = false;
+          });
+          return true;
+        }
+
+        if (dealt > 0) {
+          const newHp = Math.max(0, enemy.currentHp - dealt);
+          setEnemy((prev) => ({ ...prev, currentHp: newHp }));
+          setTotalDamage((prev) => prev + dealt);
+          addDamagePopup(dealt);
+          setLastDamage(dealt);
+          checkVictory(
+            newHp,
+            enemy.name,
+            selectedTier,
+            currentMapNodeId,
+            dungeonMap
+          );
+          queueMicrotask(() => {
+            if (!victoryStartedRef.current) playLockRef.current = false;
+          });
+          return true;
+        }
+
+        setLastDamage(null);
+        queueMicrotask(() => {
+          playLockRef.current = false;
+        });
+        return true;
+      }
+
+      /* —— 白夜劍道 —— */
+      const paid = getEffectiveCost(card);
+      if (energy < paid) return false;
 
       const { deck: afterPlay, played } = playCardFromHand(
         deckState,
@@ -666,12 +850,14 @@ export default function GamePage() {
           nextSwordBonus: combatBuffs.nextSwordBonus,
         });
 
+      // 以實際支付費用覆寫模板費用差（通常相同）；允許加真元突破 3
+      const gainPart = energyDelta + template.cost;
       setCombatBuffs({
         swordIntent: nextPlayer.swordIntent,
         dodge: nextPlayer.dodge,
         nextSwordBonus: nextPlayer.nextSwordBonus,
       });
-      setEnergy(Math.min(MAX_ENERGY, energy + energyDelta));
+      setEnergy(energy - paid + gainPart);
 
       const newDeck = drawCards(afterPlay, draw);
       if (draw > 0) {
@@ -692,7 +878,6 @@ export default function GamePage() {
           currentMapNodeId,
           dungeonMap
         );
-        // 擊殺後保持鎖，避免再出牌；否則下一微任務解鎖
         queueMicrotask(() => {
           if (!victoryStartedRef.current) {
             playLockRef.current = false;
@@ -716,6 +901,9 @@ export default function GamePage() {
       deckState,
       playerHp,
       combatBuffs,
+      character.combatPath,
+      karmaState,
+      pendingDiscard,
       addDamagePopup,
       checkVictory,
       selectedTier,
@@ -724,19 +912,50 @@ export default function GamePage() {
     ]
   );
 
+  const confirmAspectDiscard = useCallback(
+    (instanceId: string) => {
+      if (!pendingDiscard) return;
+      const drawAspect = pendingDiscard.aspect === "yin" ? "yang" : "yin";
+      const next = finishAspectDiscardAndDraw(
+        deckState,
+        instanceId,
+        drawAspect
+      );
+      setDeckState(next);
+      setPendingDiscard(null);
+      setCombatFeelToast(
+        drawAspect === "yang" ? "抽取果牌" : "抽取因牌"
+      );
+      window.setTimeout(() => setCombatFeelToast(null), 1400);
+    },
+    [pendingDiscard, deckState]
+  );
+
   const endTurn = useCallback(() => {
     if (
       playLockRef.current ||
       victoryStartedRef.current ||
       phase !== "playing" ||
       battlePhase !== "IN_BATTLE" ||
-      enemy.currentHp <= 0
+      enemy.currentHp <= 0 ||
+      pendingDiscard
     ) {
       return;
     }
 
     let newDeck = discardHand(deckState);
-    setEnergy(MAX_ENERGY);
+    let karma = karmaState;
+    let nextTurnBonus = 0;
+
+    if (character.combatPath === "karma") {
+      const ended = endKarmaPlayerTurn(karma, newDeck);
+      karma = ended.state;
+      newDeck = ended.deck;
+      nextTurnBonus = karma.nextTurnEnergyBonus;
+      karma = { ...karma, nextTurnEnergyBonus: 0 };
+    }
+
+    setEnergy(MAX_ENERGY + nextTurnBonus);
     setLastPassiveHeal(null);
 
     const intent = getEnemyIntent(enemy);
@@ -761,6 +980,16 @@ export default function GamePage() {
       }
     }
 
+    if (character.combatPath === "karma" && totalDmg > 0) {
+      const blocked = applyPlayerDamageThroughBlock(karma, totalDmg);
+      karma = blocked.state;
+      totalDmg = blocked.hpDamage;
+    }
+
+    if (character.combatPath === "karma") {
+      karma = convertLunzhuanAfterEnemyAttack(karma);
+    }
+
     setLastDodge(anyDodge);
     setLastEnemyDamage(totalDmg);
     const newPlayerHp = Math.max(0, playerHp - totalDmg);
@@ -768,6 +997,7 @@ export default function GamePage() {
 
     if (newPlayerHp <= 0) {
       setDeckState(newDeck);
+      if (character.combatPath === "karma") setKarmaState(karma);
       setPhase("defeat");
       return;
     }
@@ -786,7 +1016,21 @@ export default function GamePage() {
     setDeckState(newDeck);
     setLastDamage(null);
     playCardDrawSfx(COMBAT_HAND_SIZE);
-  }, [phase, battlePhase, enemy, deckState, playerHp, combatBuffs]);
+
+    if (character.combatPath === "karma") {
+      setKarmaState(beginKarmaPlayerTurn(karma));
+    }
+  }, [
+    phase,
+    battlePhase,
+    enemy,
+    deckState,
+    playerHp,
+    combatBuffs,
+    character.combatPath,
+    karmaState,
+    pendingDiscard,
+  ]);
 
   useEffect(() => {
     if (phase !== "defeat") return;
@@ -983,6 +1227,10 @@ export default function GamePage() {
             totalDamage={totalDamage}
             onPlayCard={playCard}
             onEndTurn={endTurn}
+            karmaMarks={karmaState.karmaMarks}
+            block={karmaState.block}
+            karmaMode={character.combatPath === "karma"}
+            externalFeelToast={combatFeelToast}
           />
         );
     }
@@ -1057,6 +1305,19 @@ export default function GamePage() {
         lockReason="請先結束或退出本次修行"
         onSelect={switchCharacter}
         onClose={() => setCharacterSelectOpen(false)}
+      />
+
+      <AspectDiscardModal
+        open={Boolean(pendingDiscard)}
+        aspectLabel={pendingDiscard?.aspect === "yin" ? "因牌" : "果牌"}
+        candidates={
+          pendingDiscard
+            ? deckState.hand.filter((c) =>
+                cardMatchesAspect(c, pendingDiscard.aspect)
+              )
+            : []
+        }
+        onChoose={confirmAspectDiscard}
       />
 
       {isInCombat && battlePhase === "VICTORY_ANIM" && (

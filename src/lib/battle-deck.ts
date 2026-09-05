@@ -1,12 +1,18 @@
 import type { BattleDeckState, Card } from "@/types/battle";
+import {
+  KARMA_TEMPLATES,
+  type KarmaCardTemplateId,
+} from "@/lib/karma-deck";
 
-export type CardTemplateId =
+export type SwordCardTemplateId =
   | "fuxue"
   | "tuxu"
   | "lingtai"
   | "cangfeng"
   | "ningshuang"
   | "yijian";
+
+export type CardTemplateId = SwordCardTemplateId | KarmaCardTemplateId;
 
 export type CardEffect =
   | { kind: "damage"; amount: number }
@@ -16,7 +22,8 @@ export type CardEffect =
   | { kind: "draw"; amount: number }
   | { kind: "gain_energy"; amount: number }
   | { kind: "refund_if_intent_gte"; threshold: number; amount: number }
-  | { kind: "buff_next_sword"; percent: number };
+  | { kind: "buff_next_sword"; percent: number }
+  | { kind: "karma" };
 
 export interface CardTemplate {
   id: CardTemplateId;
@@ -29,7 +36,7 @@ export interface CardTemplate {
   effects: CardEffect[];
 }
 
-export const CARD_TEMPLATES: Record<CardTemplateId, CardTemplate> = {
+const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
   fuxue: {
     id: "fuxue",
     name: "拂雪流光",
@@ -92,10 +99,35 @@ export const CARD_TEMPLATES: Record<CardTemplateId, CardTemplate> = {
   },
 };
 
-const templateCounters: Partial<Record<CardTemplateId, number>> = {};
+function karmaToCardTemplate(
+  id: KarmaCardTemplateId
+): CardTemplate {
+  const k = KARMA_TEMPLATES[id];
+  return {
+    id: k.id,
+    name: k.name,
+    type: k.type,
+    cost: k.cost,
+    description: k.description,
+    isExhaust: k.isExhaust,
+    effects: [{ kind: "karma" }],
+  };
+}
+
+export const CARD_TEMPLATES: Record<CardTemplateId, CardTemplate> = {
+  ...SWORD_TEMPLATES,
+  ...(Object.fromEntries(
+    (Object.keys(KARMA_TEMPLATES) as KarmaCardTemplateId[]).map((id) => [
+      id,
+      karmaToCardTemplate(id),
+    ])
+  ) as Record<KarmaCardTemplateId, CardTemplate>),
+};
+
+const templateCounters: Partial<Record<string, number>> = {};
 
 export function resetCardInstanceCounters(): void {
-  for (const key of Object.keys(templateCounters) as CardTemplateId[]) {
+  for (const key of Object.keys(templateCounters)) {
     delete templateCounters[key];
   }
 }
@@ -149,14 +181,12 @@ export const drawCards = (
   let newDiscard = [...discardPile];
 
   for (let i = 0; i < count; i++) {
-    // 抽牌堆空了，把棄牌堆洗回抽牌堆
     if (newDraw.length === 0) {
-      if (newDiscard.length === 0) break; // 無牌可抽
+      if (newDiscard.length === 0) break;
       newDraw = shuffle(newDiscard);
       newDiscard = [];
     }
 
-    // 抽出一張卡放入手牌（手牌上限 MAX_HAND_SIZE 張）
     if (newHand.length < MAX_HAND_SIZE) {
       const drawnCard = newDraw.pop()!;
       newHand.push(drawnCard);
@@ -189,31 +219,57 @@ export function playCardFromHand(
   };
 }
 
+/** 棄置手牌中指定實例（一律進棄牌堆，非消耗） */
+export function discardCardFromHand(
+  deck: BattleDeckState,
+  instanceId: string
+): BattleDeckState {
+  const index = deck.hand.findIndex((c) => c.instanceId === instanceId);
+  if (index === -1) return deck;
+  const card = deck.hand[index];
+  return {
+    ...deck,
+    hand: deck.hand.filter((_, i) => i !== index),
+    discardPile: [...deck.discardPile, { ...card, costModifier: undefined }],
+  };
+}
+
 export function discardHand(deck: BattleDeckState): BattleDeckState {
   if (deck.hand.length === 0) return deck;
   return {
     ...deck,
     hand: [],
-    discardPile: [...deck.discardPile, ...deck.hand],
+    discardPile: [
+      ...deck.discardPile,
+      ...deck.hand.map((c) => ({ ...c, costModifier: undefined })),
+    ],
   };
 }
+
+export const SWORD_TEMPLATE_IDS = Object.keys(
+  SWORD_TEMPLATES
+) as SwordCardTemplateId[];
 
 export const ALL_TEMPLATE_IDS = Object.keys(
   CARD_TEMPLATES
 ) as CardTemplateId[];
 
 export const COMBAT_HAND_SIZE = 4;
+/** 回合開始基礎真元；加真元效果可突破此值 */
 export const MAX_ENERGY = 3;
 
-export function pickRandomTemplateIds(count: number): CardTemplateId[] {
-  const pool = [...ALL_TEMPLATE_IDS];
-  for (let i = pool.length - 1; i > 0; i--) {
+export function pickRandomTemplateIds(
+  count: number,
+  pool: CardTemplateId[] = SWORD_TEMPLATE_IDS
+): CardTemplateId[] {
+  const list = [...pool];
+  for (let i = list.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+    [list[i], list[j]] = [list[j], list[i]];
   }
   const picked: CardTemplateId[] = [];
   for (let i = 0; i < count; i++) {
-    picked.push(pool[i % pool.length]);
+    picked.push(list[i % list.length]);
   }
   return picked;
 }

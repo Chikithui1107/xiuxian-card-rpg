@@ -58,6 +58,10 @@ interface CombatViewProps {
   totalDamage: number;
   onPlayCard: (card: Card) => boolean;
   onEndTurn: () => void;
+  karmaMarks?: number;
+  block?: number;
+  karmaMode?: boolean;
+  externalFeelToast?: string | null;
 }
 
 interface Flight {
@@ -98,6 +102,10 @@ export function CombatView({
   totalDamage: _totalDamage,
   onPlayCard,
   onEndTurn,
+  karmaMarks = 0,
+  block = 0,
+  karmaMode = false,
+  externalFeelToast = null,
 }: CombatViewProps) {
   const isPlaying = phase === "playing" && battlePhase === "IN_BATTLE";
   const placeLabel = locationName ?? tierName ?? "秘境";
@@ -272,6 +280,7 @@ export function CombatView({
           lastEnemyDamage={lastEnemyDamage}
           lastDodge={lastDodge}
           lastPassiveHeal={lastPassiveHeal}
+          karmaMarks={karmaMarks}
         />
       </div>
 
@@ -289,7 +298,7 @@ export function CombatView({
           lastDamage={lastDamage}
           disabled={!isPlaying || enemy.currentHp <= 0}
           denyShake={denyShake}
-          feelToast={feelToast}
+          feelToast={externalFeelToast ?? feelToast}
           playerBar={
             <CombatPlayerBar
               hero={hero}
@@ -297,6 +306,8 @@ export function CombatView({
               currentHp={playerHp}
               energy={energy}
               combatBuffs={combatBuffs}
+              block={block}
+              karmaMode={karmaMode}
             />
           }
         />

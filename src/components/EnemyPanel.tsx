@@ -14,6 +14,7 @@ interface EnemyPanelProps {
   lastEnemyDamage?: number | null;
   lastDodge?: boolean;
   lastPassiveHeal?: number | null;
+  karmaMarks?: number;
 }
 
 export function EnemyPanel({
@@ -24,6 +25,7 @@ export function EnemyPanel({
   lastEnemyDamage,
   lastDodge,
   lastPassiveHeal,
+  karmaMarks = 0,
 }: EnemyPanelProps) {
   const hpPercent = Math.max(0, (enemy.currentHp / enemy.maxHp) * 100);
   const isDefeated = enemy.currentHp <= 0;
@@ -115,6 +117,11 @@ export function EnemyPanel({
         {enemy.passiveLabel && (
           <p className="mt-0.5 text-[9px] tracking-wide text-[#a8a0c8]/80">
             {enemy.passiveLabel}
+          </p>
+        )}
+        {karmaMarks > 0 && (
+          <p className="mt-0.5 text-[9px] tracking-wide text-[#c48888]/90">
+            因果印記 · {karmaMarks}
           </p>
         )}
       </div>
