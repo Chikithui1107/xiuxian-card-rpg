@@ -26,8 +26,10 @@ interface HandUIProps {
 }
 
 /** 上滑超過此距離算出牌 */
-const PLAY_SWIPE_Y = -48;
-const TAP_SLOP = 8;
+const PLAY_SWIPE_Y = -40;
+/** 必須明顯上滑才進入拖牌；輕微抖動只算點選 */
+const DRAG_START_Y = -16;
+const TAP_JITTER = 14;
 
 const FAN_ANGLES: Record<number, number[]> = {
   1: [0],
@@ -63,10 +65,11 @@ function overlapPx(total: number) {
   const w = raw.includes("rem")
     ? (parseFloat(raw) || 8.05) * 16
     : parseFloat(raw) || 128;
-  if (total <= 3) return Math.round(w * 0.34);
-  if (total === 4) return Math.round(w * 0.42);
-  if (total === 5) return Math.round(w * 0.48);
-  return Math.round(w * 0.5);
+  /* 略降重疊，讓點選更容易命中 */
+  if (total <= 3) return Math.round(w * 0.28);
+  if (total === 4) return Math.round(w * 0.34);
+  if (total === 5) return Math.round(w * 0.4);
+  return Math.round(w * 0.44);
 }
 
 function fanSpreadX(index: number, focusIndex: number | null) {
@@ -92,6 +95,11 @@ function getDragPortalRoot(): HTMLElement | null {
   );
 }
 
+function isCoarsePointer() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia("(pointer: coarse)").matches;
+}
+
 interface DragGhost {
   card: Card;
   x: number;
@@ -113,6 +121,9 @@ export function HandUI({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [ghost, setGhost] = useState<DragGhost | null>(null);
+  const ghostElRef = useRef<HTMLDivElement | null>(null);
+  const ghostPosRef = useRef({ x: 0, y: 0, ready: false });
+  const rafRef = useRef(0);
 
   const focusId = draggingId ?? selectedId ?? hoveredId;
   const focusIndex =
@@ -134,11 +145,44 @@ export function HandUI({
     }
   }, [hand, selectedId]);
 
+  const paintGhost = useCallback(() => {
+    rafRef.current = 0;
+    const el = ghostElRef.current;
+    const root = getDragPortalRoot();
+    if (!el || !root) return;
+    const rootRect = root.getBoundingClientRect();
+    const { x, y, ready } = ghostPosRef.current;
+    el.style.left = `${x - rootRect.left}px`;
+    el.style.top = `${y - rootRect.top}px`;
+    el.style.transform = ready ? "scale(1.04)" : "scale(1)";
+    el.classList.toggle("ring-2", ready);
+    el.classList.toggle("ring-[#7aab9a]/70", ready);
+    const hint = el.querySelector("[data-drag-hint]");
+    if (hint instanceof HTMLElement) {
+      hint.style.display = ready ? "block" : "none";
+    }
+  }, []);
+
+  const scheduleGhostPaint = useCallback(() => {
+    if (rafRef.current) return;
+    rafRef.current = requestAnimationFrame(paintGhost);
+  }, [paintGhost]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
   const resetDrag = useCallback(() => {
     setDraggingId(null);
     setGhost(null);
     setDropReady(false);
     document.querySelector(".combat-shell")?.classList.remove("is-dragging-card");
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+    }
   }, []);
 
   const playCard = useCallback(
@@ -177,7 +221,7 @@ export function HandUI({
                 focusIndex={resolvedFocus}
                 canAfford={energy >= card.cost}
                 onHoverChange={(id, on) => {
-                  if (draggingId) return;
+                  if (draggingId || isCoarsePointer()) return;
                   setHoveredId((prev) => {
                     if (on) return id;
                     return prev === id ? null : prev;
@@ -194,6 +238,11 @@ export function HandUI({
                   document
                     .querySelector(".combat-shell")
                     ?.classList.add("is-dragging-card");
+                  ghostPosRef.current = {
+                    x: payload.x,
+                    y: payload.y,
+                    ready: false,
+                  };
                   setGhost({
                     card: payload.card,
                     x: payload.x,
@@ -202,11 +251,11 @@ export function HandUI({
                     height: payload.height,
                     ready: false,
                   });
+                  scheduleGhostPaint();
                 }}
                 onDragMove={(x, y, ready) => {
-                  setGhost((prev) =>
-                    prev ? { ...prev, x, y, ready } : prev
-                  );
+                  ghostPosRef.current = { x, y, ready };
+                  scheduleGhostPaint();
                   setDropReady(ready);
                 }}
                 onDragEnd={(result) => {
@@ -231,20 +280,26 @@ export function HandUI({
       {ghost &&
         portalRoot &&
         createPortal(
-          <DragOverlay ghost={ghost} energy={energy} />,
+          <DragOverlay
+            ref={ghostElRef}
+            ghost={ghost}
+            energy={energy}
+          />,
           portalRoot
         )}
     </div>
   );
 }
 
-function DragOverlay({
+const DragOverlay = ({
+  ref,
   ghost,
   energy,
 }: {
+  ref?: React.Ref<HTMLDivElement>;
   ghost: DragGhost;
   energy: number;
-}) {
+}) => {
   const template = CARD_TEMPLATES[ghost.card.id as CardTemplateId];
   const canAfford = energy >= ghost.card.cost;
   const typeStyle =
@@ -260,17 +315,15 @@ function DragOverlay({
 
   return (
     <div
-      className={`ink-card ink-card-drag-ghost pointer-events-none absolute z-[9999] origin-center select-none ${typeStyle} ${
-        ghost.ready ? "ring-2 ring-[#7aab9a]/70" : ""
-      }`}
+      ref={ref}
+      className={`ink-card ink-card-drag-ghost pointer-events-none absolute z-[9999] origin-center select-none ${typeStyle}`}
       style={{
         left,
         top,
         width: ghost.width,
         height: ghost.height,
         opacity: 1,
-        transform: ghost.ready ? "scale(1.04)" : "scale(1)",
-        transition: "transform 0.12s ease-out",
+        willChange: "left, top, transform",
       }}
       aria-hidden
     >
@@ -284,16 +337,18 @@ function DragOverlay({
         isExhaust={ghost.card.isExhaust}
         full
         footer={
-          ghost.ready ? (
-            <p className="mt-0.5 text-[10px] font-bold text-[#7aab9a]">
-              松手出牌
-            </p>
-          ) : null
+          <p
+            data-drag-hint
+            className="mt-0.5 text-[10px] font-bold text-[#7aab9a]"
+            style={{ display: ghost.ready ? "block" : "none" }}
+          >
+            松手出牌
+          </p>
         }
       />
     </div>
   );
-}
+};
 
 function CardFace({
   name,
@@ -406,6 +461,7 @@ function HandCard({
     height: number;
     moved: boolean;
     active: boolean;
+    selectedOnDown: boolean;
   } | null>(null);
   const detachRef = useRef<(() => void) | null>(null);
 
@@ -487,6 +543,10 @@ function HandCard({
     if (!el) return;
     const rect = el.getBoundingClientRect();
 
+    /* 按下立刻選中，不用等抬手 */
+    const alreadySelected = cbRef.current.selected;
+    cbRef.current.onSelect(cbRef.current.card.instanceId);
+
     try {
       el.setPointerCapture(e.pointerId);
     } catch {
@@ -503,6 +563,7 @@ function HandCard({
       height: rect.height,
       moved: false,
       active: false,
+      selectedOnDown: alreadySelected,
     };
 
     const onWinMove = (ev: PointerEvent) => {
@@ -513,10 +574,13 @@ function HandCard({
       const dx = ev.clientX - drag.startX;
       const dy = ev.clientY - drag.startY;
 
-      if (
-        !drag.moved &&
-        (Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP)
-      ) {
+      if (!drag.active) {
+        /* 只有明顯上滑才拖；左右晃動不搶點選 */
+        const upwardDrag =
+          dy <= DRAG_START_Y && Math.abs(dy) >= Math.abs(dx) * 0.85;
+        const bigUp = dy <= -TAP_JITTER && dy < -Math.abs(dx);
+        if (!upwardDrag && !bigUp) return;
+
         drag.moved = true;
         drag.active = true;
         cbRef.current.onDragStart({
@@ -527,8 +591,6 @@ function HandCard({
           height: drag.height,
         });
       }
-
-      if (!drag.active) return;
 
       cbRef.current.onDragMove(
         ev.clientX - drag.grabX,
@@ -556,6 +618,7 @@ function HandCard({
         drag.height
       );
       const wasActive = drag.active;
+      const wasAlreadySelected = drag.selectedOnDown;
       dragRef.current = null;
 
       if (wasActive) {
@@ -564,7 +627,8 @@ function HandCard({
         return;
       }
 
-      if (cbRef.current.selected) {
+      /* 輕點：若按下前已選中 → 出牌；否則按下時已選中，抬手結束即可 */
+      if (wasAlreadySelected) {
         finishPlayOrDeny(
           cardRef.current?.getBoundingClientRect() ??
             slotRef.current?.getBoundingClientRect() ??
@@ -590,7 +654,8 @@ function HandCard({
     };
   };
 
-  const z = isDragging ? 1 : isFocus ? 80 : 10 + index;
+  /* 選中的牌永遠最高；其餘依序，方便點到露出的邊緣 */
+  const z = isDragging ? 1 : isFocus ? 90 : 20 + index;
   const restTransform = inspecting
     ? `translateX(${shiftX}px) translateY(-74px) scale(1.1) rotate(0deg)`
     : `translateX(${shiftX}px) translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
@@ -607,13 +672,14 @@ function HandCard({
         marginLeft: index === 0 ? undefined : marginLeft,
       }}
       onMouseEnter={() => {
-        if (!isDragging) onHoverChange(card.instanceId, true);
+        if (!isDragging && !isCoarsePointer()) {
+          onHoverChange(card.instanceId, true);
+        }
       }}
       onMouseLeave={() => {
         if (!isDragging) onHoverChange(card.instanceId, false);
       }}
     >
-      {/* 拖走時同一節點改成全透明，不卸載，避免掐斷 pointer；也不畫 ink-card 框 */}
       <div
         ref={cardRef}
         role="button"
@@ -652,14 +718,14 @@ function HandCard({
                   : !canAfford
                     ? "cursor-grab opacity-55"
                     : "cursor-grab active:cursor-grabbing"
-              } ${typeStyle} transition-transform duration-200 ease-out ${
+              } ${typeStyle} transition-transform duration-150 ease-out ${
                 inspecting ? "ink-card-selected" : ""
               }`
         }
         style={{
           touchAction: "none",
           transform: isDragging ? "none" : restTransform,
-          zIndex: isFocus ? 80 : undefined,
+          zIndex: isFocus ? 90 : undefined,
           ...(isDragging
             ? {
                 border: "none",
