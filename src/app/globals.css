@@ -590,48 +590,36 @@ body {
   height: var(--combat-dock-h);
   overflow: visible;
   border-top: 1px solid rgba(138, 115, 64, 0.14);
+  /* 不用 backdrop-filter：會讓內部 fixed 以 dock 為座標系（拖上消失、從底冒出） */
   background: linear-gradient(
     180deg,
-    rgba(10, 12, 14, 0.18) 0%,
-    rgba(10, 12, 14, 0.5) 28%,
-    rgba(8, 10, 12, 0.78) 100%
+    rgba(10, 12, 14, 0.42) 0%,
+    rgba(10, 12, 14, 0.72) 28%,
+    rgba(8, 10, 12, 0.9) 100%
   );
-  /* blur 放在伪元素，避免 backdrop-filter 讓 fixed 卡牌座標系錯亂／手機拖牌消失 */
   padding: 0.2rem 0.45rem 0.25rem;
   box-sizing: border-box;
 }
 
-.combat-shell-dock::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.combat-shell-dock > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* 拖牌中：實心底、拿掉 inset，避免被 absolute inset-0 拉變形 */
-.ink-card-dragging {
+/* 拖曳幽靈（portal 到 body）：實心底，避開祖先 filter / overflow */
+.ink-card-drag-portal {
   position: fixed !important;
   inset: auto !important;
   background-image: none !important;
   background-color: #141210 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  mix-blend-mode: normal !important;
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.45),
-    0 12px 28px rgba(0, 0, 0, 0.55) !important;
+    0 14px 32px rgba(0, 0, 0, 0.6) !important;
   opacity: 1 !important;
+  pointer-events: none !important;
 }
 
-.ink-card-dragging::after {
-  display: none;
+.ink-card-drag-portal::after,
+.ink-card-drag-portal::before {
+  display: none !important;
 }
 
 .combat-player-hud {

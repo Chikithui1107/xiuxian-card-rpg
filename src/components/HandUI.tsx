@@ -7,6 +7,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from "react";
+import { createPortal } from "react-dom";
 import {
   CARD_TEMPLATES,
   type CardTemplateId,
@@ -339,6 +340,74 @@ function HandCard({
 
   const description = template?.description ?? "";
 
+  const renderCardFace = (opts: { showSelectHint: boolean; showReady: boolean }) => (
+    <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-1.5">
+      <div className="flex items-start justify-between gap-1">
+        <span className="min-w-0 flex-1 text-left text-[12px] font-bold leading-tight tracking-wide text-[#f0e6d3]">
+          {card.name}
+        </span>
+        <span
+          className={`flex h-[1.25rem] w-[1.25rem] shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
+            canAfford
+              ? "bg-[#7aab9a]/90 text-stone-950"
+              : "bg-[#a85555]/85 text-stone-100"
+          }`}
+        >
+          {card.cost}
+        </span>
+      </div>
+
+      <p className="mt-1.5 min-h-0 flex-1 overflow-y-auto break-words text-left text-[10px] leading-[1.35] text-stone-300">
+        {description}
+      </p>
+
+      <div className="mt-1 shrink-0">
+        <p className={`text-[8px] font-semibold ${typeAccent}`}>
+          {template?.type}
+        </p>
+        {card.isExhaust && (
+          <p className="text-[8px] text-amber-500/70">消耗</p>
+        )}
+        {opts.showSelectHint && (
+          <p className="mt-0.5 text-[8px] text-stone-500">上拖出牌</p>
+        )}
+        {opts.showReady && (
+          <p className="mt-0.5 text-[9px] font-bold text-[#7aab9a]">
+            松手出牌
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
+  /* 拖曳幽靈掛到 body：避開 dock / shell 的 filter、overflow 把 fixed 座標搞歪 */
+  const dragPortal =
+    dragging &&
+    dragBox &&
+    typeof document !== "undefined" &&
+    createPortal(
+      <div
+        className={`ink-card ink-card-drag-portal pointer-events-none select-none ${typeStyle} ${
+          readyHint ? "ring-2 ring-[#7aab9a]/75" : ""
+        }`}
+        style={{
+          position: "fixed",
+          left: dragBox.x,
+          top: dragBox.y,
+          width: dragBox.w,
+          height: dragBox.h,
+          zIndex: 100000,
+          margin: 0,
+          transform: "none",
+          transition: "none",
+        }}
+        aria-hidden
+      >
+        {renderCardFace({ showSelectHint: false, showReady: readyHint })}
+      </div>,
+      document.body
+    );
+
   return (
     <div
       ref={slotRef}
@@ -369,78 +438,27 @@ function HandCard({
             if (origin) tryPlay(origin);
           }
         }}
-        className={`ink-card origin-bottom select-none ${
-          dragging ? "ink-card-dragging" : "absolute inset-0"
-        } ${
+        className={`ink-card absolute inset-0 origin-bottom select-none ${
           locked
             ? "cursor-not-allowed opacity-40"
             : !canAfford
               ? "cursor-grab opacity-55"
               : "cursor-grab active:cursor-grabbing"
         } ${typeStyle} ${
-          dragging ? "" : "transition-transform duration-150 ease-out"
-        } ${selected && !dragging ? "ink-card-selected" : ""} ${
-          readyHint ? "ring-2 ring-[#7aab9a]/75" : ""
-        }`}
+          dragging ? "invisible" : "transition-transform duration-150 ease-out"
+        } ${selected && !dragging ? "ink-card-selected" : ""}`}
         style={{
           touchAction: "none",
-          ...(dragging && dragBox
-            ? {
-                position: "fixed",
-                left: dragBox.x,
-                top: dragBox.y,
-                width: dragBox.w,
-                height: dragBox.h,
-                zIndex: 9999,
-                margin: 0,
-                transform: "none",
-                transition: "none",
-              }
-            : {
-                transform: restTransform,
-                zIndex: selected ? 80 : undefined,
-              }),
+          transform: restTransform,
+          zIndex: selected ? 80 : undefined,
         }}
       >
-        <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-1.5">
-          <div className="flex items-start justify-between gap-1">
-            <span className="min-w-0 flex-1 text-left text-[12px] font-bold leading-tight tracking-wide text-[#f0e6d3]">
-              {card.name}
-            </span>
-            <span
-              className={`flex h-[1.25rem] w-[1.25rem] shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
-                canAfford
-                  ? "bg-[#7aab9a]/90 text-stone-950"
-                  : "bg-[#a85555]/85 text-stone-100"
-              }`}
-            >
-              {card.cost}
-            </span>
-          </div>
-
-          {/* 完整效果文字；CJK 自然換行，不截斷 */}
-          <p className="mt-1.5 min-h-0 flex-1 overflow-y-auto break-words text-left text-[10px] leading-[1.35] text-stone-300">
-            {description}
-          </p>
-
-          <div className="mt-1 shrink-0">
-            <p className={`text-[8px] font-semibold ${typeAccent}`}>
-              {template?.type}
-            </p>
-            {card.isExhaust && (
-              <p className="text-[8px] text-amber-500/70">消耗</p>
-            )}
-            {selected && !readyHint && (
-              <p className="mt-0.5 text-[8px] text-stone-500">上拖出牌</p>
-            )}
-            {readyHint && (
-              <p className="mt-0.5 text-[9px] font-bold text-[#7aab9a]">
-                松手出牌
-              </p>
-            )}
-          </div>
-        </div>
+        {renderCardFace({
+          showSelectHint: selected && !readyHint && !dragging,
+          showReady: false,
+        })}
       </div>
+      {dragPortal}
     </div>
   );
 }
