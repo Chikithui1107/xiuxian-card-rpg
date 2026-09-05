@@ -1,10 +1,15 @@
 import type { PlayFxKind } from "@/lib/combat-fx";
+import { publicAsset } from "@/lib/paths";
 
 type WebkitWindow = Window & {
   webkitAudioContext?: typeof AudioContext;
 };
 
 let ctx: AudioContext | null = null;
+const sampleBuffers = new Map<string, AudioBuffer>();
+const sampleLoads = new Map<string, Promise<AudioBuffer | null>>();
+
+const FUXUE_SLASH_URL = publicAsset("/sfx/fuxue-slash.mp3");
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -16,8 +21,70 @@ function getCtx(): AudioContext | null {
   return ctx;
 }
 
+async function loadSample(url: string): Promise<AudioBuffer | null> {
+  const audio = getCtx();
+  if (!audio) return null;
+  const cached = sampleBuffers.get(url);
+  if (cached) return cached;
+
+  const pending = sampleLoads.get(url);
+  if (pending) return pending;
+
+  const load = (async () => {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const raw = await res.arrayBuffer();
+      const buffer = await audio.decodeAudioData(raw.slice(0));
+      sampleBuffers.set(url, buffer);
+      return buffer;
+    } catch {
+      return null;
+    } finally {
+      sampleLoads.delete(url);
+    }
+  })();
+
+  sampleLoads.set(url, load);
+  return load;
+}
+
+function playSample(
+  url: string,
+  volume = 0.85,
+  fallback?: () => void
+): void {
+  const audio = getCtx();
+  if (!audio) {
+    fallback?.();
+    return;
+  }
+
+  const playBuffer = (buffer: AudioBuffer) => {
+    const src = audio.createBufferSource();
+    src.buffer = buffer;
+    const gain = audio.createGain();
+    gain.gain.value = volume;
+    src.connect(gain);
+    gain.connect(audio.destination);
+    src.start();
+  };
+
+  const cached = sampleBuffers.get(url);
+  if (cached) {
+    playBuffer(cached);
+    return;
+  }
+
+  void loadSample(url).then((buffer) => {
+    if (buffer) playBuffer(buffer);
+    else fallback?.();
+  });
+}
+
 export function unlockCombatAudio(): void {
   getCtx();
+  void loadSample(FUXUE_SLASH_URL);
 }
 
 function envGain(
@@ -186,7 +253,7 @@ export function playWhoosh(kind?: PlayFxKind): void {
 
   switch (kind) {
     case "fuxue":
-      playFuxueXiu(audio, audio.destination, "light");
+      // 斬擊 MP3 在命中時播放，飛出時不重疊
       return;
     case "tuxu":
       noiseBurst(audio, audio.destination, 0.14, 0.07, 2200);
@@ -221,7 +288,9 @@ export function playImpact(kind: PlayFxKind): void {
 
   switch (kind) {
     case "fuxue":
-      playFuxueXiu(audio, audio.destination, "full");
+      playSample(FUXUE_SLASH_URL, 0.9, () =>
+        playFuxueXiu(audio, audio.destination, "full")
+      );
       return;
     case "tuxu":
       noiseBurst(audio, audio.destination, 0.12, 0.07, 2400);
