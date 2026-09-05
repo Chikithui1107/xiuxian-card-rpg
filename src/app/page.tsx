@@ -883,12 +883,12 @@ export default function GamePage() {
 
   return (
     <MobileFrame
-      title="修仙卡牌錄"
+      title="仙途"
       subtitle={
         hasActiveRun && selectedTier
           ? `${selectedTier.name} · 修行中`
           : activeTab === "lobby"
-            ? "── 天樞聖宗 ──"
+            ? "天樞聖宗"
             : TAB_LABELS[activeTab]
       }
       immersive={activeTab === "lobby" && !isInCombat}

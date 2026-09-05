@@ -275,19 +275,27 @@ body {
 }
 
 .mobile-header-title.title-ink {
-  font-size: 1rem;
+  /* 《仙途》首頁 Logo：比舊四字標題大約 18%，字距拉開 */
+  font-size: 1.2rem;
   font-weight: 700;
-  letter-spacing: 0.48em;
-  text-indent: 0.48em;
-  color: rgba(201, 168, 76, 0.72);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+  letter-spacing: 0.85em;
+  text-indent: 0.85em;
+  color: rgba(201, 168, 76, 0.78);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+}
+
+.mobile-header-immersive .mobile-header-title.title-ink {
+  font-size: 1.28rem;
+  letter-spacing: 0.95em;
+  text-indent: 0.95em;
 }
 
 .mobile-header-subtitle {
-  margin-top: 0.2rem;
+  margin-top: 0.28rem;
   font-size: 0.625rem;
-  letter-spacing: 0.28em;
-  color: rgba(198, 216, 208, 0.56);
+  letter-spacing: 0.32em;
+  text-indent: 0.32em;
+  color: rgba(198, 216, 208, 0.55);
   text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65);
 }
 
