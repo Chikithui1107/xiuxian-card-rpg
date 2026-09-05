@@ -59,7 +59,7 @@ import {
   getMapNode,
   isBossCleared,
 } from "@/lib/map";
-import { generateMoonNightMap } from "@/utils/mapGenerator";
+import { generateMoonNightMap, MOON_NIGHT_STEPS } from "@/utils/mapGenerator";
 import {
   INITIAL_COMBAT_BUFFS,
   resolveCardEffects,
@@ -275,6 +275,7 @@ export default function GamePage() {
     (message: string | null = null) => {
       setIsInCombat(false);
       setCombatScreen("path");
+      setCurrentMapNodeId(null);
       setActiveTab("combat");
       resetCombatState();
       if (message) setMapMessage(message);
@@ -587,23 +588,40 @@ export default function GamePage() {
     let newDeck = discardHand(deckState);
     setEnergy(MAX_ENERGY);
     setLastPassiveHeal(null);
-    setLastDodge(false);
 
     const intent = getEnemyIntent(enemy);
-    let dmg: number = intent.damage;
-    if (dmg > 0 && enemy.passive === "burn") {
-      dmg = applyBurnPassive(dmg);
+    const hitCount =
+      enemy.attackPattern === "triple_slash" && intent.damage > 0 ? 3 : 1;
+
+    let remainingDodge = combatBuffs.dodge;
+    let anyDodge = false;
+    let totalDmg = 0;
+
+    for (let hit = 0; hit < hitCount; hit++) {
+      let dmg: number = intent.damage;
+      if (dmg > 0 && enemy.passive === "burn") {
+        dmg = applyBurnPassive(dmg);
+      }
+
+      if (dmg > 0 && remainingDodge > 0) {
+        const dodged = rollStackDodge(remainingDodge);
+        remainingDodge = 0;
+        if (dodged) {
+          dmg = 0;
+          anyDodge = true;
+        }
+      }
+
+      totalDmg += dmg;
     }
 
-    if (dmg > 0 && combatBuffs.dodge > 0) {
-      const dodged = rollStackDodge(combatBuffs.dodge);
+    if (combatBuffs.dodge > 0) {
       setCombatBuffs((prev) => ({ ...prev, dodge: 0 }));
-      if (dodged) dmg = 0;
-      setLastDodge(dodged);
     }
+    setLastDodge(anyDodge);
 
-    setLastEnemyDamage(dmg);
-    const newPlayerHp = Math.max(0, playerHp - dmg);
+    setLastEnemyDamage(totalDmg);
+    const newPlayerHp = Math.max(0, playerHp - totalDmg);
     setPlayerHp(newPlayerHp);
 
     if (newPlayerHp <= 0) {
@@ -783,6 +801,9 @@ export default function GamePage() {
               completedCount={countCompletedNodes(dungeonMap)}
               totalCount={countTotalNodes(dungeonMap)}
               mapMessage={mapMessage}
+              currentNodeId={
+                getAvailableNodes(dungeonMap)[0]?.id ?? currentMapNodeId
+              }
               onSelectNode={handleMapNodeSelect}
             />
           );
@@ -797,7 +818,7 @@ export default function GamePage() {
             enemy={enemy}
             tierName={selectedTier?.name}
             tierFloor={tierFloor}
-            totalFloors={8}
+            totalFloors={MOON_NIGHT_STEPS}
             playerHp={playerHp}
             energy={energy}
             combatBuffs={combatBuffs}
@@ -855,10 +876,7 @@ export default function GamePage() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           inCombat={hasActiveRun}
-          combatLocked={
-            isInCombat &&
-            (phase === "defeat" || battlePhase !== "IN_BATTLE")
-          }
+          combatLocked={isInCombat}
         />
       }
     >
@@ -878,7 +896,7 @@ export default function GamePage() {
           isTierComplete={pendingTierComplete}
           tierName={selectedTier?.name}
           tierFloor={tierFloor}
-          totalFloors={8}
+          totalFloors={MOON_NIGHT_STEPS}
         />
       )}
 

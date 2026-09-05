@@ -1,6 +1,6 @@
 import type { MapNode, NodeType } from "@/types/map";
 
-export { generateSlayTheSpireMap, generateMoonNightMap } from "@/utils/mapGenerator";
+export { generateSlayTheSpireMap, generateMoonNightMap, MOON_NIGHT_STEPS } from "@/utils/mapGenerator";
 
 export function flattenMap(map: MapNode[][]): MapNode[] {
   return map.flat();

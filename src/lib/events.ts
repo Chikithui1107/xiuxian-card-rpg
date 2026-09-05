@@ -44,8 +44,10 @@ export function applyEventChoice(
       }
       case "lose_hp_percent": {
         const loss = Math.max(1, Math.floor(ctx.maxHp * effect.percent));
+        const before = nextHp;
         nextHp = Math.max(1, nextHp - loss);
-        bits.push(`氣血 -${loss}`);
+        const lost = before - nextHp;
+        if (lost > 0) bits.push(`氣血 -${lost}`);
         break;
       }
       case "spirit_stones": {

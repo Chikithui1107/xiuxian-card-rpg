@@ -133,6 +133,11 @@ export function EnemyPanel({
             {monster?.description ?? enemy.description}
           </p>
         )}
+        {enemy.attackPatternLabel && (
+          <p className="mt-1 truncate text-center text-[10px] text-[#c9a84c]/85">
+            ◈ {enemy.attackPatternLabel}
+          </p>
+        )}
         {enemy.passiveLabel && (
           <p className="mt-1 truncate text-center text-[10px] italic text-[#9a9ab8]">
             ◈ {enemy.passiveLabel}

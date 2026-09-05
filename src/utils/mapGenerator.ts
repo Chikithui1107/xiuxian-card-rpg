@@ -1,7 +1,7 @@
 import type { MapNode, NodeType } from "@/types/map";
 
 const NUM_TIERS = 10;
-const MOON_NIGHT_STEPS = 8;
+export const MOON_NIGHT_STEPS = 8;
 
 export const NODE_NAMES: Record<NodeType, string[]> = {
   combat: ["荒山野徑：遭遇野狼", "迷霧林：低階妖獸", "溪畔：攔路劫修"],

@@ -14,6 +14,7 @@ interface PathChoiceViewProps {
   completedCount: number;
   totalCount: number;
   mapMessage?: string | null;
+  currentNodeId?: string | null;
   onSelectNode: (node: MapNode) => void;
 }
 
@@ -26,6 +27,7 @@ export function PathChoiceView({
   completedCount,
   totalCount,
   mapMessage,
+  currentNodeId,
   onSelectNode,
 }: PathChoiceViewProps) {
   const [showMap, setShowMap] = useState(false);
@@ -149,6 +151,7 @@ export function PathChoiceView({
               tierName={tierName}
               playerHp={playerHp}
               maxHp={maxHp}
+              currentNodeId={currentNodeId}
               readOnly
             />
           </div>

@@ -74,7 +74,9 @@ export function LobbyView({
             退出本次修行
           </button>
           <p className="text-center text-[10px] tracking-wide text-stone-500">
-            繼續則回到當前岔路 · 退出則清空本局進度
+            {runLabel?.includes("戰鬥")
+              ? "繼續則回到當前戰鬥 · 退出則清空本局進度"
+              : "繼續則回到當前岔路 · 退出則清空本局進度"}
           </p>
         </div>
       ) : (

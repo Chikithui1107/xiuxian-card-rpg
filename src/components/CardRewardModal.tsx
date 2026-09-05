@@ -13,7 +13,6 @@ interface CardRewardModalProps {
   tierName?: string;
   tierFloor?: number;
   totalFloors?: number;
-  onContinue?: () => void;
 }
 
 export function CardRewardModal({
@@ -26,7 +25,6 @@ export function CardRewardModal({
   tierName,
   tierFloor,
   totalFloors,
-  onContinue,
 }: CardRewardModalProps) {
   const progressLabel =
     tierName && tierFloor && totalFloors
@@ -107,16 +105,6 @@ export function CardRewardModal({
         </button>
         <p className="text-[9px] text-stone-600">僅保留靈石，不增加牌組張數</p>
       </div>
-
-      {onContinue && (
-        <button
-          type="button"
-          onClick={onContinue}
-          className="rounded-full border border-[#7aab9a]/50 bg-[#7aab9a] px-8 py-3 text-sm font-extrabold tracking-wider text-stone-950 shadow-lg shadow-[#7aab9a]/30 transition hover:scale-105 hover:bg-[#9ab8aa]"
-        >
-          踏入下一重天 →
-        </button>
-      )}
     </div>
   );
 }
