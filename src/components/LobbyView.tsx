@@ -105,11 +105,13 @@ export function LobbyView({
               className="btn-start-game"
               aria-label="繼續修行"
             >
-              <span className="relative block text-[1.05rem] font-bold tracking-[0.4em]">
+              <span className="relative block text-[1.05rem] font-bold tracking-[0.42em]">
                 繼續修行
               </span>
-              <span className="btn-start-divider" aria-hidden />
-              <span className="relative block text-[10px] font-semibold tracking-[0.22em] text-[#a8925a]">
+              <span className="btn-start-divider" aria-hidden>
+                <i className="btn-start-diamond" />
+              </span>
+              <span className="relative block text-[10px] font-semibold tracking-[0.22em] text-[#b8a878]/90">
                 {runLabel ?? "返回本次秘境"}
               </span>
             </button>
@@ -125,14 +127,16 @@ export function LobbyView({
           <button
             onClick={onEnterDungeon}
             className="btn-start-game"
-            aria-label="開始修行，前往祕境試煉"
+            aria-label="開始修行，前往秘境試煉"
           >
-            <span className="relative block text-[1.05rem] font-bold tracking-[0.4em]">
+            <span className="relative block text-[1.05rem] font-bold tracking-[0.42em]">
               開始修行
             </span>
-            <span className="btn-start-divider" aria-hidden />
-            <span className="relative block text-[10px] font-semibold tracking-[0.22em] text-[#a8925a]">
-              前往祕境試煉
+            <span className="btn-start-divider" aria-hidden>
+              <i className="btn-start-diamond" />
+            </span>
+            <span className="relative block text-[10px] font-semibold tracking-[0.22em] text-[#b8a878]/90">
+              前往秘境試煉
             </span>
           </button>
         )}

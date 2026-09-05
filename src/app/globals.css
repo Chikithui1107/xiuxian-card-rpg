@@ -563,14 +563,14 @@ html.combat-scroll-lock {
   right: 0;
   z-index: 30;
   border: none;
-  /* 約 120px 提前起霧，石地自然沉入底部 */
-  padding-top: 7.5rem;
+  /* 更輕的底部霧：石地透出，無實心黑條 */
+  padding-top: 5.5rem;
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(5, 7, 9, 0.22) 36%,
-    rgba(5, 7, 9, 0.62) 68%,
-    rgba(5, 7, 9, 0.92) 100%
+    rgba(5, 7, 9, 0.12) 40%,
+    rgba(5, 7, 9, 0.48) 72%,
+    rgba(5, 7, 9, 0.78) 100%
   );
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-shadow: none;
@@ -581,7 +581,8 @@ html.combat-scroll-lock {
   display: flex;
   justify-content: space-around;
   align-items: stretch;
-  height: 3.85rem;
+  min-height: 3.6rem;
+  padding-bottom: 0.35rem;
   pointer-events: auto;
 }
 
@@ -592,11 +593,12 @@ html.combat-scroll-lock {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.15rem;
+  gap: 0.2rem;
+  min-height: 2.75rem;
   border: none;
   background: transparent;
-  color: rgba(168, 164, 156, 0.72);
-  transition: color 0.25s ease;
+  color: rgba(170, 178, 184, 0.6);
+  transition: color 0.25s ease, opacity 0.25s ease, filter 0.25s ease;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -611,38 +613,45 @@ html.combat-scroll-lock {
   box-shadow: none;
 }
 
+.bottom-nav-item-active .bottom-nav-svg {
+  filter: drop-shadow(0 0 5px rgba(201, 168, 76, 0.35));
+}
+
 .bottom-nav-item-active::after {
   content: "";
   position: absolute;
-  bottom: 0.35rem;
+  bottom: 0.15rem;
   left: 50%;
-  width: 1.1rem;
+  width: 24px;
   height: 1.5px;
   transform: translateX(-50%);
   border-radius: 999px;
-  background: rgba(201, 168, 76, 0.85);
-  box-shadow: 0 0 8px rgba(201, 168, 76, 0.35);
+  background: rgba(201, 168, 76, 0.88);
+  box-shadow: 0 0 6px rgba(201, 168, 76, 0.28);
 }
 
 .bottom-nav-glyph {
   position: relative;
   display: flex;
-  height: 1.35rem;
-  width: 1.35rem;
+  height: 1.55rem;
+  width: 1.55rem;
   align-items: center;
   justify-content: center;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
   line-height: 1;
+}
+
+.bottom-nav-svg {
+  width: 1.4rem;
+  height: 1.4rem;
+  display: block;
 }
 
 .bottom-nav-dot {
   position: absolute;
-  right: -0.15rem;
-  top: -0.1rem;
-  height: 0.35rem;
-  width: 0.35rem;
+  right: -0.12rem;
+  top: -0.08rem;
+  height: 0.32rem;
+  width: 0.32rem;
   border-radius: 9999px;
   border: 1px solid rgba(10, 12, 14, 0.85);
   background: #8b3a3a;
@@ -651,7 +660,7 @@ html.combat-scroll-lock {
 .bottom-nav-label {
   font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
 }
 
 /* ── Panels — xuan paper / jade stone ── */
@@ -829,65 +838,48 @@ html.combat-scroll-lock {
 .btn-start-game {
   position: relative;
   width: 100%;
-  overflow: hidden;
-  border-radius: 0.15rem;
-  /* 弱化完整金框：左右更淡，上下略保留 */
-  border-style: solid;
-  border-width: 1px;
-  border-color: rgba(201, 168, 76, 0.22) rgba(201, 168, 76, 0.08);
-  background: rgba(10, 12, 14, 0.58);
-  padding: 0.68rem 1rem 0.62rem;
-  color: rgba(201, 168, 76, 0.88);
+  overflow: visible;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0.55rem 0.75rem 0.5rem;
+  color: rgba(201, 168, 76, 0.9);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  backdrop-filter: blur(4px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-  transition: transform 0.2s ease, border-color 0.25s ease, background 0.25s ease;
+  box-shadow: none;
+  backdrop-filter: none;
+  transition: color 0.2s ease, transform 0.2s ease;
 }
-/* 四角極淡金線細節 */
 .btn-start-game::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: 0.7;
-  background:
-    linear-gradient(rgba(201, 168, 76, 0.42), rgba(201, 168, 76, 0.42))
-      0 0 / 11px 1px no-repeat,
-    linear-gradient(rgba(201, 168, 76, 0.42), rgba(201, 168, 76, 0.42))
-      0 0 / 1px 11px no-repeat,
-    linear-gradient(rgba(201, 168, 76, 0.42), rgba(201, 168, 76, 0.42))
-      100% 0 / 11px 1px no-repeat,
-    linear-gradient(rgba(201, 168, 76, 0.42), rgba(201, 168, 76, 0.42))
-      100% 0 / 1px 11px no-repeat,
-    linear-gradient(rgba(201, 168, 76, 0.42), rgba(201, 168, 76, 0.42))
-      0 100% / 11px 1px no-repeat,
-    linear-gradient(rgba(201, 168, 76, 0.42), rgba(201, 168, 76, 0.42))
-      0 100% / 1px 11px no-repeat,
-    linear-gradient(rgba(201, 168, 76, 0.42), rgba(201, 168, 76, 0.42))
-      100% 100% / 11px 1px no-repeat,
-    linear-gradient(rgba(201, 168, 76, 0.42), rgba(201, 168, 76, 0.42))
-      100% 100% / 1px 11px no-repeat;
+  display: none;
 }
 .btn-start-game::after {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: inherit;
+  left: 18%;
+  right: 18%;
+  top: 20%;
+  height: 3.2rem;
+  border-radius: 50%;
   background: radial-gradient(
-    circle at 50% 50%,
-    rgba(201, 168, 76, 0.18),
-    transparent 55%
+    ellipse at center,
+    rgba(201, 168, 76, 0.22),
+    transparent 70%
   );
   opacity: 0;
-  transform: scale(0.7);
+  transform: scale(0.85);
   transition: opacity 0.28s ease, transform 0.28s ease;
   pointer-events: none;
+  z-index: 0;
+}
+.btn-start-game > * {
+  position: relative;
+  z-index: 1;
 }
 .btn-start-game:hover {
-  border-color: rgba(201, 168, 76, 0.3) rgba(201, 168, 76, 0.12);
-  background: rgba(12, 14, 16, 0.66);
+  color: rgba(214, 186, 110, 0.95);
+  border: none;
+  background: transparent;
 }
 .btn-start-game:active {
   transform: scale(0.985);
@@ -898,16 +890,35 @@ html.combat-scroll-lock {
 }
 
 .btn-start-divider {
-  display: block;
-  width: 42%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  height: auto;
+  margin: 0.32rem auto 0.28rem;
+  background: none;
+}
+.btn-start-divider::before,
+.btn-start-divider::after {
+  content: "";
+  width: 2.4rem;
   height: 1px;
-  margin: 0.35rem auto 0.3rem;
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(201, 168, 76, 0.4),
+    rgba(201, 168, 76, 0.45),
     transparent
   );
+}
+.btn-start-diamond {
+  display: block;
+  width: 0.35rem;
+  height: 0.35rem;
+  transform: rotate(45deg);
+  border: 1px solid rgba(201, 168, 76, 0.55);
+  background: transparent;
+  flex-shrink: 0;
 }
 
 .btn-abandon {
