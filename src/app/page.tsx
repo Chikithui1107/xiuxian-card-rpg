@@ -96,7 +96,7 @@ const EMPTY_DECK: BattleDeckState = {
 
 const TAB_LABELS: Record<AppTab, string> = {
   lobby: "青雲宗 · 山門",
-  combat: "天下祕境 · 試煉",
+  combat: "天下秘境",
   inventory: "修士行囊",
 };
 

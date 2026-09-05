@@ -907,26 +907,117 @@ html.combat-scroll-lock {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  /* 局部可讀性：中段極輕壓暗文字區，底部自然接導航；無左右暗角 */
-  background:
-    linear-gradient(
-      180deg,
-      rgba(6, 8, 10, 0.28) 0%,
-      rgba(6, 8, 10, 0.08) 18%,
-      transparent 32%,
-      rgba(6, 8, 10, 0.18) 48%,
-      rgba(6, 8, 10, 0.12) 62%,
-      rgba(5, 7, 9, 0.55) 82%,
-      rgba(4, 5, 7, 0.88) 100%
-    );
+  /* 只銜接頂欄與底欄，不再整體壓暗山谷細節 */
+  background: linear-gradient(
+    180deg,
+    rgba(6, 8, 10, 0.16) 0%,
+    transparent 12%,
+    transparent 68%,
+    rgba(5, 7, 9, 0.22) 86%,
+    rgba(4, 5, 7, 0.48) 100%
+  );
 }
 
 .realm-stage {
   flex: 1 1 auto;
+  /* 資訊區上移約 8–10vh，減少上半空白 */
+  justify-content: flex-start;
+  padding-top: 5.5vh;
+}
+
+.realm-info {
+  position: relative;
+}
+
+.realm-info-mist {
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 42%;
+  width: 118%;
+  height: 118%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  /* 10–18% 深青黑霧幕，上下羽化，無矩形邊界 */
+  background: radial-gradient(
+    ellipse 72% 58% at 50% 48%,
+    rgba(6, 14, 18, 0.16) 0%,
+    rgba(6, 12, 16, 0.12) 38%,
+    rgba(6, 12, 16, 0.05) 62%,
+    transparent 78%
+  );
 }
 
 .realm-tabs {
   background: transparent;
+}
+
+/* 秘境進入：無框、大點擊區、輕呼吸金光 */
+.btn-enter-realm {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 16.25rem; /* ~260px */
+  min-height: 4.375rem; /* ~70px */
+  padding: 0.85rem 1rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: rgba(214, 186, 110, 0.92);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s ease, transform 0.15s ease, filter 0.2s ease;
+}
+
+.btn-enter-realm-label {
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  animation: enter-realm-breathe 3.2s ease-in-out infinite;
+}
+
+.btn-enter-realm-diamond {
+  font-size: 0.7rem;
+  opacity: 0.75;
+  animation: enter-realm-breathe 3.2s ease-in-out infinite;
+}
+
+.btn-enter-realm-line {
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  color: rgba(201, 168, 76, 0.45);
+}
+
+.btn-enter-realm:hover:not(:disabled) {
+  color: rgba(232, 208, 140, 0.98);
+  filter: drop-shadow(0 0 10px rgba(201, 168, 76, 0.28));
+}
+
+.btn-enter-realm:active:not(:disabled) {
+  transform: scale(0.985);
+  filter: drop-shadow(0 0 14px rgba(201, 168, 76, 0.38));
+}
+
+@keyframes enter-realm-breathe {
+  0%,
+  100% {
+    text-shadow: 0 0 0 transparent;
+    opacity: 0.88;
+  }
+  50% {
+    text-shadow: 0 0 12px rgba(201, 168, 76, 0.35);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-enter-realm-label,
+  .btn-enter-realm-diamond {
+    animation: none;
+  }
 }
 
 .run-toast {
