@@ -17,22 +17,46 @@ function IconMountain({ className }: { className?: string }) {
       fill="none"
       aria-hidden
     >
+      {/* 遠山層次 */}
       <path
-        d="M3.5 18.5 L9.2 9.8 L12.1 13.6 L15.2 8.5 L20.5 18.5 Z"
-        stroke="currentColor"
-        strokeWidth="1.15"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9.8 18.5 V15.2 H14.2 V18.5"
-        stroke="currentColor"
-        strokeWidth="1.15"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M11.2 15.2 V13.6 H12.8 V15.2"
+        d="M2.8 17.8 L7.5 11.2 L10.6 14.6 L14.8 9.4 L21.2 17.8"
         stroke="currentColor"
         strokeWidth="1.05"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        opacity="0.55"
+      />
+      {/* 近處山門／屋簷牌坊 */}
+      <path
+        d="M8.2 17.8 V12.4"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+      <path
+        d="M15.8 17.8 V12.4"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7.2 12.6 H16.8"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinecap="round"
+      />
+      <path
+        d="M7.6 11.2 L12 8.4 L16.4 11.2"
+        stroke="currentColor"
+        strokeWidth="1.15"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      <path
+        d="M9.6 17.8 V14.6 H14.4 V17.8"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinejoin="round"
       />
     </svg>
   );

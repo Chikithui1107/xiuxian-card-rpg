@@ -563,14 +563,14 @@ html.combat-scroll-lock {
   right: 0;
   z-index: 30;
   border: none;
-  /* 更輕的底部霧：石地透出，無實心黑條 */
-  padding-top: 5.5rem;
+  /* 石地一路透到圖標後方；僅最底才沉入玄黑 */
+  padding-top: 3.25rem;
   background: linear-gradient(
     180deg,
     transparent 0%,
-    rgba(5, 7, 9, 0.12) 40%,
-    rgba(5, 7, 9, 0.48) 72%,
-    rgba(5, 7, 9, 0.78) 100%
+    rgba(5, 7, 9, 0.06) 45%,
+    rgba(5, 7, 9, 0.28) 78%,
+    rgba(5, 7, 9, 0.72) 100%
   );
   padding-bottom: env(safe-area-inset-bottom, 0px);
   box-shadow: none;
@@ -779,13 +779,13 @@ html.combat-scroll-lock {
 }
 
 .lobby-bg-veil {
-  /* 僅底部垂直漸變承接 HUD／導航；無左右暗角 */
+  /* 底部極輕；石地在開始修行下方仍可透，最底才略沉 */
   background: linear-gradient(
     180deg,
     transparent 0%,
-    transparent 58%,
-    rgba(6, 8, 12, 0.18) 78%,
-    rgba(5, 7, 9, 0.55) 100%
+    transparent 68%,
+    rgba(6, 8, 12, 0.08) 84%,
+    rgba(5, 7, 9, 0.28) 100%
   );
 }
 
