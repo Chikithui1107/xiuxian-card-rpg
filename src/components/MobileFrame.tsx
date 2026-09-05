@@ -1,5 +1,7 @@
 "use client";
 
+import { BgmController } from "@/components/BgmController";
+
 interface MobileFrameProps {
   children: React.ReactNode;
   bottomNav?: React.ReactNode;
@@ -19,9 +21,14 @@ export function MobileFrame({
     <div className="mobile-shell">
       <div className="mobile-shell-mist pointer-events-none" aria-hidden />
       <div className="mobile-frame">
+        <BgmController />
         {inGameMenu}
         {(title || subtitle) && (
-          <header className={`mobile-header shrink-0${inGameMenu ? " has-in-game-menu" : ""}`}>
+          <header
+            className={`mobile-header shrink-0${
+              inGameMenu ? " has-in-game-menu" : " has-bgm-toggle"
+            }`}
+          >
             {title && (
               <h1 className="title-ink text-lg font-bold">{title}</h1>
             )}

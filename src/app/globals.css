@@ -250,6 +250,41 @@ body {
   padding-left: 2.85rem;
   padding-right: 2.85rem;
 }
+.mobile-header.has-bgm-toggle {
+  padding-left: 2.85rem;
+}
+
+.bgm-toggle-btn {
+  position: absolute;
+  top: 0.62rem;
+  left: 0.75rem;
+  z-index: 60;
+  display: flex;
+  height: 2.05rem;
+  width: 2.05rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.3rem;
+  border: 1px solid rgba(74, 124, 111, 0.45);
+  background: rgba(22, 20, 16, 0.96);
+  color: var(--color-jade-light);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow:
+    0 0 0 1px rgba(74, 124, 111, 0.06),
+    inset 0 1px 0 rgba(122, 171, 154, 0.12);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+.bgm-toggle-btn:hover {
+  border-color: rgba(122, 171, 154, 0.7);
+  background: rgba(28, 36, 32, 0.98);
+}
+.bgm-toggle-btn:active {
+  transform: scale(0.94);
+}
 
 .in-game-menu-btn {
   position: absolute;
