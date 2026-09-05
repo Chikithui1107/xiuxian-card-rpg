@@ -74,11 +74,11 @@ async function loadBuffer(logicalKey: string): Promise<AudioBuffer | null> {
   return null;
 }
 
-function playBuffer(buffer: AudioBuffer, peak = 1): void {
+function playBuffer(buffer: AudioBuffer, peak = 1, offsetSec = 0): void {
   const audio = getCtx();
   if (!audio || !master) return;
   if (audio.state === "suspended") {
-    void audio.resume().then(() => playBuffer(buffer, peak));
+    void audio.resume().then(() => playBuffer(buffer, peak, offsetSec));
     return;
   }
   const src = audio.createBufferSource();
@@ -87,13 +87,18 @@ function playBuffer(buffer: AudioBuffer, peak = 1): void {
   gain.gain.value = peak;
   src.connect(gain);
   gain.connect(master);
-  src.start();
+  const offset = Math.max(0, Math.min(offsetSec, Math.max(0, buffer.duration - 0.05)));
+  src.start(0, offset);
 }
 
-async function playSample(logicalKey: string, peak = 1): Promise<boolean> {
+async function playSample(
+  logicalKey: string,
+  peak = 1,
+  offsetSec = 0
+): Promise<boolean> {
   const buffer = await loadBuffer(logicalKey);
   if (!buffer) return false;
-  playBuffer(buffer, peak);
+  playBuffer(buffer, peak, offsetSec);
   return true;
 }
 
@@ -150,10 +155,10 @@ export function playCardDrawSfx(count = 1): void {
   }
 }
 
-/** 勝利擇劍訣時的點選音 */
+/** 勝利擇劍訣時的點選音（跳過片頭 0.2s，讓可聽點更早） */
 export function playRewardClickSfx(): void {
   unlockCombatAudio();
-  void playSample("reward_click", 0.95);
+  void playSample("reward_click", 0.95, 0.2);
 }
 
 export function preloadCombatSfx(): void {
