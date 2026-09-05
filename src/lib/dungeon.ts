@@ -263,6 +263,15 @@ export function getDungeonChapterMeta(tier: DungeonTier) {
   );
 }
 
+/** 秘境選擇頁全屏場景圖；尚未製作的階段回傳 null，用 CSS 氛圍底 */
+const REALM_BACKGROUNDS: Record<string, string> = {
+  tier_qi: "/backgrounds/realm-qinglan-valley.jpg",
+};
+
+export function getDungeonRealmBackground(tierId: string): string | null {
+  return REALM_BACKGROUNDS[tierId] ?? null;
+}
+
 /** 前一階通關後解鎖；第一階永遠可挑戰 */
 export function isDungeonTierUnlocked(
   tiers: DungeonTier[],

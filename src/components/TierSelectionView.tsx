@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { DungeonTier } from "@/types/game";
 import {
   getDungeonChapterMeta,
+  getDungeonRealmBackground,
   getDungeonUnlockHint,
   isDungeonTierUnlocked,
 } from "@/lib/dungeon";
+import { publicAsset } from "@/lib/paths";
 
 interface TierSelectionViewProps {
   tiers: DungeonTier[];
@@ -48,6 +50,7 @@ export function TierSelectionView({
   if (!tier) return null;
 
   const meta = getDungeonChapterMeta(tier);
+  const bgSrc = getDungeonRealmBackground(tier.id);
   const unlocked = isDungeonTierUnlocked(
     tiers,
     focusIndex,
@@ -58,25 +61,38 @@ export function TierSelectionView({
   const realmTitle = `${meta.realmLabel.replace("期", "")}秘境 · ${meta.locationName}`;
 
   return (
-    <div className="realm-select relative flex min-h-0 flex-1 flex-col overflow-hidden">
-      {/* 中央舞台：佔主體高度，預留秘境背景層 */}
-      <section className="realm-stage relative flex min-h-0 flex-1 flex-col">
-        <div className="realm-stage-bg" aria-hidden />
+    <div
+      className={`realm-select relative flex min-h-0 flex-1 flex-col overflow-hidden realm-tone-${meta.stage}`}
+    >
+      {/* 全屏場景：頂到底，UI 浮其上 */}
+      {bgSrc ? (
+        <img
+          className="realm-select-bg"
+          src={publicAsset(bgSrc)}
+          alt=""
+          draggable={false}
+          decoding="async"
+        />
+      ) : (
+        <div className="realm-select-bg realm-select-bg-fallback" aria-hidden />
+      )}
+      <div className="realm-select-veil pointer-events-none" aria-hidden />
 
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col items-center justify-center px-5 py-2">
-          <p className="text-[10px] tracking-[0.32em] text-stone-500">
+      <section className="realm-stage relative z-10 flex min-h-0 flex-1 flex-col">
+        <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center px-5 pb-1 pt-2">
+          <p className="text-[10px] tracking-[0.32em] text-stone-400/80">
             ───── 秘境
             {meta.stage === 1 ? "一" : meta.stage === 2 ? "二" : "三"} ─────
           </p>
 
-          <h2 className="mt-3 text-[1.15rem] font-bold tracking-[0.28em] text-[#d5e8dc]">
+          <h2 className="mt-3 text-[1.15rem] font-bold tracking-[0.28em] text-[#e2efe8] drop-shadow-[0_2px_10px_rgba(0,0,0,0.75)]">
             {realmTitle}
           </h2>
-          <p className="mt-1.5 text-[10px] tracking-[0.22em] text-stone-500">
+          <p className="mt-1.5 text-[10px] tracking-[0.22em] text-stone-400">
             {meta.chapterLabel}
           </p>
 
-          <p className="mt-3 max-w-[17rem] text-center text-[12px] leading-relaxed tracking-wide text-stone-400">
+          <p className="mt-3 max-w-[17rem] text-center text-[12px] leading-relaxed tracking-wide text-stone-300/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.65)]">
             {tier.description}
           </p>
 
@@ -90,14 +106,13 @@ export function TierSelectionView({
                 ◇ 秘境法則　{meta.lawName}
               </button>
               {lawOpen && (
-                <p className="mt-1.5 max-w-[16rem] text-center text-[10px] leading-relaxed text-stone-500">
+                <p className="mt-1.5 max-w-[16rem] text-center text-[10px] leading-relaxed text-stone-400">
                   {tier.passiveDescription}
                 </p>
               )}
             </div>
           )}
 
-          {/* 關卡進度 */}
           <div className="mt-4 flex items-center gap-2">
             {Array.from({ length: tier.floors }, (_, i) => {
               const floor = i + 1;
@@ -114,31 +129,30 @@ export function TierSelectionView({
                         ? "text-[#c9a84c]"
                         : state === "done"
                           ? "text-[#8eb8a8]"
-                          : "text-stone-600"
+                          : "text-stone-500"
                     }`}
                   >
                     <span className="text-[9px] opacity-70">◇</span>
                     <span className="text-[11px] font-semibold">{floor}</span>
                   </div>
                   {floor < tier.floors && (
-                    <span className="text-stone-700">─</span>
+                    <span className="text-stone-600">─</span>
                   )}
                 </div>
               );
             })}
           </div>
           {unlocked && !cleared && (
-            <p className="mt-0.5 text-[9px] tracking-wide text-stone-600">
+            <p className="mt-0.5 text-[9px] tracking-wide text-stone-500">
               ↑ 當前進度
             </p>
           )}
 
-          {/* 一行資訊 */}
-          <p className="mt-3 text-[11px] tracking-[0.08em] text-[#a8c4b8]">
+          <p className="mt-3 text-[11px] tracking-[0.08em] text-[#b8d0c4] drop-shadow-[0_1px_6px_rgba(0,0,0,0.7)]">
             <span>{meta.realmLabel}</span>
-            <span className="mx-2 text-stone-600">｜</span>
+            <span className="mx-2 text-stone-500">｜</span>
             <span>{tier.floors}關</span>
-            <span className="mx-2 text-stone-600">｜</span>
+            <span className="mx-2 text-stone-500">｜</span>
             <span className="text-[#c9a84c]">
               {tier.bonusSpiritStones}靈石
             </span>
@@ -146,10 +160,10 @@ export function TierSelectionView({
 
           {!unlocked && (
             <div className="mt-3 text-center">
-              <p className="text-sm tracking-[0.28em] text-stone-400">
+              <p className="text-sm tracking-[0.28em] text-stone-300">
                 🔒 尚未解鎖
               </p>
-              <p className="mt-1 text-[10px] text-stone-500">{unlockHint}</p>
+              <p className="mt-1 text-[10px] text-stone-400">{unlockHint}</p>
             </div>
           )}
 
@@ -159,11 +173,12 @@ export function TierSelectionView({
             </p>
           )}
 
+          {/* CTA 下移約 5vh，讓中央流程更疏朗 */}
           <button
             type="button"
             disabled={!unlocked}
             onClick={() => unlocked && onSelectTier(tier.id)}
-            className={`btn-start-game mt-4 w-auto min-w-[10rem] px-2 ${
+            className={`btn-start-game mt-[5vh] w-auto min-w-[10rem] px-2 ${
               unlocked ? "" : "pointer-events-none opacity-35"
             }`}
             aria-label={unlocked ? `進入${meta.locationName}` : "尚未解鎖"}
@@ -181,7 +196,6 @@ export function TierSelectionView({
         </div>
       </section>
 
-      {/* 階段選擇器：成長目標可見 */}
       <nav
         className="realm-tabs relative z-10 shrink-0 px-2 pb-1 pt-1"
         aria-label="秘境階段"
@@ -197,7 +211,7 @@ export function TierSelectionView({
                 type="button"
                 onClick={() => setFocusIndex(i)}
                 className={`flex min-w-[4.5rem] flex-col items-center gap-0.5 border-none bg-transparent py-1 ${
-                  active ? "text-[#c9a84c]" : "text-stone-500 opacity-60"
+                  active ? "text-[#c9a84c]" : "text-stone-400 opacity-70"
                 }`}
               >
                 <span className="text-[11px] font-semibold tracking-[0.2em]">

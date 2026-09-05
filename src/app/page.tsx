@@ -384,13 +384,17 @@ export default function GamePage() {
 
   const quitRun = useCallback(() => {
     resetPermanentDeck();
-    returnToLobby("已退出本次修行，秘境進度已清空。", true);
+    returnToLobby("已退出秘境，本次進度已重置", true);
   }, [returnToLobby, resetPermanentDeck]);
+
+  const dismissRunMessage = useCallback(() => {
+    setLastRunMessage(null);
+  }, []);
 
   const abandonGame = useCallback(() => {
     if (
       typeof window !== "undefined" &&
-      !window.confirm("確定退出本次修行？當前秘境進度將無法恢復。")
+      !window.confirm("確定退出本次秘境？當前進度將重置。")
     ) {
       return;
     }
@@ -780,6 +784,7 @@ export default function GamePage() {
               onEnterDungeon={enterTierSelect}
               onContinueGame={continueGame}
               onAbandonGame={abandonGame}
+              onDismissRunMessage={dismissRunMessage}
             />
           </div>
         );
@@ -796,11 +801,6 @@ export default function GamePage() {
         if (combatScreen === "tier-select") {
           return (
             <div className="flex min-h-0 flex-1 flex-col">
-              {lastRunMessage && (
-                <div className="mx-3 mt-2 shrink-0 text-center text-[11px] tracking-wide text-[#c9a84c]">
-                  {lastRunMessage}
-                </div>
-              )}
               <TierSelectionView
                 tiers={DUNGEON_TIERS}
                 unlockedAchievements={unlockedAchievements}

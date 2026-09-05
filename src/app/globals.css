@@ -775,42 +775,117 @@ html.combat-scroll-lock {
 
 /* ── 大廳：背景 + 透明主角 ── */
 .realm-select {
-  /* 整頁由舞台撐滿，避免底部大片純黑空洞 */
   min-height: 100%;
+  background: #0a0c0e;
 }
 
-.realm-stage {
-  /* 中央約 55–65%+：主體舞台，之後掛青嵐谷等場景圖 */
-  flex: 1 1 auto;
-}
-
-.realm-stage-bg {
+.realm-select-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
   pointer-events: none;
-  /* 暫用冷青灰氛圍底；換成秘境圖時只改這層 */
+  user-select: none;
+}
+
+.realm-select-bg-fallback {
+  /* 尚未有專屬圖的秘境：氛圍底，之後換圖 */
   background:
     radial-gradient(
-      ellipse 80% 55% at 50% 42%,
-      rgba(48, 68, 72, 0.35) 0%,
-      transparent 70%
+      ellipse 70% 50% at 50% 38%,
+      rgba(40, 52, 62, 0.45) 0%,
+      transparent 72%
     ),
     linear-gradient(
       180deg,
-      rgba(16, 22, 26, 0.92) 0%,
-      rgba(12, 16, 20, 0.88) 48%,
-      rgba(8, 10, 12, 0.96) 100%
+      #121820 0%,
+      #0c1016 48%,
+      #080a0c 100%
     );
 }
 
+.realm-tone-2 .realm-select-bg-fallback {
+  background:
+    radial-gradient(
+      ellipse 70% 50% at 50% 40%,
+      rgba(28, 40, 68, 0.5) 0%,
+      transparent 72%
+    ),
+    linear-gradient(180deg, #0e1420 0%, #0a0e16 50%, #07090c 100%);
+}
+
+.realm-tone-3 .realm-select-bg-fallback {
+  background:
+    radial-gradient(
+      ellipse 70% 50% at 50% 40%,
+      rgba(68, 28, 32, 0.42) 0%,
+      transparent 72%
+    ),
+    linear-gradient(180deg, #1a1012 0%, #100c0e 50%, #080608 100%);
+}
+
+.realm-select-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  /* 局部可讀性：中段極輕壓暗文字區，底部自然接導航；無左右暗角 */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(6, 8, 10, 0.28) 0%,
+      rgba(6, 8, 10, 0.08) 18%,
+      transparent 32%,
+      rgba(6, 8, 10, 0.18) 48%,
+      rgba(6, 8, 10, 0.12) 62%,
+      rgba(5, 7, 9, 0.55) 82%,
+      rgba(4, 5, 7, 0.88) 100%
+    );
+}
+
+.realm-stage {
+  flex: 1 1 auto;
+}
+
 .realm-tabs {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(6, 8, 10, 0.35) 40%,
-    rgba(6, 8, 10, 0.55) 100%
-  );
+  background: transparent;
+}
+
+.run-toast {
+  max-width: 80%;
+  width: max-content;
+  padding: 0.42rem 0.9rem;
+  border-radius: 0.2rem;
+  border: 1px solid rgba(138, 115, 64, 0.18);
+  background: rgba(10, 12, 14, 0.72);
+  color: rgba(198, 196, 184, 0.9);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  animation: run-toast-fade 2.35s ease both;
+}
+
+@keyframes run-toast-fade {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-3px);
+  }
+  12% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 .lobby-bg-veil {

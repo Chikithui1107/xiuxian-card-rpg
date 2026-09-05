@@ -3,6 +3,7 @@
 import type { Hero, HeroStats } from "@/lib/stats";
 import { formatNumber } from "@/lib/stats";
 import BaiYeIdle from "@/components/BaiYeIdle/BaiYeIdle";
+import { RunToast } from "@/components/RunToast";
 
 interface LobbyViewProps {
   hero: Hero;
@@ -18,6 +19,7 @@ interface LobbyViewProps {
   onEnterDungeon: () => void;
   onContinueGame: () => void;
   onAbandonGame: () => void;
+  onDismissRunMessage?: () => void;
 }
 
 export function LobbyView({
@@ -33,6 +35,7 @@ export function LobbyView({
   onEnterDungeon,
   onContinueGame,
   onAbandonGame,
+  onDismissRunMessage,
 }: LobbyViewProps) {
   const hpPercent = Math.max(0, (playerHp / stats.maxHp) * 100);
 
@@ -50,10 +53,12 @@ export function LobbyView({
       {/* 只壓底部，讓 dock 可讀；不蓋住立繪主體 */}
       <div className="lobby-bg-veil pointer-events-none absolute inset-0 z-[19]" />
 
-      {lastRunMessage && (
-        <div className="absolute left-3 right-3 top-3 z-20 rounded border border-[#8a7340]/40 bg-stone-950/80 px-3 py-2 text-center text-[11px] text-[#c9a84c]">
-          {lastRunMessage}
-        </div>
+      {lastRunMessage && onDismissRunMessage && (
+        <RunToast
+          message={lastRunMessage}
+          onDismiss={onDismissRunMessage}
+          topClassName="top-[calc(3.85rem+env(safe-area-inset-top,0px))]"
+        />
       )}
 
       {/* 名字上移，與屬性框分開；輕漸變提高可讀性 */}
