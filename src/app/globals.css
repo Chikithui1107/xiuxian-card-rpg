@@ -286,6 +286,22 @@ body {
   transform: scale(0.94);
 }
 
+.bgm-tap-hint {
+  position: absolute;
+  top: 2.85rem;
+  left: 0.75rem;
+  z-index: 60;
+  max-width: 7.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid rgba(74, 124, 111, 0.35);
+  background: rgba(14, 13, 11, 0.92);
+  padding: 0.35rem 0.45rem;
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  color: #7aab9a;
+  pointer-events: none;
+}
+
 .in-game-menu-btn {
   position: absolute;
   top: 0.62rem;

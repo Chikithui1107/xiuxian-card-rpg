@@ -35,6 +35,20 @@ function syncPlayback(): void {
   }
 }
 
+/** 進遊戲就嘗試自動播放；成功則標記已解鎖 */
+export async function tryAutoPlayBgm(): Promise<boolean> {
+  if (muted || !allowed) return false;
+  const el = getAudio();
+  if (!el) return false;
+  try {
+    await el.play();
+    unlocked = true;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** 首次互動解鎖音訊（瀏覽器自動播放限制） */
 export function unlockBgm(): void {
   unlocked = true;
@@ -44,11 +58,19 @@ export function unlockBgm(): void {
 /** 非戰鬥：允許 BGM；進入戰鬥：暫停 */
 export function setBgmAllowed(next: boolean): void {
   allowed = next;
-  syncPlayback();
+  if (next && unlocked && !muted) {
+    syncPlayback();
+  } else if (!next) {
+    syncPlayback();
+  } else if (next && !unlocked) {
+    // 剛進非戰鬥、尚未解鎖：再試一次自動播放
+    void tryAutoPlayBgm();
+  }
 }
 
 export function setBgmMuted(next: boolean): void {
   muted = next;
+  if (!next) unlocked = true;
   syncPlayback();
 }
 
@@ -59,6 +81,10 @@ export function toggleBgmMuted(): boolean {
 
 export function isBgmMuted(): boolean {
   return muted;
+}
+
+export function isBgmUnlocked(): boolean {
+  return unlocked;
 }
 
 export function unlockAndStartBgm(): void {
