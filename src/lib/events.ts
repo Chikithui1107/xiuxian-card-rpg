@@ -48,6 +48,7 @@ export function applyEventChoice(
         nextHp = Math.max(1, nextHp - loss);
         const lost = before - nextHp;
         if (lost > 0) bits.push(`氣血 -${lost}`);
+        else if (before <= 1) bits.push("氣血已至下限");
         break;
       }
       case "spirit_stones": {

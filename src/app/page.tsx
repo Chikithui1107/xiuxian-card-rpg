@@ -149,6 +149,7 @@ export default function GamePage() {
   const mapActionLockRef = useRef(false);
   const eventChoiceLockRef = useRef(false);
   const rewardDoneRef = useRef(false);
+  const stageClearDoneRef = useRef(false);
   const [stageClearMessage, setStageClearMessage] = useState<string | null>(
     null
   );
@@ -205,6 +206,8 @@ export default function GamePage() {
       victoryTimerRef.current = null;
     }
     victoryStartedRef.current = false;
+    playLockRef.current = false;
+    stageClearDoneRef.current = false;
     setPhase("playing");
     setBattlePhase("IN_BATTLE");
     setStageClearMessage(null);
@@ -256,6 +259,7 @@ export default function GamePage() {
       setPhase("playing");
       setBattlePhase("IN_BATTLE");
       victoryStartedRef.current = false;
+      playLockRef.current = false;
       setDamagePopups([]);
       setLastDamage(null);
       setLastEnemyDamage(null);
@@ -307,7 +311,11 @@ export default function GamePage() {
         case "combat":
         case "elite":
         case "boss":
+          mapActionLockRef.current = true;
           startBattleForMapNode(selectedTier, node);
+          queueMicrotask(() => {
+            mapActionLockRef.current = false;
+          });
           break;
         case "rest": {
           mapActionLockRef.current = true;
@@ -499,25 +507,26 @@ export default function GamePage() {
   );
 
   const playCard = useCallback(
-    (card: Card) => {
+    (card: Card): boolean => {
       if (
         playLockRef.current ||
+        victoryStartedRef.current ||
         phase !== "playing" ||
         battlePhase !== "IN_BATTLE" ||
         enemy.currentHp <= 0
       ) {
-        return;
+        return false;
       }
-      if (energy < card.cost) return;
+      if (energy < card.cost) return false;
 
       const template = getCardTemplate(card);
-      if (!template) return;
+      if (!template) return false;
 
       const { deck: afterPlay, played } = playCardFromHand(
         deckState,
         card.instanceId
       );
-      if (!played) return;
+      if (!played) return false;
 
       playLockRef.current = true;
 
@@ -553,10 +562,13 @@ export default function GamePage() {
           currentMapNodeId,
           dungeonMap
         );
+        // 擊殺後保持鎖，避免再出牌；否則下一微任務解鎖
         queueMicrotask(() => {
-          playLockRef.current = false;
+          if (!victoryStartedRef.current) {
+            playLockRef.current = false;
+          }
         });
-        return;
+        return true;
       }
 
       setLastDamage(null);
@@ -564,6 +576,7 @@ export default function GamePage() {
       queueMicrotask(() => {
         playLockRef.current = false;
       });
+      return true;
     },
     [
       phase,
@@ -582,8 +595,15 @@ export default function GamePage() {
   );
 
   const endTurn = useCallback(() => {
-    if (phase !== "playing" || battlePhase !== "IN_BATTLE" || enemy.currentHp <= 0)
+    if (
+      playLockRef.current ||
+      victoryStartedRef.current ||
+      phase !== "playing" ||
+      battlePhase !== "IN_BATTLE" ||
+      enemy.currentHp <= 0
+    ) {
       return;
+    }
 
     let newDeck = discardHand(deckState);
     setEnergy(MAX_ENERGY);
@@ -593,33 +613,25 @@ export default function GamePage() {
     const hitCount =
       enemy.attackPattern === "triple_slash" && intent.damage > 0 ? 3 : 1;
 
-    let remainingDodge = combatBuffs.dodge;
-    let anyDodge = false;
     let totalDmg = 0;
+    let anyDodge = false;
 
-    for (let hit = 0; hit < hitCount; hit++) {
-      let dmg: number = intent.damage;
-      if (dmg > 0 && enemy.passive === "burn") {
-        dmg = applyBurnPassive(dmg);
-      }
-
-      if (dmg > 0 && remainingDodge > 0) {
-        const dodged = rollStackDodge(remainingDodge);
-        remainingDodge = 0;
-        if (dodged) {
-          dmg = 0;
-          anyDodge = true;
-        }
-      }
-
-      totalDmg += dmg;
-    }
-
-    if (combatBuffs.dodge > 0) {
+    if (intent.damage > 0 && combatBuffs.dodge > 0) {
+      anyDodge = rollStackDodge(combatBuffs.dodge);
       setCombatBuffs((prev) => ({ ...prev, dodge: 0 }));
     }
-    setLastDodge(anyDodge);
 
+    if (!anyDodge) {
+      for (let hit = 0; hit < hitCount; hit++) {
+        let dmg: number = intent.damage;
+        if (dmg > 0 && enemy.passive === "burn") {
+          dmg = applyBurnPassive(dmg);
+        }
+        totalDmg += dmg;
+      }
+    }
+
+    setLastDodge(anyDodge);
     setLastEnemyDamage(totalDmg);
     const newPlayerHp = Math.max(0, playerHp - totalDmg);
     setPlayerHp(newPlayerHp);
@@ -659,9 +671,13 @@ export default function GamePage() {
   }, [phase, tierFloor, selectedTier, returnToLobby, resetPermanentDeck]);
 
   const completeRewardNode = useCallback(
-    (cardName: string | null) => {
+    (cardName: string | null, templateId?: CardTemplateId) => {
       if (!selectedTier || !currentMapNodeId || rewardDoneRef.current) return;
       rewardDoneRef.current = true;
+
+      if (templateId) {
+        setPermanentDeck((prev) => [...prev, templateId]);
+      }
 
       setSpiritStones((s) => s + pendingFloorReward);
 
@@ -674,6 +690,7 @@ export default function GamePage() {
       if (tierComplete) {
         const completionBonus = getCompletionSpiritReward(selectedTier);
         const cardPart = cardName ? `獲得「${cardName}」、` : "已放棄劍訣獎勵，";
+        stageClearDoneRef.current = false;
         setStageClearMessage(
           `通關【${selectedTier.name}】！斬殺魔首，${cardPart}${pendingFloorReward + completionBonus} 靈石，解鎖成就「${selectedTier.achievementName}」。`
         );
@@ -699,8 +716,7 @@ export default function GamePage() {
 
   const handleRewardSelect = useCallback(
     (templateId: CardTemplateId) => {
-      setPermanentDeck((prev) => [...prev, templateId]);
-      completeRewardNode(CARD_TEMPLATES[templateId].name);
+      completeRewardNode(CARD_TEMPLATES[templateId].name, templateId);
     },
     [completeRewardNode]
   );
@@ -710,7 +726,10 @@ export default function GamePage() {
   }, [completeRewardNode]);
 
   const handleStageClearContinue = useCallback(() => {
-    if (!selectedTier || !stageClearMessage) return;
+    if (!selectedTier || !stageClearMessage || stageClearDoneRef.current) {
+      return;
+    }
+    stageClearDoneRef.current = true;
 
     const completionBonus = getCompletionSpiritReward(selectedTier);
     setSpiritStones((s) => s + completionBonus);

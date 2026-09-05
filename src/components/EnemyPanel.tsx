@@ -97,7 +97,17 @@ export function EnemyPanel({
 
         <p className="text-center text-[10px] text-amber-400/90">
           意圖：{intent.label}
-          {intent.damage > 0 ? ` · ${intent.damage} 傷` : ""}
+          {intent.damage > 0
+            ? ` · ${
+                enemy.attackPattern === "triple_slash"
+                  ? intent.damage * 3
+                  : intent.damage
+              } 傷${
+                enemy.attackPattern === "triple_slash"
+                  ? `（${intent.damage}×3）`
+                  : ""
+              }`
+            : ""}
         </p>
         <div className="mt-1 flex flex-wrap justify-center gap-1">
           {ENEMY_INTENT_CYCLE.map((it, i) => (

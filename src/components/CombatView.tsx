@@ -52,7 +52,7 @@ interface CombatViewProps {
   lastDodge?: boolean;
   lastPassiveHeal?: number | null;
   totalDamage: number;
-  onPlayCard: (card: Card) => void;
+  onPlayCard: (card: Card) => boolean;
   onEndTurn: () => void;
 }
 
@@ -148,6 +148,9 @@ export function CombatView({
     (card: Card, origin: DOMRect) => {
       unlockCombatAudio();
 
+      const played = onPlayCard(card);
+      if (!played) return;
+
       const template = CARD_TEMPLATES[card.id as CardTemplateId];
       const fx = getPlayFxKind(template);
       playWhoosh(fx);
@@ -188,8 +191,6 @@ export function CombatView({
           fx,
         },
       ]);
-
-      onPlayCard(card);
 
       window.setTimeout(() => {
         playImpact(fx);
