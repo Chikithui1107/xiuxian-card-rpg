@@ -12,6 +12,7 @@ type WebkitWindow = Window & {
 const SAMPLE_CANDIDATES: Record<string, string[]> = {
   fuxue_slash: ["fuxue-slash", "fuxue_slash"],
   tuxu_whoosh: ["tuxu-whoosh", "tuxu_whoosh"],
+  start_cultivation: ["start-cultivation", "start_cultivation"],
 };
 
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
@@ -124,7 +125,14 @@ export function playImpact(kind: PlayFxKind): void {
   void playSample(key, 1);
 }
 
+/** 開始 / 繼續修行時的過渡音 */
+export function playStartCultivationSfx(): void {
+  unlockCombatAudio();
+  void playSample("start_cultivation", 0.95);
+}
+
 export function preloadCombatSfx(): void {
   void loadBuffer("fuxue_slash");
   void loadBuffer("tuxu_whoosh");
+  void loadBuffer("start_cultivation");
 }

@@ -66,6 +66,7 @@ import {
   rollStackDodge,
   type CombatBuffs,
 } from "@/lib/battle-resolve";
+import { playStartCultivationSfx } from "@/lib/combat-audio";
 import type { BattleDeckState } from "@/types/battle";
 import type { Card } from "@/types/battle";
 import type {
@@ -378,6 +379,7 @@ export default function GamePage() {
   const hasActiveRun = selectedTier !== null && dungeonMap.length > 0;
 
   const continueGame = useCallback(() => {
+    playStartCultivationSfx();
     setActiveTab("combat");
     setLastRunMessage(null);
   }, []);
@@ -398,6 +400,7 @@ export default function GamePage() {
   }, [quitRun]);
 
   const enterTierSelect = useCallback(() => {
+    playStartCultivationSfx();
     setIsInCombat(false);
     setCombatScreen("tier-select");
     setSelectedTier(null);
@@ -410,6 +413,7 @@ export default function GamePage() {
     (tierId: string) => {
       const tier = getDungeonTier(tierId);
       if (!tier) return;
+      playStartCultivationSfx();
       setSelectedTier(tier);
       setTierFloor(1);
       setDungeonMap(generateMoonNightMap());
