@@ -27,6 +27,9 @@ import {
   unlockCombatAudio,
 } from "@/lib/combat-audio";
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
+import { publicAsset } from "@/lib/paths";
+
+const COMBAT_BG = publicAsset("/backgrounds/combat-moon-path.jpg");
 
 interface CombatViewProps {
   hero: Hero;
@@ -226,10 +229,20 @@ export function CombatView({
 
   return (
     <div
-      className="relative flex min-h-0 flex-1 flex-col"
+      className="relative flex min-h-0 flex-1 flex-col overflow-hidden"
       onPointerDown={unlockCombatAudio}
     >
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#4a7c6f]/15 bg-stone-950/80 px-3 py-1.5">
+      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
+        <img
+          src={COMBAT_BG}
+          alt=""
+          className="h-full w-full object-cover object-[center_35%]"
+          draggable={false}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-[#121110]/92" />
+      </div>
+
+      <div className="relative z-10 flex shrink-0 items-center justify-between gap-2 border-b border-[#4a7c6f]/20 bg-stone-950/55 px-3 py-1.5 backdrop-blur-[2px]">
         <p className="zone-label shrink-0">戰鬥中</p>
         <p className="min-w-0 flex-1 truncate text-center text-[10px] text-[#7aab9a]">
           {floorLabel}
@@ -239,7 +252,7 @@ export function CombatView({
         </p>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2">
+      <div className="relative z-10 min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2">
         <div ref={enemyTargetRef}>
           <EnemyPanel
             enemy={enemy}
@@ -262,7 +275,7 @@ export function CombatView({
         </div>
       </div>
 
-      <div className="relative z-20 shrink-0 overflow-visible border-t border-[#4a7c6f]/20 bg-[#121110]/95 px-3 pb-2 pt-2">
+      <div className="relative z-20 shrink-0 overflow-visible border-t border-[#4a7c6f]/25 bg-[#121110]/88 px-3 pb-2 pt-2 backdrop-blur-[2px]">
         <CardHand
           hand={hand}
           energy={energy}
