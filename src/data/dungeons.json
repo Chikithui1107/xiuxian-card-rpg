@@ -11,7 +11,7 @@
     "bonusSpiritStones": 150,
     "achievementId": "ach_qi_clear",
     "achievementName": "煉氣試煉",
-    "description": "適合新手歷練，妖獸實力有限。",
+    "description": "妖氣初生，山路未絕。適合初入仙途者歷練。",
     "passiveDescription": null,
     "enemyPassive": null,
     "accent": "cyan"
@@ -28,7 +28,7 @@
     "bonusSpiritStones": 400,
     "achievementId": "ach_foundation_clear",
     "achievementName": "築基破境",
-    "description": "敵人擁有強力被動，需謹慎應對。",
+    "description": "洞府幽深，殘陣未散。敵人擁有洞府法則，需謹慎應對。",
     "passiveDescription": "敵人每回合結束恢復 2% 最大生命",
     "enemyPassive": "regen",
     "accent": "purple"
@@ -45,7 +45,7 @@
     "bonusSpiritStones": 1000,
     "achievementId": "ach_golden_clear",
     "achievementName": "金丹禁地征服者",
-    "description": "極限挑戰，稀有獎勵豐厚。",
+    "description": "血霧籠罩的禁地。極限挑戰，稀有獎勵豐厚。",
     "passiveDescription": "敵人攻擊附加灼燒，額外造成 10% 傷害",
     "enemyPassive": "burn",
     "accent": "amber"

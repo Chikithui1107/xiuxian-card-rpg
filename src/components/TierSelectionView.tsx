@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import type { DungeonTier } from "@/types/game";
 import {
   getDungeonChapterMeta,
-  getRecommendedPowerLabel,
+  getDungeonUnlockHint,
+  isDungeonTierUnlocked,
 } from "@/lib/dungeon";
 
 interface TierSelectionViewProps {
@@ -14,202 +16,239 @@ interface TierSelectionViewProps {
   onBack?: () => void;
 }
 
-const ACCENT_STYLES: Record<
-  DungeonTier["accent"],
-  { border: string; badge: string; text: string; line: string }
-> = {
-  cyan: {
-    border: "border-[#4a7c6f]/35 hover:border-[#7aab9a]/50",
-    badge: "bg-stone-900/60 text-[#7aab9a]",
-    text: "text-[#7aab9a]",
-    line: "bg-[#4a7c6f]/40",
-  },
-  purple: {
-    border: "border-[#5a5a7a]/35 hover:border-[#8a8aaa]/45",
-    badge: "bg-stone-900/60 text-[#9a9ab8]",
-    text: "text-[#9a9ab8]",
-    line: "bg-[#5a5a7a]/40",
-  },
-  amber: {
-    border: "border-[#8a7340]/35 hover:border-[#c9a84c]/50",
-    badge: "bg-stone-900/60 text-[#c9a84c]",
-    text: "text-[#c9a84c]",
-    line: "bg-[#8a7340]/40",
-  },
-};
-
-const STAGE_MARKS = ["①", "②", "③"];
-
 export function TierSelectionView({
   tiers,
   unlockedAchievements,
-  playerAttack,
   onSelectTier,
   onBack,
 }: TierSelectionViewProps) {
+  const initialIndex = useMemo(() => {
+    for (let i = 0; i < tiers.length; i++) {
+      if (!isDungeonTierUnlocked(tiers, i, unlockedAchievements)) {
+        return Math.max(0, i - 1);
+      }
+      if (!unlockedAchievements.includes(tiers[i].achievementId)) {
+        return i;
+      }
+    }
+    return Math.max(0, tiers.length - 1);
+  }, [tiers, unlockedAchievements]);
+
+  const [focusIndex, setFocusIndex] = useState(initialIndex);
+  const [lawOpen, setLawOpen] = useState(false);
+
+  useEffect(() => {
+    setFocusIndex(initialIndex);
+  }, [initialIndex]);
+
+  useEffect(() => {
+    setLawOpen(false);
+  }, [focusIndex]);
+
+  const tier = tiers[focusIndex];
+  if (!tier) return null;
+
+  const meta = getDungeonChapterMeta(tier);
+  const unlocked = isDungeonTierUnlocked(
+    tiers,
+    focusIndex,
+    unlockedAchievements
+  );
+  const cleared = unlockedAchievements.includes(tier.achievementId);
+  const unlockHint = getDungeonUnlockHint(tiers, focusIndex);
+
   return (
-    <div className="flex flex-col gap-3 px-3 pt-3 pb-4">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <p className="zone-label">天下祕境</p>
-          <h2 className="title-ink mt-1 text-lg font-bold">祕境試煉</h2>
-          <p className="mt-1 text-[11px] tracking-wide text-stone-400">
-            選擇本次修行的關卡
-          </p>
-          <p className="mt-0.5 text-[10px] text-stone-500">
-            當前攻伐 {playerAttack.toLocaleString()}
-          </p>
-        </div>
+    <div className="realm-select relative flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-2 pt-3">
+      {/* 頂部品牌區 */}
+      <header className="shrink-0 text-center">
+        <p
+          className="text-[1.05rem] font-bold tracking-[0.72em] text-[rgba(201,168,76,0.78)]"
+          style={{ textIndent: "0.72em" }}
+        >
+          仙途
+        </p>
+        <p className="mt-1 text-[10px] tracking-[0.28em] text-[rgba(198,216,208,0.55)]">
+          天下秘境 · 試煉
+        </p>
         {onBack && (
-          <button onClick={onBack} className="btn-cyber shrink-0 px-3 py-1 text-xs">
-            ← 山門
+          <button
+            type="button"
+            onClick={onBack}
+            className="mt-2 text-[10px] tracking-[0.18em] text-stone-500 transition hover:text-[#c9a84c]"
+          >
+            ← 返回山門
           </button>
         )}
-      </div>
+      </header>
 
-      <div className="space-y-3">
-        {tiers.map((tier, index) => {
-          const styles = ACCENT_STYLES[tier.accent];
-          const cleared = unlockedAchievements.includes(tier.achievementId);
-          const powerHint = getRecommendedPowerLabel(tier);
-          const chapter = getDungeonChapterMeta(tier);
-          const stageMark = STAGE_MARKS[index] ?? `${chapter.stage}`;
-          const floorPath = Array.from(
-            { length: tier.floors },
-            (_, i) => i + 1
-          ).join(" → ");
+      {/* 中央當前秘境 */}
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center py-3">
+        <p className="text-[10px] tracking-[0.32em] text-stone-500">
+          ───── 秘境{meta.stage === 1 ? "一" : meta.stage === 2 ? "二" : "三"}{" "}
+          ─────
+        </p>
 
+        <h2 className="mt-3 text-xl font-bold tracking-[0.36em] text-[#d5e8dc]">
+          {meta.realmLabel.replace("期", "")}秘境
+        </h2>
+        <p className="mt-1.5 text-[15px] font-semibold tracking-[0.28em] text-[rgba(201,168,76,0.88)]">
+          「{meta.locationName}」
+        </p>
+        <p className="mt-1 text-[10px] tracking-[0.2em] text-stone-500">
+          {meta.chapterLabel}
+        </p>
 
-          return (
+        <p className="mt-4 max-w-[17rem] text-center text-[12px] leading-relaxed tracking-wide text-stone-400">
+          {tier.description}
+        </p>
+
+        {/* 秘境法則標籤 */}
+        {tier.passiveDescription && meta.lawName && (
+          <div className="mt-3">
             <button
-              key={tier.id}
-              onClick={() => onSelectTier(tier.id)}
-              className={`card-hover w-full rounded border-2 bg-stone-900/90 p-4 text-left transition-all active:scale-[0.98] ${styles.border}`}
+              type="button"
+              onClick={() => setLawOpen((v) => !v)}
+              className="rounded-sm border border-[#8a7340]/25 bg-black/25 px-2.5 py-1 text-[10px] tracking-[0.16em] text-[#c9b07a]"
             >
-              <div className="mb-2 flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-[10px] tracking-[0.18em] text-stone-500">
-                    第 {chapter.stage} 階段
-                  </p>
-                  <h3 className={`mt-0.5 text-base font-bold ${styles.text}`}>
-                    {stageMark} {tier.name}
-                  </h3>
-                  <span
-                    className={`mt-1 inline-block rounded border border-stone-700/40 px-2 py-0.5 text-[10px] font-semibold ${styles.badge}`}
-                  >
-                    {chapter.chapterLabel}
-                  </span>
+              ◇ 秘境法則　{meta.lawName}
+            </button>
+            {lawOpen && (
+              <p className="mt-2 max-w-[16rem] text-center text-[10px] leading-relaxed text-stone-500">
+                {tier.passiveDescription}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* 關卡進度 */}
+        <div className="mt-5 flex items-center gap-2">
+          {Array.from({ length: tier.floors }, (_, i) => {
+            const floor = i + 1;
+            const state = cleared
+              ? "done"
+              : unlocked && floor === 1
+                ? "current"
+                : "locked";
+            return (
+              <div key={floor} className="flex items-center gap-2">
+                <div
+                  className={`flex h-7 w-7 flex-col items-center justify-center ${
+                    state === "current"
+                      ? "text-[#c9a84c]"
+                      : state === "done"
+                        ? "text-[#8eb8a8]"
+                        : "text-stone-600"
+                  }`}
+                >
+                  <span className="text-[9px] opacity-70">◇</span>
+                  <span className="text-[11px] font-semibold">{floor}</span>
                 </div>
-                {cleared && (
-                  <span className="shrink-0 rounded border border-[#8a7340]/40 bg-stone-900/80 px-2 py-0.5 text-[10px] text-[#c9a84c]">
-                    已通關
-                  </span>
+                {floor < tier.floors && (
+                  <span className="text-stone-700">─</span>
                 )}
               </div>
+            );
+          })}
+        </div>
+        {unlocked && !cleared && (
+          <p className="mt-1 text-[9px] tracking-wide text-stone-600">
+            ↑ 當前進度
+          </p>
+        )}
 
-              <p className="mb-3 text-xs leading-relaxed text-stone-400">
-                {tier.description}
-              </p>
+        {/* 推薦 / 獎勵 */}
+        <div className="mt-5 grid w-full max-w-[16rem] grid-cols-[1fr_auto] gap-x-4 gap-y-1.5 text-[11px]">
+          <span className="text-stone-500">推薦境界</span>
+          <span className="text-right text-[#a8c4b8]">{meta.realmLabel}</span>
+          <span className="text-stone-500">關卡</span>
+          <span className="text-right text-[#a8c4b8]">{tier.floors} 關</span>
+          <span className="text-stone-500">首通獎勵</span>
+          <span className="text-right text-[#c9a84c]">
+            {tier.bonusSpiritStones} 靈石
+          </span>
+        </div>
 
-              <FloorTrack
-                floors={tier.floors}
-                cleared={cleared}
-                lineClass={styles.line}
-                floorPath={floorPath}
-              />
+        {/* 鎖定狀態 */}
+        {!unlocked && (
+          <div className="mt-4 text-center">
+            <p className="text-sm tracking-[0.28em] text-stone-400">🔒 尚未解鎖</p>
+            <p className="mt-1 text-[10px] text-stone-500">{unlockHint}</p>
+          </div>
+        )}
 
-              <div className="mt-2 mb-1 flex flex-wrap gap-2 text-[10px]">
-                <span className="rounded border border-stone-700/40 bg-black/30 px-2 py-0.5 text-stone-400">
-                  推薦修為：{chapter.realmLabel}
-                </span>
-                <span className="rounded border border-[#8a7340]/30 bg-black/30 px-2 py-0.5 text-[#c9a84c]/90">
-                  獎勵：+{tier.bonusSpiritStones} 靈石
-                </span>
-                <span className="rounded border border-stone-700/40 bg-black/30 px-2 py-0.5 text-stone-500">
-                  {powerHint}
-                </span>
-              </div>
+        {unlocked && cleared && (
+          <p className="mt-3 text-[10px] tracking-wide text-[#8a7340]">
+            已通關 · 可再挑戰
+          </p>
+        )}
 
-              {tier.passiveDescription && (
-                <p className="mt-2 text-[10px] italic text-[#9a9ab8]">
-                  ◈ {tier.passiveDescription}
-                </p>
-              )}
-
-              {cleared && (
-                <p className="mt-1 text-[10px] text-[#8a7340]">
-                  功業：{tier.achievementName}
-                </p>
-              )}
-
-              <div className="mt-3 flex items-center justify-end border-t border-stone-700/30 pt-2.5">
-                <span
-                  className={`text-xs font-bold tracking-[0.2em] ${styles.text}`}
-                >
-                  {cleared ? "再挑戰（新一輪） →" : "開始挑戰 →"}
-                </span>
-              </div>
-            </button>
-          );
-        })}
+        {/* CTA */}
+        <button
+          type="button"
+          disabled={!unlocked}
+          onClick={() => unlocked && onSelectTier(tier.id)}
+          className={`btn-start-game mt-5 w-full max-w-[16rem] ${
+            unlocked ? "" : "pointer-events-none opacity-35"
+          }`}
+          aria-label={unlocked ? `進入${meta.locationName}` : "尚未解鎖"}
+        >
+          <span className="relative block text-[1.02rem] font-bold tracking-[0.36em]">
+            {unlocked ? (cleared ? "再次進入" : "進入秘境") : "尚未解鎖"}
+          </span>
+          <span className="btn-start-divider" aria-hidden>
+            <i className="btn-start-diamond" />
+          </span>
+          <span className="relative block text-[10px] font-semibold tracking-[0.2em] text-[#b8a878]/90">
+            {unlocked ? meta.locationName : unlockHint}
+          </span>
+        </button>
       </div>
-    </div>
-  );
-}
 
-function FloorTrack({
-  floors,
-  cleared,
-  lineClass,
-  floorPath,
-}: {
-  floors: number;
-  cleared: boolean;
-  lineClass: string;
-  floorPath: string;
-}) {
-  return (
-    <div className="mb-1">
-      <div className="flex items-center gap-1">
-        {Array.from({ length: floors }, (_, i) => {
-          const floor = i + 1;
-          const state = cleared
-            ? "done"
-            : floor === 1
-              ? "current"
-              : "locked";
-          return (
-            <div key={floor} className="flex flex-1 items-center last:flex-none">
-              <div
-                className={`floor-node ${
-                  state === "done"
-                    ? "floor-node-done"
-                    : state === "current"
-                      ? "floor-node-current"
-                      : "floor-node-locked"
+      {/* 階段選擇器 */}
+      <div className="shrink-0 pb-1 pt-1">
+        <div className="flex items-start justify-around px-1">
+          {tiers.map((t, i) => {
+            const m = getDungeonChapterMeta(t);
+            const active = i === focusIndex;
+            const open = isDungeonTierUnlocked(tiers, i, unlockedAchievements);
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setFocusIndex(i)}
+                className={`flex min-w-[4.5rem] flex-col items-center gap-0.5 border-none bg-transparent py-1 ${
+                  active
+                    ? "text-[#c9a84c]"
+                    : "text-stone-500 opacity-60"
                 }`}
-                title={
-                  state === "done"
-                    ? `關卡 ${floor} 已完成`
-                    : state === "current"
-                      ? `當前關卡 ${floor}`
-                      : `關卡 ${floor} 未解鎖`
-                }
               >
-                {state === "done" ? "✓" : floor}
-              </div>
-              {floor < floors && (
-                <div className={`mx-1 h-px flex-1 ${lineClass}`} />
-              )}
-            </div>
-          );
-        })}
+                <span
+                  className={`text-[11px] font-semibold tracking-[0.2em] ${
+                    active ? "" : ""
+                  }`}
+                >
+                  {m.stageTab}
+                </span>
+                <span
+                  className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
+                    active
+                      ? "bg-[#c9a84c] shadow-[0_0_6px_rgba(201,168,76,0.45)]"
+                      : open
+                        ? "bg-stone-500"
+                        : "border border-stone-600 bg-transparent"
+                  }`}
+                />
+                <span className="mt-0.5 text-[9px] tracking-wide opacity-80">
+                  {m.locationName}
+                </span>
+                <span className="text-[8px] tracking-wide opacity-55">
+                  {!open ? "未解鎖" : active ? "當前" : "可查看"}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <p className="mt-1.5 text-[10px] tracking-wide text-stone-500">
-        {cleared
-          ? `已通關 · 關卡 ${floors} / ${floors}`
-          : `關卡 ${floorPath} · 從第 1 關開始`}
-      </p>
     </div>
   );
 }

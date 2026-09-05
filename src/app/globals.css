@@ -774,8 +774,15 @@ html.combat-scroll-lock {
 }
 
 /* ── 大廳：背景 + 透明主角 ── */
-.lobby-home {
-  min-height: 100%;
+.realm-select {
+  /* 暫用沉浸底，待秘境背景圖到位後替換 */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(14, 18, 22, 0.97) 0%,
+      rgba(10, 13, 16, 0.98) 50%,
+      rgba(8, 10, 12, 1) 100%
+    );
 }
 
 .lobby-bg-veil {
