@@ -58,16 +58,17 @@ export function CardHand({
     <div className="relative flex h-full flex-col gap-1">
       <div className="shrink-0">{playerBar}</div>
 
-      <div className="flex min-h-0 flex-1 items-center gap-1.5 overflow-visible">
-        <div className="relative min-h-0 min-w-0 flex-1 overflow-visible">
-          <p className="pointer-events-none absolute left-1 top-0 z-10 text-[9px] tracking-wide text-stone-500">
-            <span className="text-stone-600">抽</span>{" "}
-            <span className="tabular-nums text-[#9ab8aa]">{drawPileCount}</span>
-            <span className="mx-1.5 text-stone-700">·</span>
-            <span className="text-stone-600">棄</span>{" "}
-            <span className="tabular-nums text-stone-400">{discardPileCount}</span>
-          </p>
+      <div className="relative min-h-0 flex-1 overflow-visible">
+        <p className="pointer-events-none absolute left-1 top-0 z-10 text-[9px] tracking-wide text-stone-500">
+          <span className="text-stone-600">抽</span>{" "}
+          <span className="tabular-nums text-[#9ab8aa]">{drawPileCount}</span>
+          <span className="mx-1.5 text-stone-700">·</span>
+          <span className="text-stone-600">棄</span>{" "}
+          <span className="tabular-nums text-stone-400">{discardPileCount}</span>
+        </p>
 
+        {/* 手牌置中佔滿寬度，不被結束回合擠壓 */}
+        <div className="flex h-full items-end justify-center px-1 pb-1">
           <HandUI
             hand={hand}
             energy={energy}
@@ -76,18 +77,20 @@ export function CardHand({
             onPlayCard={onPlayCard}
             onDenyPlay={onDenyPlay}
           />
-          {(feelToast || showTip) && (
-            <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2 rounded-sm border border-stone-600/30 bg-stone-950/70 px-2.5 py-0.5 text-[10px] tracking-wide text-stone-300">
-              {feelToast ?? "上拖出牌"}
-            </p>
-          )}
         </div>
 
+        {(feelToast || showTip) && (
+          <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-1 z-20 -translate-x-1/2 rounded-sm border border-stone-600/30 bg-stone-950/70 px-2.5 py-0.5 text-[10px] tracking-wide text-stone-300">
+            {feelToast ?? "上拖出牌"}
+          </p>
+        )}
+
+        {/* 結束回合沉到右下，避開扇形手牌 */}
         <button
           type="button"
           onClick={onEndTurn}
           disabled={disabled}
-          className="btn-end-turn-seal shrink-0 self-center disabled:cursor-not-allowed disabled:opacity-35"
+          className="btn-end-turn-seal absolute bottom-0 right-0.5 z-30 disabled:cursor-not-allowed disabled:opacity-35"
           aria-label="結束回合"
         >
           <span className="btn-end-turn-seal-label">

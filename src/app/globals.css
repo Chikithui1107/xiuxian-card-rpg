@@ -614,8 +614,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 4rem;
-  height: 4rem;
+  width: 3.55rem;
+  height: 3.55rem;
   border-radius: 9999px;
   border: 1px solid rgba(201, 168, 76, 0.42);
   background:
@@ -1522,9 +1522,9 @@ html.combat-scroll-lock {
 }
 
 :root {
-  /* 手牌再放大約 17%，優先可讀性 */
-  --game-card-width: 8.05rem;
-  --game-card-height: 11.85rem;
+  /* 手牌置中略放大，方便點選／拖動 */
+  --game-card-width: 8.55rem;
+  --game-card-height: 12.55rem;
 }
 
 .hand-card-slot {

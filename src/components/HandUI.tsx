@@ -67,10 +67,10 @@ export function HandUI({
 }: HandUIProps) {
   return (
     <div
-      className={`hand-fan relative overflow-visible px-0.5 pb-2 pt-10 ${
+      className={`hand-fan relative overflow-visible px-0.5 pb-9 pt-8 ${
         denyShake ? "animate-deny-shake" : ""
       }`}
-      style={{ minHeight: "calc(2.5rem + var(--game-card-height))" }}
+      style={{ minHeight: "calc(2.25rem + var(--game-card-height))" }}
     >
       {hand.length === 0 ? (
         <p className="flex min-h-[var(--game-card-height)] items-center justify-center text-xs text-stone-500">
