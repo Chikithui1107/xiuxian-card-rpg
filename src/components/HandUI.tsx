@@ -30,7 +30,7 @@ interface HandUIProps {
 const PLAY_SWIPE_Y = -52;
 const TAP_SLOP = 8;
 
-/** 固定扇形角度（不隨 hover 改變） */
+/** 靜止時扇形角度；hover／選取時歸零方便閱讀 */
 function fanAngle(index: number, total: number) {
   if (total <= 1) return 0;
   const spread = Math.min(10, 3 * (total - 1));
@@ -44,7 +44,7 @@ function fanLift(index: number, total: number) {
   return Math.abs(index - mid) * 2.5;
 }
 
-/** 重疊適中：卡名必露；完整效果靠點選提到最前閱讀 */
+/** 重疊適中：卡名必露；完整效果靠 hover／點選放大閱讀 */
 function overlapPx(total: number) {
   const raw =
     typeof window !== "undefined"
@@ -153,12 +153,20 @@ function HandCard({
   const rafRef = useRef(0);
   const [dragging, setDragging] = useState(false);
   const [readyHint, setReadyHint] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const [dragBox, setDragBox] = useState<{
     x: number;
     y: number;
     w: number;
     h: number;
   } | null>(null);
+  const fineHoverRef = useRef(false);
+
+  useEffect(() => {
+    fineHoverRef.current = window.matchMedia(
+      "(hover: hover) and (pointer: fine)"
+    ).matches;
+  }, []);
 
   const template = getCardTemplate(card) ?? CARD_TEMPLATES[card.id as CardTemplateId];
   const effectiveCost = getEffectiveCost(card);
@@ -172,11 +180,14 @@ function HandCard({
   const angle = fanAngle(index, total);
   const baseLift = fanLift(index, total);
   const marginLeft = index === 0 ? 0 : -overlapPx(total);
+  const preview = !dragging && (hovered || selected);
 
-  /* 點選：提到最前並略抬高，方便讀完整內容；不做鄰牌讓位 */
-  const restTransform = selected
-    ? `translateY(${baseLift - 16}px) scale(1.06) rotate(0deg)`
-    : `translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
+  /* hover 明顯放大讀效果；點選略抬高；不做鄰牌讓位 */
+  const restTransform = hovered && !dragging
+    ? `translateY(${baseLift - 36}px) scale(1.52) rotate(0deg)`
+    : selected && !dragging
+      ? `translateY(${baseLift - 16}px) scale(1.06) rotate(0deg)`
+      : `translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
 
   const clearGhostStyles = useCallback(() => {
     setDragBox(null);
@@ -343,10 +354,18 @@ function HandCard({
 
   const description = template?.description ?? "";
 
-  const renderCardFace = (opts: { showSelectHint: boolean; showReady: boolean }) => (
+  const renderCardFace = (opts: {
+    showSelectHint: boolean;
+    showReady: boolean;
+    enlarged?: boolean;
+  }) => (
     <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-1.5">
       <div className="flex items-start justify-between gap-1">
-        <span className="min-w-0 flex-1 text-left text-[12px] font-bold leading-tight tracking-wide text-[#f0e6d3]">
+        <span
+          className={`min-w-0 flex-1 text-left font-bold leading-tight tracking-wide text-[#f0e6d3] ${
+            opts.enlarged ? "text-[13px]" : "text-[12px]"
+          }`}
+        >
           {card.name}
         </span>
         <span
@@ -360,7 +379,11 @@ function HandCard({
         </span>
       </div>
 
-      <p className="mt-1.5 min-h-0 flex-1 overflow-y-auto break-words text-left text-[10px] leading-[1.35] text-stone-300">
+      <p
+        className={`mt-1.5 min-h-0 flex-1 overflow-y-auto break-words text-left leading-[1.4] text-stone-300 ${
+          opts.enlarged ? "text-[11px]" : "text-[10px] leading-[1.35]"
+        }`}
+      >
         {description}
       </p>
 
@@ -416,9 +439,13 @@ function HandCard({
       ref={slotRef}
       className="hand-card-slot relative shrink-0"
       style={{
-        zIndex: dragging ? 90 : selected ? 80 : 10 + index,
+        zIndex: dragging ? 90 : hovered ? 88 : selected ? 80 : 10 + index,
         marginLeft: index === 0 ? undefined : marginLeft,
       }}
+      onMouseEnter={() => {
+        if (fineHoverRef.current && !dragging) setHovered(true);
+      }}
+      onMouseLeave={() => setHovered(false)}
     >
       <div
         ref={ghostRef}
@@ -426,7 +453,10 @@ function HandCard({
         tabIndex={0}
         aria-pressed={selected}
         aria-disabled={locked || !canAfford}
-        onPointerDown={onPointerDown}
+        onPointerDown={(e) => {
+          setHovered(false);
+          onPointerDown(e);
+        }}
         onPointerCancel={onPointerCancel}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -450,18 +480,19 @@ function HandCard({
         } ${typeStyle} ${
           dragging
             ? "ink-card-drag-source"
-            : "transition-transform duration-150 ease-out"
-        } ${selected && !dragging ? "ink-card-selected" : ""}`}
+            : "transition-transform duration-200 ease-out"
+        } ${preview ? "ink-card-selected" : ""}`}
         style={{
           touchAction: "none",
           transform: restTransform,
-          zIndex: selected ? 80 : undefined,
+          zIndex: preview ? 80 : undefined,
         }}
       >
         {!dragging &&
           renderCardFace({
             showSelectHint: selected && !readyHint,
             showReady: false,
+            enlarged: hovered,
           })}
       </div>
       {dragPortal}
