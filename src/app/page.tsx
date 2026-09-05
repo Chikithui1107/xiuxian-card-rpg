@@ -435,6 +435,9 @@ export default function GamePage() {
         return;
       }
 
+      // 與「開始修行」同款：踏入岔路瞬間播 horror-hit
+      playStartCultivationSfx();
+
       switch (node.type) {
         case "combat":
         case "elite":
