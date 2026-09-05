@@ -643,6 +643,63 @@ html.combat-scroll-lock {
   }
 }
 
+/* ── 大廳海報首頁 ── */
+.lobby-home {
+  min-height: 100%;
+}
+
+.lobby-hero {
+  min-height: 18rem;
+}
+
+.lobby-hero-art {
+  animation: lobby-hero-breathe 5.5s ease-in-out infinite;
+  will-change: transform;
+}
+
+.lobby-hero-veil {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(10, 9, 8, 0.35) 0%,
+      transparent 28%,
+      transparent 48%,
+      rgba(12, 11, 10, 0.55) 72%,
+      rgba(12, 11, 10, 0.96) 100%
+    ),
+    radial-gradient(
+      ellipse at 50% 30%,
+      transparent 40%,
+      rgba(0, 0, 0, 0.28) 100%
+    );
+}
+
+@keyframes lobby-hero-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.025);
+  }
+}
+
+.lobby-cta {
+  animation: lobby-cta-in 0.55s ease-out both;
+  animation-delay: 0.12s;
+}
+
+@keyframes lobby-cta-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .btn-start-game {
   position: relative;
   width: 100%;

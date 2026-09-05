@@ -13,6 +13,8 @@ export interface Hero {
   spiritStones: number;
   avatar?: string;
   portrait?: string;
+  /** 大廳海報立繪 */
+  lobbyPortrait?: string;
 }
 
 export interface HeroStats {

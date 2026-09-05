@@ -755,31 +755,33 @@ export default function GamePage() {
     switch (activeTab) {
       case "lobby":
         return (
-          <LobbyView
-            hero={hero}
-            stats={heroStats}
-            playerHp={playerHp}
-            spiritStones={spiritStones}
-            totalClears={totalClears}
-            achievementCount={unlockedAchievements.length}
-            deckCount={permanentDeck.length}
-            lastRunMessage={lastRunMessage}
-            hasActiveRun={hasActiveRun}
-            runLabel={
-              selectedTier
-                ? `${selectedTier.name}${
-                    isInCombat
-                      ? " · 戰鬥中"
-                      : combatScreen === "path"
-                        ? " · 岔路"
-                        : ""
-                  }`
-                : null
-            }
-            onEnterDungeon={enterTierSelect}
-            onContinueGame={continueGame}
-            onAbandonGame={abandonGame}
-          />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <LobbyView
+              hero={hero}
+              stats={heroStats}
+              playerHp={playerHp}
+              spiritStones={spiritStones}
+              totalClears={totalClears}
+              achievementCount={unlockedAchievements.length}
+              deckCount={permanentDeck.length}
+              lastRunMessage={lastRunMessage}
+              hasActiveRun={hasActiveRun}
+              runLabel={
+                selectedTier
+                  ? `${selectedTier.name}${
+                      isInCombat
+                        ? " · 戰鬥中"
+                        : combatScreen === "path"
+                          ? " · 岔路"
+                          : ""
+                    }`
+                  : null
+              }
+              onEnterDungeon={enterTierSelect}
+              onContinueGame={continueGame}
+              onAbandonGame={abandonGame}
+            />
+          </div>
         );
       case "inventory":
         return (

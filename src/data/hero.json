@@ -9,5 +9,6 @@
   "maxHp": 60,
   "spiritStones": 1280,
   "avatar": "/heroes/baiye-avatar.png",
-  "portrait": "/heroes/baiye.png"
+  "portrait": "/heroes/baiye.png",
+  "lobbyPortrait": "/heroes/baiye-lobby.png"
 }
