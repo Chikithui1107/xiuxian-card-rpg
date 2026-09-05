@@ -32,57 +32,12 @@
 }
 
 .scene[data-lobby-theme="ink"] .background {
-  /* 墨弈：不整圖壓暗；層級靠局部 shade */
   filter: none;
 }
 
-/* 人物背後局部柔暗（僅 ink）：讓臉與上半身壓過太極／建築 */
 .figureShade {
   display: none;
   pointer-events: none;
-}
-
-.scene[data-lobby-theme="ink"] .figureShade {
-  display: block;
-  position: absolute;
-  left: 50%;
-  top: 14%;
-  z-index: 8;
-  width: min(88%, 22rem);
-  height: 58%;
-  transform: translateX(-50%);
-  background:
-    radial-gradient(
-      ellipse 62% 48% at 50% 40%,
-      rgba(5, 7, 9, 0.42) 0%,
-      rgba(5, 7, 9, 0.18) 46%,
-      transparent 74%
-    ),
-    radial-gradient(
-      ellipse 95% 36% at 50% 6%,
-      rgba(4, 5, 7, 0.28) 0%,
-      transparent 72%
-    );
-}
-
-.scene[data-lobby-theme="ink"] .groundShadow {
-  bottom: 14%;
-  width: 36%;
-  opacity: 0.7;
-}
-
-.scene[data-lobby-theme="ink"] .character {
-  /* 對齊臉與上半身；腳可裁入下方 */
-  object-position: center 18%;
-}
-
-.scene[data-lobby-theme="ink"] .particles {
-  opacity: 0.4;
-}
-
-.scene[data-lobby-theme="ink"] .mistBack {
-  opacity: 0.45;
-  top: 18%;
 }
 
 /* 已移除全屏 vignette／四角暗角；上下功能性漸變改由 header／lobby veil／底欄負責 */
