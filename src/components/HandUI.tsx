@@ -33,25 +33,25 @@ const FAN_ANGLES: Record<number, number[]> = {
   3: [-7, 0, 7],
   4: [-7, -3, 3, 7],
   5: [-7, -3.5, 0, 3.5, 7],
+  6: [-8, -5, -2, 2, 5, 8],
+  7: [-8, -5, -3, 0, 3, 5, 8],
 };
 
 function fanAngle(index: number, total: number) {
-  const preset = FAN_ANGLES[Math.min(Math.max(total, 1), 5)];
-  if (total <= 5 && preset) return preset[index] ?? 0;
-  const spread = 14;
+  const preset = FAN_ANGLES[Math.min(Math.max(total, 1), 7)];
+  if (total <= 7 && preset) return preset[index] ?? 0;
+  const spread = 16;
   const start = -spread / 2;
   return start + (spread / (total - 1)) * index;
 }
 
-/** 中央略高、兩側略低，形成手牌弧線（translateY 正值向下） */
+/** 中央略高、兩側略低（translateY 正值向下） */
 function fanLift(index: number, total: number) {
   if (total <= 1) return 0;
   const mid = (total - 1) / 2;
-  const dist = Math.abs(index - mid);
-  return dist * 6;
+  return Math.abs(index - mid) * 6;
 }
 
-/** 重疊約 30–40%：略降重疊，放大後仍落在 viewport */
 function overlapPx(total: number) {
   const raw =
     typeof window !== "undefined"
@@ -68,9 +68,17 @@ function overlapPx(total: number) {
   return Math.round(w * 0.42);
 }
 
-function neighborShift(index: number, selectedIndex: number | null) {
-  if (selectedIndex == null || index === selectedIndex) return 0;
-  return index < selectedIndex ? -14 : 14;
+/**
+ * 選中／hover 時鄰牌讓路：越近位移越大，越遠越小。
+ * 選中牌本身不橫移。
+ */
+function fanSpreadX(index: number, focusIndex: number | null) {
+  if (focusIndex == null || index === focusIndex) return 0;
+  const dir = index < focusIndex ? -1 : 1;
+  const dist = Math.abs(index - focusIndex);
+  const byDist = [0, 44, 28, 16, 10, 7, 5];
+  const amount = byDist[dist] ?? Math.max(4, 48 - dist * 8);
+  return dir * amount;
 }
 
 function setDropReady(on: boolean, el: HTMLElement | null) {
@@ -88,14 +96,25 @@ export function HandUI({
   onDenyPlay,
 }: HandUIProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
   const fanRowRef = useRef<HTMLDivElement>(null);
   const [fitScale, setFitScale] = useState(1);
+
+  const focusId = hoveredId ?? selectedId;
+  const focusIndex =
+    focusId != null
+      ? hand.findIndex((c) => c.instanceId === focusId)
+      : null;
+  const resolvedFocus = focusIndex != null && focusIndex >= 0 ? focusIndex : null;
 
   useEffect(() => {
     if (selectedId && !hand.some((c) => c.instanceId === selectedId)) {
       setSelectedId(null);
     }
-  }, [hand, selectedId]);
+    if (hoveredId && !hand.some((c) => c.instanceId === hoveredId)) {
+      setHoveredId(null);
+    }
+  }, [hand, selectedId, hoveredId]);
 
   useEffect(() => {
     const row = fanRowRef.current;
@@ -104,7 +123,9 @@ export function HandUI({
 
     const measure = () => {
       const avail = parent.clientWidth;
-      const need = row.scrollWidth;
+      /* 展開讓路時預留額外寬度，避免貼邊 */
+      const spreadPad = resolvedFocus != null ? 56 : 0;
+      const need = row.scrollWidth + spreadPad;
       if (need <= 0 || avail <= 0) return;
       setFitScale(Math.min(1, avail / need));
     };
@@ -113,24 +134,24 @@ export function HandUI({
     const ro = new ResizeObserver(measure);
     ro.observe(parent);
     return () => ro.disconnect();
-  }, [hand.length]);
+  }, [hand.length, resolvedFocus]);
 
   return (
     <div
-      className={`hand-fan relative overflow-x-clip px-0.5 pb-2 pt-8 ${
+      className={`hand-fan relative overflow-visible px-0.5 pb-2 pt-14 ${
         denyShake ? "animate-deny-shake" : ""
       }`}
-      style={{ minHeight: "calc(1.75rem + var(--game-card-height))" }}
+      style={{ minHeight: "calc(3.25rem + var(--game-card-height))" }}
     >
       {hand.length === 0 ? (
         <p className="flex min-h-[var(--game-card-height)] items-center justify-center text-xs text-stone-500">
           手牌已空
         </p>
       ) : (
-        <div className="flex max-w-full justify-center">
+        <div className="flex max-w-full justify-center overflow-visible">
           <div
             ref={fanRowRef}
-            className="relative flex items-end justify-center"
+            className="relative flex items-end justify-center overflow-visible transition-transform duration-200 ease-out"
             style={{
               transform: `scale(${fitScale})`,
               transformOrigin: "bottom center",
@@ -145,15 +166,20 @@ export function HandUI({
                 energy={energy}
                 locked={disabled}
                 selected={selectedId === card.instanceId}
-                selectedIndex={
-                  selectedId
-                    ? hand.findIndex((c) => c.instanceId === selectedId)
-                    : null
-                }
-                onSelect={(id) =>
-                  setSelectedId((prev) => (prev === id ? null : id))
-                }
-                onPlayCard={onPlayCard}
+                focusIndex={resolvedFocus}
+                onHoverChange={(id, on) => {
+                  setHoveredId((prev) => {
+                    if (on) return id;
+                    return prev === id ? null : prev;
+                  });
+                }}
+                onSelect={(id) => setSelectedId(id)}
+                onClearSelect={() => setSelectedId(null)}
+                onPlayCard={(c, origin) => {
+                  setSelectedId(null);
+                  setHoveredId(null);
+                  onPlayCard(c, origin);
+                }}
                 onDenyPlay={onDenyPlay}
               />
             ))}
@@ -171,8 +197,10 @@ function HandCard({
   energy,
   locked,
   selected,
-  selectedIndex,
+  focusIndex,
+  onHoverChange,
   onSelect,
+  onClearSelect,
   onPlayCard,
   onDenyPlay,
 }: {
@@ -182,8 +210,10 @@ function HandCard({
   energy: number;
   locked: boolean;
   selected: boolean;
-  selectedIndex: number | null;
+  focusIndex: number | null;
+  onHoverChange: (id: string, on: boolean) => void;
   onSelect: (id: string) => void;
+  onClearSelect: () => void;
   onPlayCard: (card: Card, origin: DOMRect) => void;
   onDenyPlay?: (reason: "energy" | "locked") => void;
 }) {
@@ -200,7 +230,6 @@ function HandCard({
     moved: boolean;
     active: boolean;
   } | null>(null);
-  const [hovered, setHovered] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [readyHint, setReadyHint] = useState(false);
 
@@ -214,8 +243,10 @@ function HandCard({
 
   const angle = fanAngle(index, total);
   const baseLift = fanLift(index, total);
-  const shiftX = neighborShift(index, selectedIndex);
+  const shiftX = fanSpreadX(index, focusIndex);
   const marginLeft = index === 0 ? 0 : -overlapPx(total);
+  const isFocus = focusIndex === index;
+  const inspecting = !dragging && isFocus;
 
   const clearGhostStyles = useCallback(() => {
     const ghost = ghostRef.current;
@@ -309,7 +340,7 @@ function HandCard({
 
     drag.active = true;
     setDragging(true);
-    setHovered(false);
+    onHoverChange(card.instanceId, false);
 
     ghost.style.position = "fixed";
     ghost.style.left = `${e.clientX - drag.grabX}px`;
@@ -370,6 +401,12 @@ function HandCard({
     }
 
     if (!drag.moved) {
+      /* 第一次 tap = 選中展開；第二次 tap 同一張 = 出牌 */
+      if (selected) {
+        if (origin) tryPlay(origin);
+        else finishDrag();
+        return;
+      }
       onSelect(card.instanceId);
     }
     finishDrag();
@@ -379,14 +416,13 @@ function HandCard({
     finishDrag();
   };
 
-  const inspecting = !dragging && (selected || hovered);
-  const z = dragging ? 90 : inspecting ? 60 : index;
+  const z = dragging ? 90 : isFocus ? 80 : 10 + index;
 
+  /* 選中上浮多一點，放大維持現有比例不再加大 */
   const restTransform = inspecting
-    ? `translateX(${shiftX}px) translateY(-50px) scale(1.1) rotate(0deg)`
+    ? `translateX(${shiftX}px) translateY(-74px) scale(1.1) rotate(0deg)`
     : `translateX(${shiftX}px) translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
 
-  // 核心效果：描述首句或前 ~22 字
   const coreLine = (template?.description ?? "")
     .split(/[。；;\n]/)[0]
     ?.slice(0, 22);
@@ -394,16 +430,16 @@ function HandCard({
   return (
     <div
       ref={slotRef}
-      className="hand-card-slot relative shrink-0"
+      className="hand-card-slot relative shrink-0 overflow-visible transition-[z-index] duration-200"
       style={{
         zIndex: z,
         marginLeft: index === 0 ? undefined : marginLeft,
       }}
       onMouseEnter={() => {
-        if (!dragging) setHovered(true);
+        if (!dragging) onHoverChange(card.instanceId, true);
       }}
       onMouseLeave={() => {
-        if (!dragging) setHovered(false);
+        if (!dragging) onHoverChange(card.instanceId, false);
       }}
     >
       <div
@@ -419,7 +455,18 @@ function HandCard({
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onSelect(card.instanceId);
+            if (selected) {
+              const origin =
+                ghostRef.current?.getBoundingClientRect() ??
+                slotRef.current?.getBoundingClientRect();
+              if (origin) tryPlay(origin);
+            } else {
+              onSelect(card.instanceId);
+            }
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            onClearSelect();
           }
           if (e.key === "ArrowUp") {
             e.preventDefault();
@@ -446,7 +493,7 @@ function HandCard({
             ? {}
             : {
                 transform: restTransform,
-                zIndex: inspecting ? 60 : undefined,
+                zIndex: isFocus ? 80 : undefined,
               }),
         }}
       >
@@ -484,7 +531,9 @@ function HandCard({
               <p className="text-[9px] text-amber-500/70">消耗</p>
             )}
             {selected && !readyHint && (
-              <p className="mt-0.5 text-[8px] text-stone-500">再點取消</p>
+              <p className="mt-0.5 text-[8px] text-stone-500">
+                再點出牌 · 上拖亦可
+              </p>
             )}
             {readyHint && (
               <p className="mt-0.5 text-[10px] font-bold text-[#7aab9a]">

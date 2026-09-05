@@ -58,8 +58,8 @@ export function CardHand({
     <div className="relative flex h-full flex-col gap-1">
       <div className="shrink-0">{playerBar}</div>
 
-      <div className="flex min-h-0 flex-1 items-center gap-1.5">
-        <div className="relative min-h-0 min-w-0 flex-1">
+      <div className="flex min-h-0 flex-1 items-center gap-1.5 overflow-visible">
+        <div className="relative min-h-0 min-w-0 flex-1 overflow-visible">
           <p className="pointer-events-none absolute left-1 top-0 z-10 text-[9px] tracking-wide text-stone-500">
             <span className="text-stone-600">抽</span>{" "}
             <span className="tabular-nums text-[#9ab8aa]">{drawPileCount}</span>
