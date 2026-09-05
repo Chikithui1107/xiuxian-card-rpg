@@ -1522,9 +1522,9 @@ html.combat-scroll-lock {
 }
 
 :root {
-  /* 手牌置中略放大，方便點選／拖動 */
-  --game-card-width: 8.55rem;
-  --game-card-height: 12.55rem;
+  /* 略增高以容納完整效果文字；置中偏上 */
+  --game-card-width: 8.7rem;
+  --game-card-height: 13.25rem;
 }
 
 .hand-card-slot {

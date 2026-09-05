@@ -67,8 +67,8 @@ export function CardHand({
           <span className="tabular-nums text-stone-400">{discardPileCount}</span>
         </p>
 
-        {/* 手牌置中佔滿寬度，不被結束回合擠壓 */}
-        <div className="flex h-full items-end justify-center px-1 pb-1">
+        {/* 手牌置中偏上，結束回合沉在右下不擋牌 */}
+        <div className="flex h-full items-center justify-center px-1 pb-7 pt-0">
           <HandUI
             hand={hand}
             energy={energy}

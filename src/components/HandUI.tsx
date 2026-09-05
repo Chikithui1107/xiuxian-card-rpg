@@ -27,10 +27,10 @@ interface HandUIProps {
 const PLAY_SWIPE_Y = -52;
 const TAP_SLOP = 8;
 
-/** 固定扇形角度（不隨 hover／選中改變） */
+/** 固定扇形角度（不隨 hover 改變） */
 function fanAngle(index: number, total: number) {
   if (total <= 1) return 0;
-  const spread = Math.min(12, 3.5 * (total - 1));
+  const spread = Math.min(10, 3 * (total - 1));
   const start = -spread / 2;
   return start + (spread / (total - 1)) * index;
 }
@@ -38,23 +38,24 @@ function fanAngle(index: number, total: number) {
 function fanLift(index: number, total: number) {
   if (total <= 1) return 0;
   const mid = (total - 1) / 2;
-  return Math.abs(index - mid) * 3;
+  return Math.abs(index - mid) * 2.5;
 }
 
+/** 重疊保留足夠露出完整卡名 */
 function overlapPx(total: number) {
   const raw =
     typeof window !== "undefined"
       ? getComputedStyle(document.documentElement).getPropertyValue(
           "--game-card-width"
         )
-      : "8.05rem";
+      : "8.7rem";
   const w = raw.includes("rem")
-    ? (parseFloat(raw) || 8.05) * 16
-    : parseFloat(raw) || 128;
-  if (total <= 3) return Math.round(w * 0.28);
-  if (total === 4) return Math.round(w * 0.34);
-  if (total === 5) return Math.round(w * 0.4);
-  return Math.round(w * 0.44);
+    ? (parseFloat(raw) || 8.7) * 16
+    : parseFloat(raw) || 140;
+  if (total <= 3) return Math.round(w * 0.22);
+  if (total === 4) return Math.round(w * 0.26);
+  if (total === 5) return Math.round(w * 0.3);
+  return Math.round(w * 0.34);
 }
 
 export function HandUI({
@@ -65,12 +66,20 @@ export function HandUI({
   onPlayCard,
   onDenyPlay,
 }: HandUIProps) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedId && !hand.some((c) => c.instanceId === selectedId)) {
+      setSelectedId(null);
+    }
+  }, [hand, selectedId]);
+
   return (
     <div
-      className={`hand-fan relative overflow-visible px-0.5 pb-9 pt-8 ${
+      className={`hand-fan relative overflow-visible px-0.5 pb-8 pt-3 ${
         denyShake ? "animate-deny-shake" : ""
       }`}
-      style={{ minHeight: "calc(2.25rem + var(--game-card-height))" }}
+      style={{ minHeight: "calc(1.5rem + var(--game-card-height))" }}
     >
       {hand.length === 0 ? (
         <p className="flex min-h-[var(--game-card-height)] items-center justify-center text-xs text-stone-500">
@@ -87,6 +96,10 @@ export function HandUI({
                 total={hand.length}
                 energy={energy}
                 locked={disabled}
+                selected={selectedId === card.instanceId}
+                onSelect={(id) =>
+                  setSelectedId((prev) => (prev === id ? null : id))
+                }
                 onPlayCard={onPlayCard}
                 onDenyPlay={onDenyPlay}
               />
@@ -104,6 +117,8 @@ function HandCard({
   total,
   energy,
   locked,
+  selected,
+  onSelect,
   onPlayCard,
   onDenyPlay,
 }: {
@@ -112,6 +127,8 @@ function HandCard({
   total: number;
   energy: number;
   locked: boolean;
+  selected: boolean;
+  onSelect: (id: string) => void;
   onPlayCard: (card: Card, origin: DOMRect) => void;
   onDenyPlay?: (reason: "energy" | "locked") => void;
 }) {
@@ -142,7 +159,11 @@ function HandCard({
   const angle = fanAngle(index, total);
   const baseLift = fanLift(index, total);
   const marginLeft = index === 0 ? 0 : -overlapPx(total);
-  const restTransform = `translateY(${baseLift}px) rotate(${angle}deg)`;
+
+  /* 點選：提到最前並略抬高，方便讀完整內容；不做鄰牌讓位 */
+  const restTransform = selected
+    ? `translateY(${baseLift - 16}px) scale(1.06) rotate(0deg)`
+    : `translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
 
   const clearGhostStyles = useCallback(() => {
     const ghost = ghostRef.current;
@@ -230,7 +251,6 @@ function HandCard({
     drag.active = true;
     setDragging(true);
 
-    /* 只有這張牌改 fixed 跟隨指標；其他牌完全不動 */
     ghost.style.position = "fixed";
     ghost.style.left = `${e.clientX - drag.grabX}px`;
     ghost.style.top = `${e.clientY - drag.grabY}px`;
@@ -288,6 +308,9 @@ function HandCard({
       return;
     }
 
+    if (!drag.moved) {
+      onSelect(card.instanceId);
+    }
     finishDrag();
   };
 
@@ -295,16 +318,14 @@ function HandCard({
     finishDrag();
   };
 
-  const coreLine = (template?.description ?? "")
-    .split(/[。；;\n]/)[0]
-    ?.slice(0, 22);
+  const description = template?.description ?? "";
 
   return (
     <div
       ref={slotRef}
       className="hand-card-slot relative shrink-0"
       style={{
-        zIndex: dragging ? 90 : 10 + index,
+        zIndex: dragging ? 90 : selected ? 80 : 10 + index,
         marginLeft: index === 0 ? undefined : marginLeft,
       }}
     >
@@ -312,13 +333,18 @@ function HandCard({
         ref={ghostRef}
         role="button"
         tabIndex={0}
+        aria-pressed={selected}
         aria-disabled={locked || !canAfford}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
         onKeyDown={(e) => {
-          if (e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect(card.instanceId);
+          }
+          if (e.key === "ArrowUp") {
             e.preventDefault();
             const origin =
               ghostRef.current?.getBoundingClientRect() ??
@@ -334,19 +360,22 @@ function HandCard({
               : "cursor-grab active:cursor-grabbing"
         } ${typeStyle} ${
           dragging ? "" : "transition-transform duration-150 ease-out"
-        } ${readyHint ? "ring-2 ring-[#7aab9a]/75" : ""}`}
+        } ${selected ? "ink-card-selected" : ""} ${
+          readyHint ? "ring-2 ring-[#7aab9a]/75" : ""
+        }`}
         style={{
           touchAction: "none",
           ...(dragging
             ? {}
             : {
                 transform: restTransform,
+                zIndex: selected ? 80 : undefined,
               }),
         }}
       >
         <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-2">
           <div className="flex items-start justify-between gap-1">
-            <span className="line-clamp-2 text-left text-[13px] font-bold leading-tight tracking-wide text-[#f0e6d3]">
+            <span className="text-left text-[13px] font-bold leading-tight tracking-wide text-[#f0e6d3]">
               {card.name}
             </span>
             <span
@@ -359,15 +388,21 @@ function HandCard({
               {card.cost}
             </span>
           </div>
-          <p className="mt-2 line-clamp-4 min-h-0 flex-1 overflow-hidden text-left text-[11px] leading-snug text-stone-400">
-            {coreLine}
+
+          {/* 正常狀態即顯示完整核心效果，不裁切 */}
+          <p className="mt-2 min-h-0 flex-1 overflow-y-auto text-left text-[11px] leading-snug text-stone-300">
+            {description}
           </p>
+
           <div className="mt-1.5 shrink-0">
             <p className={`text-[9px] font-semibold ${typeAccent}`}>
               {template?.type}
             </p>
             {card.isExhaust && (
               <p className="text-[9px] text-amber-500/70">消耗</p>
+            )}
+            {selected && !readyHint && (
+              <p className="mt-0.5 text-[8px] text-stone-500">上拖出牌</p>
             )}
             {readyHint && (
               <p className="mt-0.5 text-[10px] font-bold text-[#7aab9a]">
