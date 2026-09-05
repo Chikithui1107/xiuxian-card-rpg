@@ -6,9 +6,7 @@ import {
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
-  type ReactNode,
 } from "react";
-import { createPortal } from "react-dom";
 import {
   CARD_TEMPLATES,
   type CardTemplateId,
@@ -25,9 +23,9 @@ interface HandUIProps {
   onDenyPlay?: (reason: "energy" | "locked") => void;
 }
 
-/** 上滑多少像素算出牌（相對起點） */
-const PLAY_SWIPE_Y = -56;
-const TAP_SLOP = 10;
+/** 上滑多少像素算出牌 */
+const PLAY_SWIPE_Y = -52;
+const TAP_SLOP = 8;
 
 function getOverlapClass(total: number) {
   if (total <= 4) return "-space-x-3";
@@ -53,9 +51,7 @@ export function HandUI({
 
   return (
     <div
-      className={`relative overflow-visible px-1 pb-1 pt-14 ${
-        denyShake ? "animate-deny-shake" : ""
-      }`}
+      className={`relative px-1 pb-1 pt-14 ${denyShake ? "animate-deny-shake" : ""}`}
       style={{ minHeight: "calc(3.5rem + var(--game-card-height))" }}
     >
       {hand.length === 0 ? (
@@ -63,9 +59,9 @@ export function HandUI({
           手牌已空
         </p>
       ) : (
-        <div className="flex justify-center overflow-visible">
+        <div className="flex justify-center">
           <div
-            className={`flex items-end justify-center overflow-visible ${getOverlapClass(hand.length)}`}
+            className={`flex items-end justify-center ${getOverlapClass(hand.length)}`}
           >
             {hand.map((card, index) => (
               <HandCard
@@ -85,68 +81,6 @@ export function HandUI({
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function CardFace({
-  card,
-  template,
-  canAfford,
-  typeAccent,
-  inspecting,
-  readyHint,
-  selected,
-}: {
-  card: Card;
-  template: (typeof CARD_TEMPLATES)[CardTemplateId] | undefined;
-  canAfford: boolean;
-  typeAccent: string;
-  inspecting: boolean;
-  readyHint: boolean;
-  selected: boolean;
-}) {
-  return (
-    <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-2">
-      <div className="flex items-start justify-between gap-1">
-        <span className="line-clamp-2 text-left text-[10px] font-bold leading-tight text-[#f0e6d3]">
-          {card.name}
-        </span>
-        <span
-          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
-            canAfford
-              ? "bg-[#7aab9a] text-stone-950"
-              : "bg-[#a85555] text-stone-100"
-          }`}
-        >
-          {card.cost}
-        </span>
-      </div>
-      <p
-        className={`mt-1.5 min-h-0 flex-1 text-left text-[8px] leading-snug ${
-          inspecting
-            ? "overflow-y-auto text-stone-300"
-            : "line-clamp-5 overflow-hidden text-stone-400"
-        }`}
-      >
-        {template?.description}
-      </p>
-      <div className="mt-1 shrink-0">
-        <p className={`text-[8px] font-semibold ${typeAccent}`}>
-          {template?.type}
-        </p>
-        {card.isExhaust && (
-          <p className="text-[8px] text-amber-500/80">消耗</p>
-        )}
-        {inspecting && !readyHint && (
-          <p className="mt-1 text-[8px] text-stone-500">
-            {selected ? "上拖出牌 · 再點取消" : "點選鎖定 · 上拖出牌"}
-          </p>
-        )}
-        {readyHint && (
-          <p className="mt-0.5 text-[9px] font-bold text-[#7aab9a]">松手出牌</p>
-        )}
-      </div>
     </div>
   );
 }
@@ -186,17 +120,6 @@ function HandCard({
   const [hovered, setHovered] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [readyHint, setReadyHint] = useState(false);
-  const [dragPos, setDragPos] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
-  const [portalReady, setPortalReady] = useState(false);
-
-  useEffect(() => {
-    setPortalReady(true);
-  }, []);
 
   const template = CARD_TEMPLATES[card.id as CardTemplateId];
   const canAfford = energy >= card.cost;
@@ -206,12 +129,27 @@ function HandCard({
   const typeAccent =
     CARD_TYPE_ACCENT[template?.type ?? ""] ?? "text-[#c9a84c]";
 
+  const clearGhostStyles = useCallback(() => {
+    const ghost = ghostRef.current;
+    if (!ghost) return;
+    ghost.style.position = "";
+    ghost.style.left = "";
+    ghost.style.top = "";
+    ghost.style.width = "";
+    ghost.style.height = "";
+    ghost.style.zIndex = "";
+    ghost.style.margin = "";
+    ghost.style.transform = "";
+    ghost.style.transition = "";
+    ghost.style.pointerEvents = "";
+  }, []);
+
   const finishDrag = useCallback(() => {
     dragRef.current = null;
     setDragging(false);
     setReadyHint(false);
-    setDragPos(null);
-  }, []);
+    clearGhostStyles();
+  }, [clearGhostStyles]);
 
   const tryPlay = useCallback(
     (origin: DOMRect) => {
@@ -233,10 +171,16 @@ function HandCard({
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
+    e.stopPropagation();
     const ghost = ghostRef.current;
     if (!ghost) return;
     const rect = ghost.getBoundingClientRect();
-    ghost.setPointerCapture(e.pointerId);
+
+    try {
+      ghost.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
 
     dragRef.current = {
       pointerId: e.pointerId,
@@ -251,39 +195,53 @@ function HandCard({
     };
   };
 
+  const promoteToFreeDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    const ghost = ghostRef.current;
+    if (!drag || !ghost || drag.active) return;
+
+    drag.active = true;
+    setDragging(true);
+    setHovered(false);
+
+    // 直接改 style（不搬 DOM、不每幀 setState），跟手最穩
+    ghost.style.position = "fixed";
+    ghost.style.left = `${e.clientX - drag.grabX}px`;
+    ghost.style.top = `${e.clientY - drag.grabY}px`;
+    ghost.style.width = `${drag.width}px`;
+    ghost.style.height = `${drag.height}px`;
+    ghost.style.zIndex = "9999";
+    ghost.style.margin = "0";
+    ghost.style.transform = "none";
+    ghost.style.transition = "none";
+    ghost.style.pointerEvents = "auto";
+  };
+
   const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
-    if (!drag || drag.pointerId !== e.pointerId) return;
+    const ghost = ghostRef.current;
+    if (!drag || !ghost || drag.pointerId !== e.pointerId) return;
 
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;
 
     if (!drag.moved && (Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP)) {
       drag.moved = true;
-      drag.active = true;
-      setDragging(true);
-      setHovered(false);
-      setDragPos({
-        left: e.clientX - drag.grabX,
-        top: e.clientY - drag.grabY,
-        width: drag.width,
-        height: drag.height,
-      });
+      promoteToFreeDrag(e);
     }
 
     if (!drag.active) return;
 
-    setDragPos({
-      left: e.clientX - drag.grabX,
-      top: e.clientY - drag.grabY,
-      width: drag.width,
-      height: drag.height,
-    });
-    setReadyHint(dy <= PLAY_SWIPE_Y);
+    ghost.style.left = `${e.clientX - drag.grabX}px`;
+    ghost.style.top = `${e.clientY - drag.grabY}px`;
+
+    const upEnough = dy <= PLAY_SWIPE_Y;
+    setReadyHint((prev) => (prev === upEnough ? prev : upEnough));
   };
 
   const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
     const drag = dragRef.current;
+    const ghost = ghostRef.current;
     if (!drag || drag.pointerId !== e.pointerId) return;
 
     try {
@@ -293,15 +251,9 @@ function HandCard({
     }
 
     const dy = e.clientY - drag.startY;
-    const origin = drag.active
-      ? new DOMRect(
-          e.clientX - drag.grabX,
-          e.clientY - drag.grabY,
-          drag.width,
-          drag.height
-        )
-      : ghostRef.current?.getBoundingClientRect() ??
-        slotRef.current?.getBoundingClientRect();
+    const origin =
+      ghost?.getBoundingClientRect() ??
+      slotRef.current?.getBoundingClientRect();
 
     if (drag.moved && dy <= PLAY_SWIPE_Y && origin) {
       tryPlay(origin);
@@ -319,44 +271,12 @@ function HandCard({
   };
 
   const inspecting = !dragging && (selected || hovered);
-  const z = dragging ? 1 : inspecting ? 60 : index;
-
-  const face = (
-    <CardFace
-      card={card}
-      template={template}
-      canAfford={canAfford}
-      typeAccent={typeAccent}
-      inspecting={inspecting || readyHint}
-      readyHint={readyHint}
-      selected={selected}
-    />
-  );
-
-  let portal: ReactNode = null;
-  if (portalReady && dragging && dragPos) {
-    portal = createPortal(
-      <div
-        className={`ink-card pointer-events-none fixed z-[9999] shadow-2xl ${typeStyle} ${
-          readyHint ? "ring-2 ring-[#7aab9a]/80" : ""
-        }`}
-        style={{
-          left: dragPos.left,
-          top: dragPos.top,
-          width: dragPos.width,
-          height: dragPos.height,
-        }}
-      >
-        {face}
-      </div>,
-      document.body
-    );
-  }
+  const z = dragging ? 90 : inspecting ? 60 : index;
 
   return (
     <div
       ref={slotRef}
-      className="hand-card-slot relative shrink-0 overflow-visible"
+      className="hand-card-slot relative shrink-0"
       style={{ zIndex: z }}
       onMouseEnter={() => {
         if (!dragging) setHovered(true);
@@ -388,27 +308,71 @@ function HandCard({
             if (origin) tryPlay(origin);
           }
         }}
-        className={`ink-card absolute inset-0 origin-bottom touch-none select-none ${
+        className={`ink-card absolute inset-0 origin-bottom select-none ${
           locked
             ? "cursor-not-allowed opacity-40"
             : !canAfford
               ? "cursor-grab opacity-55"
               : "cursor-grab active:cursor-grabbing"
         } ${typeStyle} ${
-          dragging ? "opacity-25" : "transition-transform duration-200 ease-out"
-        } ${inspecting ? "ink-card-selected" : ""}`}
-        style={
-          dragging
-            ? undefined
+          dragging ? "" : "transition-transform duration-200 ease-out"
+        } ${inspecting ? "ink-card-selected" : ""} ${
+          readyHint ? "ring-2 ring-[#7aab9a]/75" : ""
+        }`}
+        style={{
+          touchAction: "none",
+          ...(dragging
+            ? {}
             : {
                 transform: inspecting ? "translateY(-18px)" : "translateY(0)",
                 zIndex: inspecting ? 60 : undefined,
-              }
-        }
+              }),
+        }}
       >
-        {face}
+        <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-2">
+          <div className="flex items-start justify-between gap-1">
+            <span className="line-clamp-2 text-left text-[10px] font-bold leading-tight text-[#f0e6d3]">
+              {card.name}
+            </span>
+            <span
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
+                canAfford
+                  ? "bg-[#7aab9a] text-stone-950"
+                  : "bg-[#a85555] text-stone-100"
+              }`}
+            >
+              {card.cost}
+            </span>
+          </div>
+          <p
+            className={`mt-1.5 min-h-0 flex-1 text-left text-[8px] leading-snug ${
+              inspecting
+                ? "overflow-y-auto text-stone-300"
+                : "line-clamp-5 overflow-hidden text-stone-400"
+            }`}
+          >
+            {template?.description}
+          </p>
+          <div className="mt-1 shrink-0">
+            <p className={`text-[8px] font-semibold ${typeAccent}`}>
+              {template?.type}
+            </p>
+            {card.isExhaust && (
+              <p className="text-[8px] text-amber-500/80">消耗</p>
+            )}
+            {inspecting && !readyHint && (
+              <p className="mt-1 text-[8px] text-stone-500">
+                {selected ? "上拖出牌 · 再點取消" : "點選鎖定 · 上拖出牌"}
+              </p>
+            )}
+            {readyHint && (
+              <p className="mt-0.5 text-[9px] font-bold text-[#7aab9a]">
+                松手出牌
+              </p>
+            )}
+          </div>
+        </div>
       </div>
-      {portal}
     </div>
   );
 }

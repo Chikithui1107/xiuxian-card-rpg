@@ -405,7 +405,6 @@ body {
 .mobile-content.combat-lock-scroll {
   overflow: hidden !important;
   overscroll-behavior: none;
-  touch-action: none;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
