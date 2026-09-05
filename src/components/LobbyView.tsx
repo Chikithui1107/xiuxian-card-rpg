@@ -34,32 +34,19 @@ export function LobbyView({
   onContinueGame,
   onAbandonGame,
 }: LobbyViewProps) {
-  const bgSrc = publicAsset("/backgrounds/lobby-cloud-terrace.jpg");
-  const cutoutSrc = publicAsset(
-    hero.lobbyPortrait ?? "/heroes/baiye-cutout.png"
-  );
+  // 合成場景：白天雲海山門 + 白夜（站位／光影已烘焙）
+  const sceneSrc = publicAsset("/backgrounds/lobby-baiye-terrace.jpg");
   const hpPercent = Math.max(0, (playerHp / stats.maxHp) * 100);
 
   return (
     <div className="lobby-home animate-fade-in relative min-h-0 flex-1 overflow-hidden">
-      {/* 層 1：場景背景 */}
       <img
-        src={bgSrc}
-        alt=""
-        className="lobby-bg absolute inset-0 h-full w-full object-cover object-[center_42%]"
+        src={sceneSrc}
+        alt={hero.name}
+        className="lobby-bg absolute inset-0 h-full w-full object-cover object-[center_38%]"
         draggable={false}
       />
       <div className="lobby-bg-veil pointer-events-none absolute inset-0" />
-
-      {/* 層 2：無背景主角 */}
-      <div className="lobby-actor pointer-events-none absolute inset-x-0 bottom-[9.5rem] top-6 flex items-end justify-center sm:bottom-40">
-        <img
-          src={cutoutSrc}
-          alt={hero.name}
-          className="lobby-actor-art h-full w-auto max-w-[min(100%,22rem)] object-contain object-bottom drop-shadow-[0_18px_28px_rgba(0,0,0,0.55)]"
-          draggable={false}
-        />
-      </div>
 
       {lastRunMessage && (
         <div className="absolute left-3 right-3 top-3 z-20 rounded border border-[#8a7340]/40 bg-stone-950/80 px-3 py-2 text-center text-[11px] text-[#c9a84c]">
