@@ -61,7 +61,7 @@ export function LobbyView({
         <h2 className="text-[1.55rem] font-bold tracking-[0.36em] text-[#f5efe4] drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
           {hero.name}
         </h2>
-        <p className="mt-1 text-[11px] tracking-[0.22em] text-[#a8c4b8] drop-shadow">
+        <p className="lobby-hero-subtitle mt-1 text-[11px] tracking-[0.22em]">
           {hero.title} · {hero.realm}
         </p>
       </div>
@@ -105,10 +105,10 @@ export function LobbyView({
               className="btn-start-game"
               aria-label="繼續修行"
             >
-              <span className="relative block text-xl font-bold tracking-[0.32em]">
+              <span className="relative block text-lg font-bold tracking-[0.32em]">
                 繼續修行
               </span>
-              <span className="relative mt-1.5 block text-[11px] font-semibold tracking-[0.2em] text-[#8a7340]">
+              <span className="relative mt-1 block text-[11px] font-semibold tracking-[0.2em] text-[#8a7340]">
                 {runLabel ?? "返回本次秘境"}
               </span>
             </button>
@@ -126,10 +126,10 @@ export function LobbyView({
             className="btn-start-game"
             aria-label="開始修行，前往祕境試煉"
           >
-            <span className="relative block text-xl font-bold tracking-[0.32em]">
+            <span className="relative block text-lg font-bold tracking-[0.32em]">
               開始修行
             </span>
-            <span className="relative mt-1.5 block text-[11px] font-semibold tracking-[0.2em] text-[#8a7340]">
+            <span className="relative mt-1 block text-[11px] font-semibold tracking-[0.2em] text-[#8a7340]">
               前往祕境試煉
             </span>
           </button>

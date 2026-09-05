@@ -89,8 +89,8 @@
 
   transform: translateX(-50%);
 
-  /* 極輕壓高光，不做整體灰化；腳底另有環境影 */
-  filter: brightness(0.96) contrast(1.02);
+  /* 人物 PNG 亮度／顏色不改；只保留水平置中 */
+  filter: none;
 
   user-select: none;
   pointer-events: none;
