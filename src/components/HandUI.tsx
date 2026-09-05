@@ -613,14 +613,17 @@ function HandCard({
         if (!isDragging) onHoverChange(card.instanceId, false);
       }}
     >
+      {/* 拖走時同一節點改成全透明，不卸載，避免掐斷 pointer；也不畫 ink-card 框 */}
       <div
         ref={cardRef}
         role="button"
         tabIndex={0}
         aria-pressed={selected}
         aria-disabled={locked || !canAfford}
+        aria-hidden={isDragging}
         onPointerDown={onPointerDown}
         onKeyDown={(e) => {
+          if (isDragging) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             if (selected) {
@@ -640,21 +643,31 @@ function HandCard({
             if (origin) finishPlayOrDeny(origin);
           }
         }}
-        className={`ink-card absolute inset-0 origin-bottom select-none ${
-          isDragging ? "invisible" : ""
-        } ${
-          locked
-            ? "cursor-not-allowed opacity-40"
-            : !canAfford
-              ? "cursor-grab opacity-55"
-              : "cursor-grab active:cursor-grabbing"
-        } ${typeStyle} ${
-          isDragging ? "" : "transition-transform duration-200 ease-out"
-        } ${inspecting ? "ink-card-selected" : ""}`}
+        className={
+          isDragging
+            ? "absolute inset-0 opacity-0"
+            : `ink-card absolute inset-0 origin-bottom select-none ${
+                locked
+                  ? "cursor-not-allowed opacity-40"
+                  : !canAfford
+                    ? "cursor-grab opacity-55"
+                    : "cursor-grab active:cursor-grabbing"
+              } ${typeStyle} transition-transform duration-200 ease-out ${
+                inspecting ? "ink-card-selected" : ""
+              }`
+        }
         style={{
           touchAction: "none",
           transform: isDragging ? "none" : restTransform,
           zIndex: isFocus ? 80 : undefined,
+          ...(isDragging
+            ? {
+                border: "none",
+                background: "transparent",
+                boxShadow: "none",
+                pointerEvents: "none" as const,
+              }
+            : {}),
         }}
       >
         {!isDragging && (
