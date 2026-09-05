@@ -41,21 +41,21 @@ function fanLift(index: number, total: number) {
   return Math.abs(index - mid) * 2.5;
 }
 
-/** 重疊保留足夠露出完整卡名 */
+/** 重疊適中：卡名必露；完整效果靠點選提到最前閱讀 */
 function overlapPx(total: number) {
   const raw =
     typeof window !== "undefined"
       ? getComputedStyle(document.documentElement).getPropertyValue(
           "--game-card-width"
         )
-      : "8.7rem";
+      : "7.35rem";
   const w = raw.includes("rem")
-    ? (parseFloat(raw) || 8.7) * 16
-    : parseFloat(raw) || 140;
-  if (total <= 3) return Math.round(w * 0.22);
-  if (total === 4) return Math.round(w * 0.26);
-  if (total === 5) return Math.round(w * 0.3);
-  return Math.round(w * 0.34);
+    ? (parseFloat(raw) || 7.35) * 16
+    : parseFloat(raw) || 118;
+  if (total <= 3) return Math.round(w * 0.18);
+  if (total === 4) return Math.round(w * 0.22);
+  if (total === 5) return Math.round(w * 0.26);
+  return Math.round(w * 0.3);
 }
 
 export function HandUI({
@@ -76,10 +76,10 @@ export function HandUI({
 
   return (
     <div
-      className={`hand-fan relative overflow-visible px-0.5 pb-8 pt-3 ${
+      className={`hand-fan relative w-full overflow-visible px-0.5 pb-1 pt-1 ${
         denyShake ? "animate-deny-shake" : ""
       }`}
-      style={{ minHeight: "calc(1.5rem + var(--game-card-height))" }}
+      style={{ minHeight: "calc(0.5rem + var(--game-card-height))" }}
     >
       {hand.length === 0 ? (
         <p className="flex min-h-[var(--game-card-height)] items-center justify-center text-xs text-stone-500">
@@ -373,13 +373,13 @@ function HandCard({
               }),
         }}
       >
-        <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-2">
+        <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-1.5">
           <div className="flex items-start justify-between gap-1">
-            <span className="text-left text-[13px] font-bold leading-tight tracking-wide text-[#f0e6d3]">
+            <span className="min-w-0 flex-1 text-left text-[12px] font-bold leading-tight tracking-wide text-[#f0e6d3]">
               {card.name}
             </span>
             <span
-              className={`flex h-[1.35rem] w-[1.35rem] shrink-0 items-center justify-center rounded-full text-[11px] font-extrabold ${
+              className={`flex h-[1.25rem] w-[1.25rem] shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
                 canAfford
                   ? "bg-[#7aab9a]/90 text-stone-950"
                   : "bg-[#a85555]/85 text-stone-100"
@@ -389,23 +389,23 @@ function HandCard({
             </span>
           </div>
 
-          {/* 正常狀態即顯示完整核心效果，不裁切 */}
-          <p className="mt-2 min-h-0 flex-1 overflow-y-auto text-left text-[11px] leading-snug text-stone-300">
+          {/* 完整效果文字；CJK 自然換行，不截斷 */}
+          <p className="mt-1.5 min-h-0 flex-1 overflow-y-auto break-words text-left text-[10px] leading-[1.35] text-stone-300">
             {description}
           </p>
 
-          <div className="mt-1.5 shrink-0">
-            <p className={`text-[9px] font-semibold ${typeAccent}`}>
+          <div className="mt-1 shrink-0">
+            <p className={`text-[8px] font-semibold ${typeAccent}`}>
               {template?.type}
             </p>
             {card.isExhaust && (
-              <p className="text-[9px] text-amber-500/70">消耗</p>
+              <p className="text-[8px] text-amber-500/70">消耗</p>
             )}
             {selected && !readyHint && (
               <p className="mt-0.5 text-[8px] text-stone-500">上拖出牌</p>
             )}
             {readyHint && (
-              <p className="mt-0.5 text-[10px] font-bold text-[#7aab9a]">
+              <p className="mt-0.5 text-[9px] font-bold text-[#7aab9a]">
                 松手出牌
               </p>
             )}

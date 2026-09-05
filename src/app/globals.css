@@ -511,7 +511,7 @@ body {
 
 /* 戰鬥殼：抬高玩家操作區，壓縮底部空黑 */
 .combat-shell {
-  --combat-dock-h: clamp(26.5rem, 52vh, 30.5rem);
+  --combat-dock-h: clamp(27.5rem, 54vh, 31rem);
   position: relative;
   height: 100%;
   min-height: 0;
@@ -614,8 +614,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3.55rem;
-  height: 3.55rem;
+  width: 3.25rem;
+  height: 3.25rem;
   border-radius: 9999px;
   border: 1px solid rgba(201, 168, 76, 0.42);
   background:
@@ -1522,9 +1522,16 @@ html.combat-scroll-lock {
 }
 
 :root {
-  /* 略增高以容納完整效果文字；置中偏上 */
-  --game-card-width: 8.7rem;
-  --game-card-height: 13.25rem;
+  /* 手機優先：略窄以減少互相遮字，高度夠放完整效果 */
+  --game-card-width: 7.35rem;
+  --game-card-height: 11.75rem;
+}
+
+@media (min-width: 400px) {
+  :root {
+    --game-card-width: 8.1rem;
+    --game-card-height: 12.6rem;
+  }
 }
 
 .hand-card-slot {
