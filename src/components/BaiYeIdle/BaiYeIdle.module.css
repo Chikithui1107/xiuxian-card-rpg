@@ -13,6 +13,7 @@
 
 /* -------------------------
    背景：全螢幕 cover，完全固定
+   只壓背景曝光／飽和，不碰男主
 ------------------------- */
 
 .background {
@@ -23,8 +24,54 @@
   object-fit: cover;
   object-position: center center;
 
+  filter: brightness(0.78) saturate(0.82) contrast(1.05);
+
   user-select: none;
   pointer-events: none;
+}
+
+/* 背景分級：冷灰藍、壓天空／濕石反光、輕暗角；z 在人物之下 */
+.bgGrade {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+
+  background:
+    /* 男主一帶保留柔和冷白天光 */
+    radial-gradient(
+      ellipse at 50% 38%,
+      rgba(196, 220, 236, 0.07) 0%,
+      transparent 34%
+    ),
+    /* 四周極輕暗角 */
+    radial-gradient(
+      ellipse at 50% 40%,
+      transparent 25%,
+      rgba(5, 15, 24, 0.1) 65%,
+      rgba(3, 10, 18, 0.24) 100%
+    ),
+    /* 天空與遠山略壓暗 */
+    linear-gradient(
+      180deg,
+      rgba(10, 26, 38, 0.24) 0%,
+      rgba(8, 20, 32, 0.12) 26%,
+      transparent 48%
+    ),
+    /* 減弱濕石地白色反光 */
+    linear-gradient(
+      0deg,
+      rgba(5, 12, 20, 0.32) 0%,
+      rgba(8, 16, 26, 0.14) 16%,
+      transparent 36%
+    ),
+    /* 整體玄青冷罩（別成純灰／黑夜） */
+    linear-gradient(
+      180deg,
+      rgba(18, 38, 52, 0.14),
+      rgba(12, 28, 40, 0.08) 55%,
+      rgba(10, 22, 32, 0.1)
+    );
 }
 
 /* -------------------------
@@ -69,12 +116,12 @@
   border-radius: 999px;
 
   filter: blur(28px);
-  opacity: 0.22;
+  opacity: 0.12;
 
   background: radial-gradient(
     ellipse,
-    rgba(231, 242, 250, 0.8),
-    rgba(203, 221, 235, 0.25) 50%,
+    rgba(168, 196, 216, 0.42),
+    rgba(130, 162, 188, 0.14) 50%,
     transparent 72%
   );
 }
@@ -107,7 +154,7 @@
   height: 14%;
   left: -10%;
   bottom: 7%;
-  opacity: 0.13;
+  opacity: 0.07;
   animation: mistFront 11s ease-in-out infinite alternate;
 }
 
@@ -279,15 +326,15 @@
 .coldLight {
   position: absolute;
   z-index: 12;
-  width: 65%;
-  height: 65%;
-  left: 17.5%;
-  top: 8%;
+  width: 58%;
+  height: 58%;
+  left: 21%;
+  top: 10%;
   pointer-events: none;
   background: radial-gradient(
     ellipse,
-    rgba(212, 236, 255, 0.14),
-    transparent 67%
+    rgba(186, 214, 232, 0.1),
+    transparent 68%
   );
   mix-blend-mode: screen;
   animation: coldLight 6s ease-in-out infinite;
@@ -296,10 +343,10 @@
 @keyframes coldLight {
   0%,
   100% {
-    opacity: 0.5;
+    opacity: 0.4;
   }
   50% {
-    opacity: 0.85;
+    opacity: 0.7;
   }
 }
 
