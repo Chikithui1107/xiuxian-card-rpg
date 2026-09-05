@@ -46,43 +46,43 @@
   display: block;
   position: absolute;
   left: 50%;
-  top: 18%;
+  top: 14%;
   z-index: 8;
-  width: min(92%, 24rem);
-  height: 62%;
+  width: min(88%, 22rem);
+  height: 58%;
   transform: translateX(-50%);
   background:
     radial-gradient(
-      ellipse 70% 55% at 50% 36%,
-      rgba(5, 7, 9, 0.34) 0%,
-      rgba(5, 7, 9, 0.14) 48%,
+      ellipse 62% 48% at 50% 40%,
+      rgba(5, 7, 9, 0.42) 0%,
+      rgba(5, 7, 9, 0.18) 46%,
       transparent 74%
     ),
     radial-gradient(
-      ellipse 90% 40% at 50% 8%,
-      rgba(4, 5, 7, 0.2) 0%,
-      transparent 70%
+      ellipse 95% 36% at 50% 6%,
+      rgba(4, 5, 7, 0.28) 0%,
+      transparent 72%
     );
 }
 
 .scene[data-lobby-theme="ink"] .groundShadow {
-  bottom: 8%;
-  width: 42%;
-  opacity: 0.85;
+  bottom: 14%;
+  width: 36%;
+  opacity: 0.7;
 }
 
 .scene[data-lobby-theme="ink"] .character {
-  /* 預設仍可被 lobbyArt 覆寫；這裡只補 object 對齊上半身焦點 */
-  object-position: center 28%;
+  /* 對齊臉與上半身；腳可裁入下方 */
+  object-position: center 18%;
 }
 
 .scene[data-lobby-theme="ink"] .particles {
-  opacity: 0.55;
+  opacity: 0.4;
 }
 
 .scene[data-lobby-theme="ink"] .mistBack {
-  opacity: 0.55;
-  top: 22%;
+  opacity: 0.45;
+  top: 18%;
 }
 
 /* 已移除全屏 vignette／四角暗角；上下功能性漸變改由 header／lobby veil／底欄負責 */

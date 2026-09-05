@@ -71,12 +71,12 @@ export const PLAYABLE_CHARACTERS: PlayableCharacter[] = [
     skillLabels: ["陰陽鎖", "因果子", "一子定局"],
     lobbyTheme: "ink",
     lobbyArt: {
-      /* 縮小立繪、頭略降避開天際太極；腳沒入下方 UI 暗部 */
-      backgroundPosition: "center 48%",
+      /* 再縮：頭離開太極；腳沒入底欄；側向留白 */
+      backgroundPosition: "center 56%",
       backgroundFilter: "none",
-      characterBottom: "2%",
-      characterHeight: "66%",
-      characterMaxWidth: "76%",
+      characterBottom: "-1%",
+      characterHeight: "56%",
+      characterMaxWidth: "68%",
     },
   },
 ];
