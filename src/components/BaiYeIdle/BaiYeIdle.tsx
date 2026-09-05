@@ -27,8 +27,6 @@ export default function BaiYeIdle({
         decoding="async"
       />
 
-      <div className={styles.bgGrade} aria-hidden />
-
       {/* 遠處薄霧：極慢 */}
       <div className={`${styles.mist} ${styles.mistBack}`} />
 

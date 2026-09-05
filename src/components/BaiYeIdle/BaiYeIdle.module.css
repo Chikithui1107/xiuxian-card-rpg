@@ -30,43 +30,7 @@
   pointer-events: none;
 }
 
-.bgGrade {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-
-  background:
-    radial-gradient(
-      ellipse at 50% 38%,
-      rgba(196, 220, 236, 0.07) 0%,
-      transparent 34%
-    ),
-    radial-gradient(
-      ellipse at 50% 40%,
-      transparent 25%,
-      rgba(5, 15, 24, 0.1) 65%,
-      rgba(3, 10, 18, 0.24) 100%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(10, 26, 38, 0.16) 0%,
-      rgba(8, 20, 32, 0.08) 26%,
-      transparent 48%
-    ),
-    linear-gradient(
-      0deg,
-      rgba(5, 12, 20, 0.26) 0%,
-      rgba(8, 16, 26, 0.1) 16%,
-      transparent 36%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(18, 38, 52, 0.1),
-      rgba(12, 28, 40, 0.06) 55%,
-      rgba(10, 22, 32, 0.08)
-    );
-}
+/* 已移除全屏 vignette／四角暗角；上下功能性漸變改由 header／lobby veil／底欄負責 */
 
 /* -------------------------
    男主：完全靜止

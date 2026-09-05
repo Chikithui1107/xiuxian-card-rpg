@@ -255,8 +255,8 @@ body {
   padding: 0.7rem 2.85rem 1.35rem;
   background: linear-gradient(
     180deg,
-    rgba(8, 10, 12, 0.72) 0%,
-    rgba(8, 10, 12, 0.38) 48%,
+    rgba(8, 10, 12, 0.42) 0%,
+    rgba(8, 10, 12, 0.16) 42%,
     transparent 100%
   );
 }
@@ -460,6 +460,19 @@ body {
 
 .mobile-frame-immersive {
   background: #0a0c0e;
+  /* 沉浸山門：拿掉 inset 暗角，避免左右／四角發黑 */
+  border-left-color: transparent;
+  border-right-color: transparent;
+  box-shadow: none;
+}
+
+@media (min-width: 480px) {
+  .mobile-frame-immersive {
+    border: 1px solid rgba(74, 124, 111, 0.16);
+    box-shadow:
+      0 0 0 1px rgba(201, 168, 76, 0.04),
+      0 20px 60px rgba(0, 0, 0, 0.45);
+  }
 }
 
 .mobile-content.combat-lock-scroll {
@@ -757,16 +770,14 @@ html.combat-scroll-lock {
 }
 
 .lobby-bg-veil {
-  /* 底部留給屬性／CTA；導航已用自身漸變 */
-  background:
-    linear-gradient(
-      180deg,
-      transparent 0%,
-      transparent 54%,
-      rgba(8, 10, 14, 0.1) 66%,
-      rgba(6, 8, 12, 0.42) 82%,
-      rgba(6, 8, 12, 0.72) 100%
-    );
+  /* 僅底部垂直漸變承接 HUD／導航；無左右暗角 */
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 58%,
+    rgba(6, 8, 12, 0.18) 78%,
+    rgba(5, 7, 9, 0.55) 100%
+  );
 }
 
 .lobby-hero-title {
