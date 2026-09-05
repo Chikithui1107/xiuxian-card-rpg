@@ -892,12 +892,14 @@ export default function GamePage() {
         showRunMenu ? <InGameMenu onQuit={quitRun} /> : null
       }
       bottomNav={
-        <BottomNav
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          inCombat={hasActiveRun}
-          combatLocked={isInCombat}
-        />
+        isInCombat ? null : (
+          <BottomNav
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            inCombat={hasActiveRun}
+            combatLocked={false}
+          />
+        )
       }
     >
       {renderContent()}

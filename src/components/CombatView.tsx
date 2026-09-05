@@ -93,7 +93,7 @@ export function CombatView({
   lastEnemyDamage,
   lastDodge,
   lastPassiveHeal,
-  totalDamage,
+  totalDamage: _totalDamage,
   onPlayCard,
   onEndTurn,
 }: CombatViewProps) {
@@ -236,24 +236,20 @@ export function CombatView({
         <img
           src={COMBAT_BG}
           alt=""
-          className="h-full w-full object-cover object-[center_35%]"
+          className="h-full w-full object-cover object-[center_32%]"
           draggable={false}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-[#121110]/92" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/15 to-[#121110]/88" />
       </div>
 
-      <div className="relative z-10 flex shrink-0 items-center justify-between gap-2 border-b border-[#4a7c6f]/20 bg-stone-950/55 px-3 py-1.5 backdrop-blur-[2px]">
-        <p className="zone-label shrink-0">戰鬥中</p>
-        <p className="min-w-0 flex-1 truncate text-center text-[10px] text-[#7aab9a]">
+      <div className="relative z-10 flex shrink-0 items-center justify-center border-b border-white/5 bg-stone-950/35 px-3 py-1 backdrop-blur-[2px]">
+        <p className="truncate text-[10px] tracking-wide text-[#a8c4b8]">
           {floorLabel}
         </p>
-        <p className="stat-value shrink-0 text-[11px] font-bold text-[#c9a84c]">
-          {totalDamage.toLocaleString()}
-        </p>
       </div>
 
-      <div className="relative z-10 min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2">
-        <div ref={enemyTargetRef}>
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col px-3 pb-1 pt-2">
+        <div ref={enemyTargetRef} className="min-h-0 flex-1">
           <EnemyPanel
             enemy={enemy}
             damagePopups={damagePopups}
@@ -264,7 +260,7 @@ export function CombatView({
             lastPassiveHeal={lastPassiveHeal}
           />
         </div>
-        <div ref={playerTargetRef}>
+        <div ref={playerTargetRef} className="mt-2 shrink-0">
           <CombatPlayerBar
             hero={hero}
             stats={heroStats}
@@ -275,7 +271,7 @@ export function CombatView({
         </div>
       </div>
 
-      <div className="relative z-20 shrink-0 overflow-visible border-t border-[#4a7c6f]/25 bg-[#121110]/88 px-3 pb-2 pt-2 backdrop-blur-[2px]">
+      <div className="relative z-20 shrink-0 overflow-visible border-t border-[#8a7340]/20 bg-[#121110]/82 px-3 pb-2.5 pt-1.5 backdrop-blur-[3px]">
         <CardHand
           hand={hand}
           energy={energy}
