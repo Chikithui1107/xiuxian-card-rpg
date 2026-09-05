@@ -75,24 +75,29 @@ export function TierSelectionView({
       ) : (
         <div className="realm-select-bg realm-select-bg-fallback" aria-hidden />
       )}
-      {/* 全屏只做極輕頂底銜接，不再整體壓暗山谷 */}
       <div className="realm-select-veil pointer-events-none" aria-hidden />
 
       <section className="realm-stage relative z-10 flex min-h-0 flex-1 flex-col">
-        {/* 資訊區上移；背後淡霧幕提升可讀性 */}
-        <div className="realm-info relative mx-auto w-full max-w-[20rem] px-4">
+        {/*
+          縱向節奏（刻度固定）：
+          Header → 遠景空隙 → 主資訊（避開竹葉）→ 間距 → 進入秘境 → 石路場景 → 境界選擇
+        */}
+        <div className="realm-info relative mx-auto w-full max-w-[20rem] shrink-0 px-4">
           <div className="realm-info-mist pointer-events-none" aria-hidden />
 
           <div className="relative z-10 flex flex-col items-center text-center">
-            <p className="text-[10px] tracking-[0.42em] text-stone-400/85">
-              秘境
+            <p className="text-[10px] tracking-[0.32em] text-stone-400/90">
+              ───── 秘境 ─────
             </p>
 
             <h2 className="mt-2.5 text-[1.12rem] font-bold tracking-[0.26em] text-[#e8f2ec]">
               {realmTitle}
             </h2>
+            <p className="mt-1.5 text-[10px] tracking-[0.22em] text-stone-400">
+              {meta.chapterLabel}
+            </p>
 
-            <p className="mt-3 max-w-[17rem] text-[12px] leading-relaxed tracking-wide text-stone-300/92">
+            <p className="mt-2.5 max-w-[17rem] text-[12px] leading-relaxed tracking-wide text-stone-300/92">
               {tier.description}
             </p>
 
@@ -113,35 +118,32 @@ export function TierSelectionView({
               </div>
             )}
 
-            <div className="mt-4 flex items-center gap-1.5">
-              <span className="text-[9px] text-stone-500">◇</span>
+            <div className="mt-3.5 flex items-center gap-1.5">
+              <span className="text-[9px] text-[#c9a84c]/55">◇</span>
               {Array.from({ length: tier.floors }, (_, i) => {
                 const floor = i + 1;
-                const state = cleared
-                  ? "done"
-                  : unlocked && floor === 1
-                    ? "current"
-                    : "locked";
+                const isCurrent = unlocked && !cleared && floor === 1;
+                const isDone = cleared;
                 return (
                   <div key={floor} className="flex items-center gap-1.5">
                     <span
-                      className={`text-[12px] font-semibold tabular-nums ${
-                        state === "current"
+                      className={`text-[13px] font-semibold tabular-nums ${
+                        isCurrent || (isDone && floor === 1)
                           ? "text-[#c9a84c]"
-                          : state === "done"
-                            ? "text-[#8eb8a8]"
-                            : "text-stone-500"
+                          : isDone
+                            ? "text-[#8eb8a8]/80"
+                            : "text-[#8a9e96]/45"
                       }`}
                     >
                       {floor}
                     </span>
                     {floor < tier.floors && (
-                      <span className="text-stone-600">——</span>
+                      <span className="text-[#6a7a72]/40">──</span>
                     )}
                   </div>
                 );
               })}
-              <span className="text-[9px] text-stone-500">◇</span>
+              <span className="text-[9px] text-[#c9a84c]/55">◇</span>
             </div>
 
             <p className="mt-3 text-[11px] tracking-[0.12em] text-[#b8d0c4]">
@@ -155,7 +157,7 @@ export function TierSelectionView({
             </p>
 
             {!unlocked && (
-              <div className="mt-3">
+              <div className="mt-2.5">
                 <p className="text-sm tracking-[0.28em] text-stone-300">
                   🔒 尚未解鎖
                 </p>
@@ -168,12 +170,15 @@ export function TierSelectionView({
                 已通關 · 可再挑戰
               </p>
             )}
+          </div>
 
+          {/* 與數據區保持 5–7vh；落在中部偏上、石門上方意象 */}
+          <div className="relative z-10 mt-[6vh] flex justify-center">
             <button
               type="button"
               disabled={!unlocked}
               onClick={() => unlocked && onSelectTier(tier.id)}
-              className={`btn-enter-realm mt-5 ${
+              className={`btn-enter-realm ${
                 unlocked ? "" : "pointer-events-none opacity-35"
               }`}
               aria-label={unlocked ? `進入${meta.locationName}` : "尚未解鎖"}
@@ -196,51 +201,54 @@ export function TierSelectionView({
             </button>
           </div>
         </div>
-      </section>
 
-      <nav
-        className="realm-tabs relative z-10 shrink-0 px-2 pb-1 pt-1"
-        aria-label="秘境階段"
-      >
-        <div className="flex items-start justify-around">
-          {tiers.map((t, i) => {
-            const m = getDungeonChapterMeta(t);
-            const active = i === focusIndex;
-            const open = isDungeonTierUnlocked(tiers, i, unlockedAchievements);
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setFocusIndex(i)}
-                className={`flex min-w-[4.5rem] flex-col items-center gap-0.5 border-none bg-transparent py-1 transition-opacity ${
-                  active
-                    ? "text-[#c9a84c] opacity-100"
-                    : "text-stone-500 opacity-[0.32]"
-                }`}
-              >
-                <span className="text-[11px] font-semibold tracking-[0.2em]">
-                  {m.stageTab}
-                </span>
-                <span
-                  className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
+        {/* 適量露出山谷石路；境界選擇貼底欄上方 */}
+        <div className="realm-scene-gap" aria-hidden />
+
+        <nav
+          className="realm-tabs relative z-10 shrink-0 px-2 pb-1 pt-1"
+          aria-label="秘境階段"
+        >
+          <div className="flex items-start justify-around">
+            {tiers.map((t, i) => {
+              const m = getDungeonChapterMeta(t);
+              const active = i === focusIndex;
+              const open = isDungeonTierUnlocked(tiers, i, unlockedAchievements);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setFocusIndex(i)}
+                  className={`flex min-w-[4.5rem] flex-col items-center gap-0.5 border-none bg-transparent py-1 transition-opacity ${
                     active
-                      ? "bg-[#c9a84c] shadow-[0_0_6px_rgba(201,168,76,0.45)]"
-                      : open
-                        ? "bg-stone-500"
-                        : "border border-stone-600 bg-transparent"
+                      ? "text-[#c9a84c] opacity-100"
+                      : "text-stone-400 opacity-40"
                   }`}
-                />
-                <span className="mt-0.5 text-[9px] tracking-wide">
-                  {m.locationName}
-                </span>
-                <span className="text-[8px] tracking-wide opacity-80">
-                  {!open ? "未解鎖" : active ? "當前" : "可查看"}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+                >
+                  <span className="text-[11px] font-semibold tracking-[0.2em]">
+                    {m.stageTab}
+                  </span>
+                  <span
+                    className={`mt-0.5 h-1.5 w-1.5 rounded-full ${
+                      active
+                        ? "bg-[#c9a84c] shadow-[0_0_6px_rgba(201,168,76,0.45)]"
+                        : open
+                          ? "bg-stone-500"
+                          : "border border-stone-600 bg-transparent"
+                    }`}
+                  />
+                  <span className="mt-0.5 text-[9px] tracking-wide">
+                    {m.locationName}
+                  </span>
+                  <span className="text-[8px] tracking-wide opacity-80">
+                    {!open ? "未解鎖" : active ? "當前" : "可查看"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      </section>
     </div>
   );
 }

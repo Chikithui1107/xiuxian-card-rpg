@@ -907,49 +907,59 @@ html.combat-scroll-lock {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  /* 只銜接頂欄與底欄，不再整體壓暗山谷細節 */
+  /* 只銜接頂欄與底欄，不整體壓暗山谷 */
   background: linear-gradient(
     180deg,
-    rgba(6, 8, 10, 0.16) 0%,
+    rgba(6, 8, 10, 0.14) 0%,
     transparent 12%,
-    transparent 68%,
-    rgba(5, 7, 9, 0.22) 86%,
-    rgba(4, 5, 7, 0.48) 100%
+    transparent 70%,
+    rgba(5, 7, 9, 0.2) 88%,
+    rgba(4, 5, 7, 0.42) 100%
   );
 }
 
 .realm-stage {
   flex: 1 1 auto;
-  /* 資訊區上移約 8–10vh，減少上半空白 */
+  display: flex;
+  flex-direction: column;
   justify-content: flex-start;
-  padding-top: 5.5vh;
+  /* 主資訊整體下移約 10–13vh（相對上一輪 5.5vh），避開左上竹葉 */
+  padding-top: 16vh;
 }
 
 .realm-info {
   position: relative;
+  flex-shrink: 0;
 }
 
 .realm-info-mist {
   position: absolute;
   z-index: 0;
   left: 50%;
-  top: 42%;
+  top: 38%;
   width: 118%;
-  height: 118%;
+  height: 108%;
   transform: translate(-50%, -50%);
   pointer-events: none;
-  /* 10–18% 深青黑霧幕，上下羽化，無矩形邊界 */
   background: radial-gradient(
     ellipse 72% 58% at 50% 48%,
-    rgba(6, 14, 18, 0.16) 0%,
-    rgba(6, 12, 16, 0.12) 38%,
-    rgba(6, 12, 16, 0.05) 62%,
+    rgba(6, 14, 18, 0.15) 0%,
+    rgba(6, 12, 16, 0.1) 40%,
+    rgba(6, 12, 16, 0.04) 62%,
     transparent 78%
   );
 }
 
+/* 進入秘境 ↔ 境界選擇：石路場景空隙（手機一屏適量） */
+.realm-scene-gap {
+  flex: 1 1 auto;
+  min-height: 7vh;
+  pointer-events: none;
+}
+
 .realm-tabs {
   background: transparent;
+  flex-shrink: 0;
 }
 
 /* 秘境進入：無框、大點擊區、輕呼吸金光 */
