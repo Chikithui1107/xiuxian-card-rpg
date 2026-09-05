@@ -649,15 +649,32 @@ html.combat-scroll-lock {
 }
 
 .lobby-bg-veil {
-  /* BaiYeIdle 上方只壓底部 dock 區 */
+  /* 底部 dock 可讀；中段留給標題區 */
   background:
     linear-gradient(
       180deg,
       transparent 0%,
-      transparent 52%,
-      rgba(8, 10, 14, 0.2) 70%,
-      rgba(6, 8, 12, 0.88) 100%
+      transparent 48%,
+      rgba(8, 10, 14, 0.12) 58%,
+      rgba(6, 8, 12, 0.55) 72%,
+      rgba(6, 8, 12, 0.9) 100%
     );
+}
+
+.lobby-hero-title {
+  bottom: 11.75rem;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(6, 10, 16, 0.22) 35%,
+    rgba(6, 10, 16, 0.38) 100%
+  );
+}
+
+@media (min-width: 640px) {
+  .lobby-hero-title {
+    bottom: 12.5rem;
+  }
 }
 
 .lobby-dock {

@@ -24,7 +24,7 @@
   object-fit: cover;
   object-position: center center;
 
-  filter: brightness(0.78) saturate(0.82) contrast(1.05);
+  filter: brightness(0.84) saturate(0.85) contrast(1.04);
 
   user-select: none;
   pointer-events: none;
@@ -50,26 +50,27 @@
     ),
     linear-gradient(
       180deg,
-      rgba(10, 26, 38, 0.24) 0%,
-      rgba(8, 20, 32, 0.12) 26%,
+      rgba(10, 26, 38, 0.16) 0%,
+      rgba(8, 20, 32, 0.08) 26%,
       transparent 48%
     ),
     linear-gradient(
       0deg,
-      rgba(5, 12, 20, 0.32) 0%,
-      rgba(8, 16, 26, 0.14) 16%,
+      rgba(5, 12, 20, 0.26) 0%,
+      rgba(8, 16, 26, 0.1) 16%,
       transparent 36%
     ),
     linear-gradient(
       180deg,
-      rgba(18, 38, 52, 0.14),
-      rgba(12, 28, 40, 0.08) 55%,
-      rgba(10, 22, 32, 0.1)
+      rgba(18, 38, 52, 0.1),
+      rgba(12, 28, 40, 0.06) 55%,
+      rgba(10, 22, 32, 0.08)
     );
 }
 
 /* -------------------------
    男主：完全靜止
+   白衣高光極輕降（約 4%）；臉仍為視覺中心
 ------------------------- */
 
 .character {
@@ -88,11 +89,34 @@
 
   transform: translateX(-50%);
 
-  filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.4));
+  /* 極輕壓高光，不做整體灰化；腳底另有環境影 */
+  filter: brightness(0.96) contrast(1.02);
 
   user-select: none;
   pointer-events: none;
   -webkit-user-drag: none;
+}
+
+/* 腳底柔和環境影：與濕石地融合 */
+.groundShadow {
+  position: absolute;
+  left: 50%;
+  bottom: 2.2%;
+  z-index: 9;
+
+  width: 46%;
+  height: 4.2%;
+  transform: translateX(-50%);
+
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgba(8, 14, 22, 0.28) 0%,
+    rgba(8, 14, 22, 0.12) 42%,
+    transparent 72%
+  );
+  filter: blur(6px);
+  pointer-events: none;
 }
 
 /* -------------------------

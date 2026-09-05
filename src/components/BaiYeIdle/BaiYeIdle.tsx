@@ -32,6 +32,9 @@ export default function BaiYeIdle({
       {/* 遠處薄霧：極慢 */}
       <div className={`${styles.mist} ${styles.mistBack}`} />
 
+      {/* 腳底柔影在人物之下 */}
+      <div className={styles.groundShadow} aria-hidden />
+
       {/* 男主完全靜止；劍光用原圖自帶，不加 CSS 假光 */}
       <img
         className={styles.character}

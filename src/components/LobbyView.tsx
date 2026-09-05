@@ -56,16 +56,17 @@ export function LobbyView({
         </div>
       )}
 
-      <div className="lobby-dock absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-10">
-        <div className="mb-2.5 text-center">
-          <h2 className="text-[1.55rem] font-bold tracking-[0.36em] text-[#f5efe4] drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
-            {hero.name}
-          </h2>
-          <p className="mt-1 text-[11px] tracking-[0.22em] text-[#a8c4b8] drop-shadow">
-            {hero.title} · {hero.realm}
-          </p>
-        </div>
+      {/* 名字上移，與屬性框分開；輕漸變提高可讀性 */}
+      <div className="lobby-hero-title pointer-events-none absolute inset-x-0 z-20 px-4 pb-3 pt-8 text-center">
+        <h2 className="text-[1.55rem] font-bold tracking-[0.36em] text-[#f5efe4] drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
+          {hero.name}
+        </h2>
+        <p className="mt-1 text-[11px] tracking-[0.22em] text-[#a8c4b8] drop-shadow">
+          {hero.title} · {hero.realm}
+        </p>
+      </div>
 
+      <div className="lobby-dock absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-3">
         <div className="lobby-stat-sheet mb-3 rounded-lg border border-[#8a7340]/30 bg-stone-950/60 px-3 py-2.5 backdrop-blur-[3px]">
           <div className="mb-1 flex items-center justify-between text-[10px]">
             <span className="text-[#8eb8a8]">氣血</span>
