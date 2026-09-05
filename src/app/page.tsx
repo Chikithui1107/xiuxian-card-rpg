@@ -887,7 +887,9 @@ export default function GamePage() {
       subtitle={
         hasActiveRun && selectedTier
           ? `${selectedTier.name} · 修行中`
-          : TAB_LABELS[activeTab]
+          : activeTab === "lobby"
+            ? undefined
+            : TAB_LABELS[activeTab]
       }
       bgmScene={isInCombat ? "combat" : "lobby"}
       inGameMenu={

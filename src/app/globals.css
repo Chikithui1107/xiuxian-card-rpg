@@ -648,12 +648,8 @@ html.combat-scroll-lock {
   min-height: 100%;
 }
 
-.lobby-hero {
-  min-height: 18rem;
-}
-
 .lobby-hero-art {
-  animation: lobby-hero-breathe 5.5s ease-in-out infinite;
+  animation: lobby-hero-breathe 7s ease-in-out infinite;
   will-change: transform;
 }
 
@@ -661,38 +657,37 @@ html.combat-scroll-lock {
   background:
     linear-gradient(
       180deg,
-      rgba(10, 9, 8, 0.35) 0%,
-      transparent 28%,
-      transparent 48%,
-      rgba(12, 11, 10, 0.55) 72%,
-      rgba(12, 11, 10, 0.96) 100%
-    ),
-    radial-gradient(
-      ellipse at 50% 30%,
-      transparent 40%,
-      rgba(0, 0, 0, 0.28) 100%
+      rgba(8, 7, 6, 0.55) 0%,
+      rgba(8, 7, 6, 0.12) 22%,
+      transparent 42%,
+      rgba(10, 9, 8, 0.35) 58%,
+      rgba(10, 9, 8, 0.82) 78%,
+      rgba(10, 9, 8, 0.97) 100%
     );
+}
+
+.lobby-dock {
+  animation: lobby-cta-in 0.5s ease-out both;
+}
+
+.lobby-stat-sheet {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 @keyframes lobby-hero-breathe {
   0%,
   100% {
-    transform: scale(1);
+    transform: scale(1) translate3d(0, 0, 0);
   }
   50% {
-    transform: scale(1.025);
+    transform: scale(1.02) translate3d(0, -0.35%, 0);
   }
-}
-
-.lobby-cta {
-  animation: lobby-cta-in 0.55s ease-out both;
-  animation-delay: 0.12s;
 }
 
 @keyframes lobby-cta-in {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
