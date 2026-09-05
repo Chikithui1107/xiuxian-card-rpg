@@ -192,8 +192,20 @@ export function CombatView({
         },
       ]);
 
+      const impactDelayMs = 280;
+      // 拂雪命中音比畫面命中點提前 0.2s，對齊刀光節奏
+      const sfxDelayMs = fx === "fuxue" ? Math.max(0, impactDelayMs - 200) : impactDelayMs;
+
+      if (sfxDelayMs < impactDelayMs) {
+        window.setTimeout(() => {
+          playImpact(fx);
+        }, sfxDelayMs);
+      }
+
       window.setTimeout(() => {
-        playImpact(fx);
+        if (sfxDelayMs >= impactDelayMs) {
+          playImpact(fx);
+        }
         setBursts((prev) => [...prev, { key, kind: fx, x: impactX, y: impactY }]);
         if (shouldScreenFlash(fx)) {
           setScreenFlash(true);
@@ -207,7 +219,7 @@ export function CombatView({
         window.setTimeout(() => {
           setBursts((prev) => prev.filter((b) => b.key !== key));
         }, playFxDurationMs(fx));
-      }, 280);
+      }, impactDelayMs);
     },
     [flightId, onPlayCard]
   );
