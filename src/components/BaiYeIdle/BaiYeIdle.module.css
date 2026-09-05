@@ -149,6 +149,25 @@
   animation-delay: calc(var(--i) * -1.1s);
 }
 
+/* 墨弈：粒子偏冷灰，背景底色略沉 */
+.scene[data-lobby-theme="ink"] {
+  background: #0c0c0e;
+}
+
+.scene[data-lobby-theme="ink"] .particles i {
+  background: rgba(210, 210, 214, 0.4);
+  box-shadow: 0 0 3px rgba(180, 175, 160, 0.25);
+}
+
+.scene[data-lobby-theme="ink"] .mist {
+  background: radial-gradient(
+    ellipse,
+    rgba(160, 160, 168, 0.22),
+    rgba(90, 90, 98, 0.08) 50%,
+    transparent 72%
+  );
+}
+
 @keyframes particleRise {
   0% {
     opacity: 0;

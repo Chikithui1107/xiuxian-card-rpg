@@ -1,12 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import type { Hero, HeroStats } from "@/lib/stats";
 import { formatNumber } from "@/lib/stats";
+import type { PlayableCharacter } from "@/data/characters";
 import BaiYeIdle from "@/components/BaiYeIdle/BaiYeIdle";
+import { CharacterSelectModal } from "@/components/CharacterSelectModal";
 import { RunToast } from "@/components/RunToast";
 
 interface LobbyViewProps {
   hero: Hero;
+  character: PlayableCharacter;
+  characters: PlayableCharacter[];
   stats: HeroStats;
   playerHp: number;
   spiritStones: number;
@@ -20,10 +25,13 @@ interface LobbyViewProps {
   onContinueGame: () => void;
   onAbandonGame: () => void;
   onDismissRunMessage?: () => void;
+  onSwitchCharacter: (id: string) => void;
 }
 
 export function LobbyView({
   hero,
+  character,
+  characters,
   stats,
   playerHp,
   spiritStones,
@@ -36,18 +44,36 @@ export function LobbyView({
   onContinueGame,
   onAbandonGame,
   onDismissRunMessage,
+  onSwitchCharacter,
 }: LobbyViewProps) {
+  const [selectOpen, setSelectOpen] = useState(false);
   const hpPercent = Math.max(0, (playerHp / stats.maxHp) * 100);
+  const art = character.lobbyArt;
 
   return (
-    <div className="lobby-home animate-fade-in relative min-h-0 flex-1 overflow-hidden">
+    <div
+      className={`lobby-home animate-fade-in relative min-h-0 flex-1 overflow-hidden${
+        character.lobbyTheme === "ink" ? " lobby-home-ink" : ""
+      }`}
+    >
       <BaiYeIdle
         className="absolute inset-0"
         characterSrc={
-          hero.lobbyPortrait ?? "/images/baiye/baiye-character.png"
+          character.lobbyPortrait ??
+          hero.lobbyPortrait ??
+          "/images/baiye/baiye-character.png"
         }
-        backgroundSrc="/images/baiye/baiye-bg.png"
-        characterName={hero.name}
+        backgroundSrc={
+          character.lobbyBackground ??
+          hero.lobbyBackground ??
+          "/images/baiye/baiye-bg.png"
+        }
+        characterName={character.name}
+        theme={character.lobbyTheme}
+        backgroundPosition={art?.backgroundPosition}
+        backgroundFilter={art?.backgroundFilter}
+        characterBottom={art?.characterBottom}
+        characterHeight={art?.characterHeight}
       />
 
       {/* 只壓底部，讓 dock 可讀；不蓋住立繪主體 */}
@@ -60,6 +86,16 @@ export function LobbyView({
           topClassName="top-[calc(3.85rem+env(safe-area-inset-top,0px))]"
         />
       )}
+
+      {/* 低調角色切換入口 */}
+      <button
+        type="button"
+        className="lobby-switch-entry"
+        onClick={() => setSelectOpen(true)}
+        aria-label="切換角色"
+      >
+        角色
+      </button>
 
       {/* 名字上移，與屬性框分開；輕漸變提高可讀性 */}
       <div className="lobby-hero-title pointer-events-none absolute inset-x-0 z-20 px-4 pb-3 pt-8 text-center">
@@ -146,6 +182,19 @@ export function LobbyView({
           </button>
         )}
       </div>
+
+      <CharacterSelectModal
+        open={selectOpen}
+        characters={characters}
+        activeId={character.id}
+        locked={hasActiveRun}
+        lockReason="請先結束或退出本次修行"
+        onSelect={(id) => {
+          onSwitchCharacter(id);
+          setSelectOpen(false);
+        }}
+        onClose={() => setSelectOpen(false)}
+      />
     </div>
   );
 }

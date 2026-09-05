@@ -2,8 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import enemiesData from "@/data/enemies.json";
-import startingDeckIds from "@/data/starting-deck.json";
 import startingInventoryData from "@/data/starting-inventory.json";
+import {
+  DEFAULT_CHARACTER_ID,
+  getCharacter,
+  listPlayableCharacters,
+  type PlayableCharacter,
+} from "@/data/characters";
 import { MobileFrame } from "@/components/MobileFrame";
 import { BottomNav } from "@/components/BottomNav";
 import { LobbyView } from "@/components/LobbyView";
@@ -85,13 +90,22 @@ import { HIGH_DAMAGE_THRESHOLD } from "@/types/game";
 
 const ENEMY_LIST = enemiesData as Enemy[];
 const DUNGEON_TIERS = getAllDungeonTiers();
-const INITIAL_DECK_IDS = startingDeckIds as CardTemplateId[];
 const INITIAL_INVENTORY = createInitialInventory(startingInventoryData);
 const EMPTY_DECK: BattleDeckState = {
   drawPile: [],
   hand: [],
   discardPile: [],
   exhaustPile: [],
+};
+const PLAYABLE = listPlayableCharacters();
+const ACTIVE_CHAR_KEY = "xiuxian_active_character_v1";
+const CHAR_PROGRESS_KEY = "xiuxian_character_progress_v1";
+
+type CharacterProgress = {
+  permanentDeck: CardTemplateId[];
+  playerHp: number;
+  spiritStones: number;
+  totalClears: number;
 };
 
 const TAB_LABELS: Record<AppTab, string> = {
@@ -100,26 +114,48 @@ const TAB_LABELS: Record<AppTab, string> = {
   inventory: "修士行囊",
 };
 
-function getInitialPermanentDeck(): CardTemplateId[] {
-  return [...INITIAL_DECK_IDS];
+function createProgress(character: PlayableCharacter): CharacterProgress {
+  return {
+    permanentDeck: [...character.startingDeck],
+    playerHp: character.maxHp,
+    spiritStones: character.spiritStones,
+    totalClears: 0,
+  };
 }
 
 function initBattleDeck(templateIds: CardTemplateId[]): BattleDeckState {
   return createBattleDeck(templateIds, COMBAT_HAND_SIZE);
 }
 
-function createInitialMetaState() {
-  const permanentDeck = getInitialPermanentDeck();
-  const inventory = createInitialInventory(startingInventoryData);
-  const hero = getHero();
-  const stats = calculateHeroStats(hero, inventory.equippedIds);
-  return { permanentDeck, inventory, playerHp: stats.maxHp };
+function readStoredActiveId(): string {
+  try {
+    const id = localStorage.getItem(ACTIVE_CHAR_KEY);
+    if (id && PLAYABLE.some((c) => c.id === id)) return id;
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_CHARACTER_ID;
+}
+
+function readStoredProgress(): Record<string, CharacterProgress> {
+  try {
+    const raw = localStorage.getItem(CHAR_PROGRESS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, CharacterProgress>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 export default function GamePage() {
-  const hero = getHero();
-
   const [ready, setReady] = useState(false);
+  const [activeCharacterId, setActiveCharacterId] = useState(
+    DEFAULT_CHARACTER_ID
+  );
+  const [progressByCharacter, setProgressByCharacter] = useState<
+    Record<string, CharacterProgress>
+  >({});
   const [activeTab, setActiveTab] = useState<AppTab>("lobby");
   const [combatScreen, setCombatScreen] = useState<CombatScreen>("tier-select");
   const [isInCombat, setIsInCombat] = useState(false);
@@ -128,11 +164,11 @@ export default function GamePage() {
   const [selectedTier, setSelectedTier] = useState<DungeonTier | null>(null);
   const [tierFloor, setTierFloor] = useState(1);
   const [totalClears, setTotalClears] = useState(0);
-  const [spiritStones, setSpiritStones] = useState(hero.spiritStones);
+  const [spiritStones, setSpiritStones] = useState(1280);
   const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>(
     []
   );
-  const [playerHp, setPlayerHp] = useState(hero.maxHp);
+  const [playerHp, setPlayerHp] = useState(60);
   const [lastRunMessage, setLastRunMessage] = useState<string | null>(null);
 
   const [enemy, setEnemy] = useState<CombatEnemy>(() => ({
@@ -178,22 +214,110 @@ export default function GamePage() {
     INITIAL_COMBAT_BUFFS
   );
 
+  const character = useMemo(
+    () => getCharacter(activeCharacterId),
+    [activeCharacterId]
+  );
+  const hero = useMemo(() => getHero(activeCharacterId), [activeCharacterId]);
+
   const heroStats = useMemo(
     () => calculateHeroStats(hero, inventory.equippedIds),
     [hero, inventory.equippedIds]
   );
 
   useEffect(() => {
-    const initial = createInitialMetaState();
-    setPermanentDeck(initial.permanentDeck);
-    setInventory(initial.inventory);
-    setPlayerHp(initial.playerHp);
+    const activeId = readStoredActiveId();
+    const stored = readStoredProgress();
+    const progress =
+      stored[activeId] ?? createProgress(getCharacter(activeId));
+    setActiveCharacterId(activeId);
+    setProgressByCharacter({
+      ...stored,
+      [activeId]: progress,
+    });
+    setPermanentDeck(progress.permanentDeck);
+    setPlayerHp(progress.playerHp);
+    setSpiritStones(progress.spiritStones);
+    setTotalClears(progress.totalClears);
+    setInventory(createInitialInventory(startingInventoryData));
     setReady(true);
   }, []);
 
   useEffect(() => {
+    if (!ready) return;
+    const snapshot: CharacterProgress = {
+      permanentDeck,
+      playerHp,
+      spiritStones,
+      totalClears,
+    };
+    setProgressByCharacter((prev) => {
+      const next = { ...prev, [activeCharacterId]: snapshot };
+      try {
+        localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(next));
+        localStorage.setItem(ACTIVE_CHAR_KEY, activeCharacterId);
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, [
+    ready,
+    activeCharacterId,
+    permanentDeck,
+    playerHp,
+    spiritStones,
+    totalClears,
+  ]);
+
+  useEffect(() => {
     setPlayerHp((hp) => Math.min(hp, heroStats.maxHp));
   }, [heroStats.maxHp]);
+
+  const switchCharacter = useCallback(
+    (nextId: string) => {
+      if (nextId === activeCharacterId) return;
+      if (selectedTier !== null) return;
+
+      const currentSnap: CharacterProgress = {
+        permanentDeck,
+        playerHp,
+        spiritStones,
+        totalClears,
+      };
+      const nextChar = getCharacter(nextId);
+      const nextSnap =
+        progressByCharacter[nextId] ?? createProgress(nextChar);
+
+      const merged = {
+        ...progressByCharacter,
+        [activeCharacterId]: currentSnap,
+        [nextId]: nextSnap,
+      };
+      setProgressByCharacter(merged);
+      setActiveCharacterId(nextId);
+      setPermanentDeck(nextSnap.permanentDeck);
+      setPlayerHp(nextSnap.playerHp);
+      setSpiritStones(nextSnap.spiritStones);
+      setTotalClears(nextSnap.totalClears);
+      setLastRunMessage(`已入駐：${nextChar.name}`);
+      try {
+        localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(merged));
+        localStorage.setItem(ACTIVE_CHAR_KEY, nextId);
+      } catch {
+        /* ignore */
+      }
+    },
+    [
+      activeCharacterId,
+      permanentDeck,
+      playerHp,
+      spiritStones,
+      totalClears,
+      progressByCharacter,
+      selectedTier,
+    ]
+  );
 
   useEffect(() => {
     return () => {
@@ -227,8 +351,8 @@ export default function GamePage() {
   }, []);
 
   const resetPermanentDeck = useCallback(() => {
-    setPermanentDeck(getInitialPermanentDeck());
-  }, []);
+    setPermanentDeck([...character.startingDeck]);
+  }, [character.startingDeck]);
 
   const returnToLobby = useCallback(
     (message: string | null = null, healPlayer = false) => {
@@ -763,6 +887,8 @@ export default function GamePage() {
           <div className="flex min-h-0 flex-1 flex-col">
             <LobbyView
               hero={hero}
+              character={character}
+              characters={PLAYABLE}
               stats={heroStats}
               playerHp={playerHp}
               spiritStones={spiritStones}
@@ -786,6 +912,7 @@ export default function GamePage() {
               onContinueGame={continueGame}
               onAbandonGame={abandonGame}
               onDismissRunMessage={dismissRunMessage}
+              onSwitchCharacter={switchCharacter}
             />
           </div>
         );

@@ -9,6 +9,12 @@ type BaiYeIdleProps = {
   backgroundSrc?: string;
   characterName?: string;
   className?: string;
+  /** jade | ink — 氛圍微調，不改版式 */
+  theme?: "jade" | "ink";
+  backgroundPosition?: string;
+  backgroundFilter?: string;
+  characterBottom?: string;
+  characterHeight?: string;
 };
 
 export default function BaiYeIdle({
@@ -16,24 +22,42 @@ export default function BaiYeIdle({
   backgroundSrc = "/images/baiye/baiye-bg.png",
   characterName = "白夜",
   className,
+  theme = "jade",
+  backgroundPosition,
+  backgroundFilter,
+  characterBottom,
+  characterHeight,
 }: BaiYeIdleProps) {
+  const bgStyle: CSSProperties = {
+    ...(backgroundPosition ? { objectPosition: backgroundPosition } : null),
+    ...(backgroundFilter !== undefined
+      ? { filter: backgroundFilter || "none" }
+      : null),
+  };
+
+  const charStyle: CSSProperties = {
+    ...(characterBottom ? { bottom: characterBottom } : null),
+    ...(characterHeight ? { height: characterHeight } : null),
+  };
+
   return (
-    <div className={[styles.scene, className].filter(Boolean).join(" ")}>
+    <div
+      className={[styles.scene, className].filter(Boolean).join(" ")}
+      data-lobby-theme={theme}
+    >
       <img
         className={styles.background}
         src={publicAsset(backgroundSrc)}
         alt=""
         draggable={false}
         decoding="async"
+        style={bgStyle}
       />
 
-      {/* 遠處薄霧：極慢 */}
       <div className={`${styles.mist} ${styles.mistBack}`} />
 
-      {/* 腳底柔影在人物之下 */}
       <div className={styles.groundShadow} aria-hidden />
 
-      {/* 男主完全靜止；劍光用原圖自帶，不加 CSS 假光 */}
       <img
         className={styles.character}
         src={publicAsset(characterSrc)}
@@ -41,9 +65,9 @@ export default function BaiYeIdle({
         draggable={false}
         decoding="async"
         fetchPriority="high"
+        style={charStyle}
       />
 
-      {/* 少量環境粒子即可 */}
       <div className={styles.particles}>
         {Array.from({ length: 6 }).map((_, i) => (
           <i key={i} style={{ "--i": i } as CSSProperties} />
