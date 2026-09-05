@@ -10,6 +10,7 @@ type WebkitWindow = Window & {
  *   public/sfx/sword_whoosh.mp3
  *   public/sfx/sword_impact.mp3
  *   public/sfx/fuxue-slash.mp3   （拂雪流光專用）
+ *   public/sfx/tuxu-whoosh.mp3   （踏虛掠影專用）
  *   public/sfx/yijian_whoosh.mp3 （可選）
  *
  * 支援 .mp3 / .wav / .ogg
@@ -18,6 +19,7 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
   sword_whoosh: ["sword_whoosh", "whoosh", "slash"],
   sword_impact: ["sword_impact", "impact", "hit"],
   fuxue_slash: ["fuxue-slash", "fuxue_slash", "sword_impact"],
+  tuxu_whoosh: ["tuxu-whoosh", "tuxu_whoosh", "soft_whoosh"],
   yijian_whoosh: ["yijian_whoosh", "heavy_whoosh", "sword_whoosh"],
   yijian_impact: ["yijian_impact", "heavy_impact", "sword_impact"],
   soft_whoosh: ["soft_whoosh", "whoosh", "sword_whoosh"],
@@ -110,9 +112,10 @@ function whooshKey(kind?: PlayFxKind): string | null {
     case "fuxue":
       // 拂雪流光只在命中時播專用斬擊，避免與起手重疊
       return null;
+    case "tuxu":
+      return "tuxu_whoosh";
     case "yijian":
       return "yijian_whoosh";
-    case "tuxu":
     case "lingtai":
     case "ningshuang":
     case "cangfeng":
@@ -122,13 +125,15 @@ function whooshKey(kind?: PlayFxKind): string | null {
   }
 }
 
-function impactKey(kind: PlayFxKind): string {
+function impactKey(kind: PlayFxKind): string | null {
   switch (kind) {
     case "fuxue":
       return "fuxue_slash";
+    case "tuxu":
+      // 踏虛掠影起手已播 whoosh，命中不再疊加
+      return null;
     case "yijian":
       return "yijian_impact";
-    case "tuxu":
     case "lingtai":
     case "ningshuang":
     case "cangfeng":
@@ -149,12 +154,15 @@ export function playWhoosh(kind?: PlayFxKind): void {
 }
 
 export function playImpact(kind: PlayFxKind): void {
-  void playSample(impactKey(kind), kind === "fuxue" || kind === "yijian" ? 1 : 0.95);
+  const key = impactKey(kind);
+  if (!key) return;
+  void playSample(key, kind === "fuxue" || kind === "yijian" ? 1 : 0.95);
 }
 
 /** 預載常用劍音，減少第一次出牌延遲 */
 export function preloadCombatSfx(): void {
   void loadBuffer("fuxue_slash");
+  void loadBuffer("tuxu_whoosh");
   void loadBuffer("sword_whoosh");
   void loadBuffer("sword_impact");
   void loadBuffer("yijian_whoosh");

@@ -5,6 +5,7 @@
 | 用途 | 建議檔名 |
 |---|---|
 | 拂雪流光斬擊 | `fuxue-slash.mp3` |
+| 踏虛掠影掠影 | `tuxu-whoosh.mp3` |
 | 揮劍起手 | `sword_whoosh.mp3`（或 .wav / .ogg） |
 | 劍刃命中 | `sword_impact.mp3` |
 | 一劍霜寒起手（可選） | `yijian_whoosh.mp3` |
