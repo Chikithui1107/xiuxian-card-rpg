@@ -83,6 +83,15 @@ function setDropReady(on: boolean) {
   shell.classList.toggle("combat-drop-ready", on);
 }
 
+function getDragPortalRoot(): HTMLElement | null {
+  if (typeof document === "undefined") return null;
+  return (
+    (document.querySelector(".combat-shell") as HTMLElement | null) ??
+    (document.querySelector(".mobile-frame") as HTMLElement | null) ??
+    document.body
+  );
+}
+
 interface DragGhost {
   card: Card;
   x: number;
@@ -113,6 +122,12 @@ export function HandUI({
   const resolvedFocus =
     focusIndex != null && focusIndex >= 0 ? focusIndex : null;
 
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setPortalRoot(getDragPortalRoot());
+  }, []);
+
   useEffect(() => {
     if (selectedId && !hand.some((c) => c.instanceId === selectedId)) {
       setSelectedId(null);
@@ -123,6 +138,7 @@ export function HandUI({
     setDraggingId(null);
     setGhost(null);
     setDropReady(false);
+    document.querySelector(".combat-shell")?.classList.remove("is-dragging-card");
   }, []);
 
   const playCard = useCallback(
@@ -175,6 +191,9 @@ export function HandUI({
                   setHoveredId(null);
                   setSelectedId(payload.card.instanceId);
                   setDraggingId(payload.card.instanceId);
+                  document
+                    .querySelector(".combat-shell")
+                    ?.classList.add("is-dragging-card");
                   setGhost({
                     card: payload.card,
                     x: payload.x,
@@ -210,10 +229,10 @@ export function HandUI({
       )}
 
       {ghost &&
-        typeof document !== "undefined" &&
+        portalRoot &&
         createPortal(
           <DragOverlay ghost={ghost} energy={energy} />,
-          document.body
+          portalRoot
         )}
     </div>
   );
@@ -234,16 +253,22 @@ function DragOverlay({
   const typeAccent =
     CARD_TYPE_ACCENT[template?.type ?? ""] ?? "text-[#c9a84c]";
 
+  const root = getDragPortalRoot();
+  const rootRect = root?.getBoundingClientRect();
+  const left = rootRect ? ghost.x - rootRect.left : ghost.x;
+  const top = rootRect ? ghost.y - rootRect.top : ghost.y;
+
   return (
     <div
-      className={`ink-card pointer-events-none fixed z-[9999] origin-center select-none shadow-2xl ${typeStyle} ${
+      className={`ink-card ink-card-drag-ghost pointer-events-none absolute z-[9999] origin-center select-none ${typeStyle} ${
         ghost.ready ? "ring-2 ring-[#7aab9a]/70" : ""
       }`}
       style={{
-        left: ghost.x,
-        top: ghost.y,
+        left,
+        top,
         width: ghost.width,
         height: ghost.height,
+        opacity: 1,
         transform: ghost.ready ? "scale(1.04)" : "scale(1)",
         transition: "transform 0.12s ease-out",
       }}
@@ -616,7 +641,7 @@ function HandCard({
           }
         }}
         className={`ink-card absolute inset-0 origin-bottom select-none ${
-          isDragging ? "opacity-0" : ""
+          isDragging ? "ink-card-drag-placeholder" : ""
         } ${
           locked
             ? "cursor-not-allowed opacity-40"
@@ -632,26 +657,24 @@ function HandCard({
           zIndex: isFocus ? 80 : undefined,
         }}
       >
-        {!isDragging && (
-          <CardFace
-            name={card.name}
-            cost={card.cost}
-            canAfford={canAfford}
-            description={template?.description ?? ""}
-            typeLabel={template?.type}
-            typeAccent={typeAccent}
-            isExhaust={card.isExhaust}
-            full={inspecting}
-            coreLine={coreLine}
-            footer={
-              selected ? (
-                <p className="mt-0.5 text-[8px] text-stone-500">
-                  再點出牌 · 上拖亦可
-                </p>
-              ) : null
-            }
-          />
-        )}
+        <CardFace
+          name={card.name}
+          cost={card.cost}
+          canAfford={canAfford}
+          description={template?.description ?? ""}
+          typeLabel={template?.type}
+          typeAccent={typeAccent}
+          isExhaust={card.isExhaust}
+          full={inspecting && !isDragging}
+          coreLine={coreLine}
+          footer={
+            selected && !isDragging ? (
+              <p className="mt-0.5 text-[8px] text-stone-500">
+                再點出牌 · 上拖亦可
+              </p>
+            ) : null
+          }
+        />
       </div>
     </div>
   );
