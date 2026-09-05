@@ -154,6 +154,12 @@ function HandCard({
   const [dragging, setDragging] = useState(false);
   const [readyHint, setReadyHint] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [hoverBox, setHoverBox] = useState<{
+    left: number;
+    bottom: number;
+    w: number;
+    h: number;
+  } | null>(null);
   const [dragBox, setDragBox] = useState<{
     x: number;
     y: number;
@@ -167,6 +173,33 @@ function HandCard({
       "(hover: hover) and (pointer: fine)"
     ).matches;
   }, []);
+
+  const syncHoverBox = useCallback(() => {
+    const el = slotRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setHoverBox({
+      left: r.left + r.width / 2,
+      bottom: window.innerHeight - r.bottom,
+      w: r.width,
+      h: r.height,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hovered || dragging) {
+      setHoverBox(null);
+      return;
+    }
+    syncHoverBox();
+    const onReposition = () => syncHoverBox();
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [hovered, dragging, syncHoverBox]);
 
   const template = getCardTemplate(card) ?? CARD_TEMPLATES[card.id as CardTemplateId];
   const effectiveCost = getEffectiveCost(card);
@@ -182,12 +215,11 @@ function HandCard({
   const marginLeft = index === 0 ? 0 : -overlapPx(total);
   const preview = !dragging && (hovered || selected);
 
-  /* hover 明顯放大讀效果；點選略抬高；不做鄰牌讓位 */
-  const restTransform = hovered && !dragging
-    ? `translateY(${baseLift - 36}px) scale(1.52) rotate(0deg)`
-    : selected && !dragging
+  /* hover 改用 body portal 放大，避免被戰場／HUD 裁切；點選仍略抬高 */
+  const restTransform =
+    selected && !dragging && !hovered
       ? `translateY(${baseLift - 16}px) scale(1.06) rotate(0deg)`
-      : `translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
+      : `translateY(${baseLift}px) scale(1) rotate(${hovered && !dragging ? 0 : angle}deg)`;
 
   const clearGhostStyles = useCallback(() => {
     setDragBox(null);
@@ -439,6 +471,39 @@ function HandCard({
       document.body
     );
 
+  /* hover 放大預覽掛 body，不被戰場／玩家條裁切 */
+  const hoverPortal =
+    hovered &&
+    !dragging &&
+    hoverBox &&
+    typeof document !== "undefined" &&
+    createPortal(
+      <div
+        className={`ink-card ink-card-hover-portal pointer-events-none select-none ${typeStyle} ${
+          card.pulledByKarma ? "ink-card-pulled" : ""
+        } ink-card-selected`}
+        style={{
+          position: "fixed",
+          left: hoverBox.left,
+          bottom: hoverBox.bottom,
+          width: hoverBox.w,
+          height: hoverBox.h,
+          zIndex: 100000,
+          margin: 0,
+          transform: "translateX(-50%) scale(1.55)",
+          transformOrigin: "bottom center",
+        }}
+        aria-hidden
+      >
+        {renderCardFace({
+          showSelectHint: false,
+          showReady: false,
+          enlarged: true,
+        })}
+      </div>,
+      document.body
+    );
+
   return (
     <div
       ref={slotRef}
@@ -452,6 +517,18 @@ function HandCard({
       }}
       onMouseLeave={() => setHovered(false)}
     >
+      {/* 向上延伸熱區，滑鼠移到放大預覽上時不中斷 hover */}
+      {hovered && !dragging && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            bottom: 0,
+            width: "170%",
+            height: "calc(100% + 11rem)",
+          }}
+          aria-hidden
+        />
+      )}
       <div
         ref={ghostRef}
         role="button"
@@ -486,9 +563,9 @@ function HandCard({
           dragging
             ? "ink-card-drag-source"
             : "transition-transform duration-200 ease-out"
-        } ${preview ? "ink-card-selected" : ""} ${
+        } ${preview && !hovered ? "ink-card-selected" : ""} ${
           card.pulledByKarma ? "ink-card-pulled" : ""
-        }`}
+        } ${hovered && !dragging ? "opacity-30" : ""}`}
         style={{
           touchAction: "none",
           transform: restTransform,
@@ -497,12 +574,13 @@ function HandCard({
       >
         {!dragging &&
           renderCardFace({
-            showSelectHint: selected && !readyHint,
+            showSelectHint: selected && !readyHint && !hovered,
             showReady: false,
-            enlarged: hovered,
+            enlarged: false,
           })}
       </div>
       {dragPortal}
+      {hoverPortal}
     </div>
   );
 }
