@@ -34,7 +34,7 @@ export function LobbyView({
   onContinueGame,
   onAbandonGame,
 }: LobbyViewProps) {
-  const bgSrc = publicAsset("/backgrounds/lobby-moon-path.jpg");
+  const bgSrc = publicAsset("/backgrounds/lobby-cloud-terrace.jpg");
   const cutoutSrc = publicAsset(
     hero.lobbyPortrait ?? "/heroes/baiye-cutout.png"
   );
@@ -46,7 +46,7 @@ export function LobbyView({
       <img
         src={bgSrc}
         alt=""
-        className="lobby-bg absolute inset-0 h-full w-full object-cover object-[center_35%]"
+        className="lobby-bg absolute inset-0 h-full w-full object-cover object-[center_42%]"
         draggable={false}
       />
       <div className="lobby-bg-veil pointer-events-none absolute inset-0" />

@@ -653,14 +653,15 @@ html.combat-scroll-lock {
 }
 
 .lobby-bg-veil {
+  /* 白天雲海：中段保持亮，只壓頂底好讀字 */
   background:
     linear-gradient(
       180deg,
-      rgba(8, 7, 6, 0.45) 0%,
-      rgba(8, 7, 6, 0.12) 28%,
-      transparent 48%,
-      rgba(10, 9, 8, 0.4) 68%,
-      rgba(10, 9, 8, 0.92) 100%
+      rgba(12, 18, 28, 0.28) 0%,
+      rgba(12, 18, 28, 0.06) 22%,
+      transparent 42%,
+      rgba(8, 10, 14, 0.28) 70%,
+      rgba(6, 8, 12, 0.88) 100%
     );
 }
 
