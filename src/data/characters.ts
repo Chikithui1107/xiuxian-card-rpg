@@ -11,6 +11,8 @@ export interface LobbyArtTuning {
   characterBottom?: string;
   /** character height, e.g. "78%" */
   characterHeight?: string;
+  /** 限制立繪寬度，避免衣袖貼邊，e.g. "78%" */
+  characterMaxWidth?: string;
 }
 
 export interface PlayableCharacter extends Hero {
@@ -69,11 +71,12 @@ export const PLAYABLE_CHARACTERS: PlayableCharacter[] = [
     skillLabels: ["陰陽鎖", "因果子", "一子定局"],
     lobbyTheme: "ink",
     lobbyArt: {
-      /* 圓形道場偏下，保留山寺與天際陰陽；不壓暗濾鏡以免糊 */
-      backgroundPosition: "center 42%",
+      /* 縮小立繪、頭略降避開天際太極；腳沒入下方 UI 暗部 */
+      backgroundPosition: "center 48%",
       backgroundFilter: "none",
-      characterBottom: "3%",
-      characterHeight: "80%",
+      characterBottom: "2%",
+      characterHeight: "66%",
+      characterMaxWidth: "76%",
     },
   },
 ];

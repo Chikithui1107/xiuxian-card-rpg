@@ -15,6 +15,7 @@ type BaiYeIdleProps = {
   backgroundFilter?: string;
   characterBottom?: string;
   characterHeight?: string;
+  characterMaxWidth?: string;
 };
 
 export default function BaiYeIdle({
@@ -27,6 +28,7 @@ export default function BaiYeIdle({
   backgroundFilter,
   characterBottom,
   characterHeight,
+  characterMaxWidth,
 }: BaiYeIdleProps) {
   const bgStyle: CSSProperties = {
     ...(backgroundPosition ? { objectPosition: backgroundPosition } : null),
@@ -38,6 +40,7 @@ export default function BaiYeIdle({
   const charStyle: CSSProperties = {
     ...(characterBottom ? { bottom: characterBottom } : null),
     ...(characterHeight ? { height: characterHeight } : null),
+    ...(characterMaxWidth ? { maxWidth: characterMaxWidth } : null),
   };
 
   return (
@@ -55,6 +58,9 @@ export default function BaiYeIdle({
       />
 
       <div className={`${styles.mist} ${styles.mistBack}`} />
+
+      {/* 人物背後局部柔暗：只服務 ink 主題，不整張壓黑、不 blur */}
+      <div className={styles.figureShade} aria-hidden />
 
       <div className={styles.groundShadow} aria-hidden />
 

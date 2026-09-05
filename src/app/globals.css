@@ -1340,17 +1340,47 @@ html.combat-scroll-lock {
 }
 
 .lobby-home-ink .lobby-bg-veil {
+  /* 上方輕壓太極搶眼度；下方讓 UI 區乾淨，不做整頁黑蒙 */
+  background:
+    radial-gradient(
+      ellipse 95% 36% at 50% 6%,
+      rgba(4, 5, 7, 0.22) 0%,
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      transparent 52%,
+      rgba(5, 8, 9, 0.14) 70%,
+      rgba(5, 7, 9, 0.42) 100%
+    );
+}
+
+.lobby-home-ink .lobby-hero-title {
+  /* 柔帶漸層托住名字，避免壓在複雜衣紋上；非矩形黑框 */
   background: linear-gradient(
     180deg,
     transparent 0%,
-    transparent 70%,
-    rgba(4, 4, 6, 0.1) 86%,
-    rgba(2, 2, 4, 0.34) 100%
+    rgba(5, 8, 9, 0.55) 42%,
+    rgba(5, 8, 9, 0.28) 78%,
+    transparent 100%
   );
+  padding-top: 1.6rem;
+  padding-bottom: 1.1rem;
+}
+
+.lobby-home-ink .lobby-hero-title h2 {
+  color: #f3eee4;
+  text-shadow:
+    0 2px 12px rgba(0, 0, 0, 0.9),
+    0 0 18px rgba(0, 0, 0, 0.45);
 }
 
 .lobby-home-ink .lobby-hero-subtitle {
-  color: #c8c4b8;
+  color: rgba(178, 174, 166, 0.78);
+  text-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.9),
+    0 0 10px rgba(0, 0, 0, 0.4);
 }
 
 /* 切換角色改由底欄「角色」進入 */

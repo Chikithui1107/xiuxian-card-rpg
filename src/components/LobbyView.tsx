@@ -67,6 +67,7 @@ export function LobbyView({
         backgroundFilter={art?.backgroundFilter}
         characterBottom={art?.characterBottom}
         characterHeight={art?.characterHeight}
+        characterMaxWidth={art?.characterMaxWidth}
       />
 
       <div className="lobby-bg-veil pointer-events-none absolute inset-0 z-[19]" />
