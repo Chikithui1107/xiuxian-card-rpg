@@ -77,7 +77,37 @@ export function BgmController({
         aria-label={muted ? "開啟背景音樂" : "關閉背景音樂"}
         title={muted ? "開音樂" : "關音樂"}
       >
-        {muted ? "音" : "樂"}
+        {muted ? (
+          <svg
+            className="bgm-toggle-icon"
+            viewBox="0 0 24 24"
+            aria-hidden
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M11 5 6 9H3v6h3l5 4V5z" />
+            <path d="m22 9-6 6" />
+            <path d="m16 9 6 6" />
+          </svg>
+        ) : (
+          <svg
+            className="bgm-toggle-icon"
+            viewBox="0 0 24 24"
+            aria-hidden
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M11 5 6 9H3v6h3l5 4V5z" />
+            <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+            <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+          </svg>
+        )}
       </button>
       {needsTap && !muted && (
         <p className="bgm-tap-hint" role="status">
