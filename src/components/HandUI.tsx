@@ -15,7 +15,8 @@ import {
 } from "@/lib/battle-deck";
 import type { Card } from "@/types/battle";
 import { getEffectiveCost } from "@/types/battle";
-import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
+import { CARD_TYPE_COLORS } from "@/types/game";
+import { CardFace } from "@/components/CardFace";
 
 interface HandUIProps {
   hand: Card[];
@@ -207,8 +208,6 @@ function HandCard({
   const typeStyle =
     CARD_TYPE_COLORS[template?.type ?? ""] ??
     "ink-card-type-basic bg-[#1a1814]";
-  const typeAccent =
-    CARD_TYPE_ACCENT[template?.type ?? ""] ?? "text-[#c9a84c]";
 
   const angle = fanAngle(index, total);
   const baseLift = fanLift(index, total);
@@ -391,56 +390,20 @@ function HandCard({
     showReady: boolean;
     enlarged?: boolean;
   }) => (
-    <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-1.5">
-      <div className="flex items-start justify-between gap-1">
-        <span
-          className={`min-w-0 flex-1 text-left font-bold leading-tight tracking-wide text-[#f0e6d3] ${
-            opts.enlarged ? "text-[13px]" : "text-[12px]"
-          }`}
-        >
-          {card.name}
-        </span>
-        <span
-          className={`flex h-[1.25rem] w-[1.25rem] shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
-            canAfford
-              ? "bg-[#7aab9a]/90 text-stone-950"
-              : "bg-[#a85555]/85 text-stone-100"
-          }`}
-        >
-              {effectiveCost}
-        </span>
-      </div>
-
-      <p
-        className={`mt-1.5 min-h-0 flex-1 overflow-y-auto break-words text-left leading-[1.4] text-stone-300 ${
-          opts.enlarged ? "text-[11px]" : "text-[10px] leading-[1.35]"
-        }`}
-      >
-        {description}
-      </p>
-
-      <div className="mt-1 shrink-0">
-        <p className={`text-[8px] font-semibold ${typeAccent}`}>
-          {template?.type}
-        </p>
-        {card.pulledByKarma && (
-          <p className="text-[8px] font-semibold tracking-[0.18em] text-[#9ec9b8]">
-            牽引
-          </p>
-        )}
-        {card.isExhaust && (
-          <p className="text-[8px] text-amber-500/70">消耗</p>
-        )}
-        {opts.showSelectHint && (
-          <p className="mt-0.5 text-[8px] text-stone-500">上拖出牌</p>
-        )}
-        {opts.showReady && (
-          <p className="mt-0.5 text-[9px] font-bold text-[#7aab9a]">
-            松手出牌
-          </p>
-        )}
-      </div>
-    </div>
+    <CardFace
+      name={card.name}
+      type={template?.type ?? ""}
+      cost={effectiveCost}
+      description={description}
+      art={template?.art}
+      templateId={card.id}
+      canAfford={canAfford}
+      isExhaust={card.isExhaust}
+      pulledByKarma={card.pulledByKarma}
+      enlarged={opts.enlarged}
+      showSelectHint={opts.showSelectHint}
+      showReady={opts.showReady}
+    />
   );
 
   /* 拖曳幽靈掛到 body：避開 dock / shell 的 filter、overflow 把 fixed 座標搞歪 */

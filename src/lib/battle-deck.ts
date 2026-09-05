@@ -31,9 +31,18 @@ export interface CardTemplate {
   type: string;
   cost: number;
   description: string;
+  /** 卡面插畫 public 路徑；缺省用統一 placeholder */
+  art?: string;
   isExhaust?: boolean;
   sword?: boolean;
   effects: CardEffect[];
+}
+
+/** 無專屬插畫時的統一占位 */
+export const CARD_ART_PLACEHOLDER = "/cards/card-art-placeholder.svg";
+
+export function resolveCardArt(art?: string | null): string {
+  return art && art.length > 0 ? art : CARD_ART_PLACEHOLDER;
 }
 
 const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
@@ -109,6 +118,7 @@ function karmaToCardTemplate(
     type: k.type,
     cost: k.cost,
     description: k.description,
+    art: k.art,
     isExhaust: k.isExhaust,
     effects: [{ kind: "karma" }],
   };

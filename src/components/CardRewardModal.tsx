@@ -2,7 +2,8 @@
 
 import { CARD_TEMPLATES, type CardTemplateId } from "@/lib/battle-deck";
 import { playRewardClickSfx } from "@/lib/combat-audio";
-import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
+import { CARD_TYPE_COLORS } from "@/types/game";
+import { CardFace, cardFaceFromTemplate } from "@/components/CardFace";
 
 interface CardRewardModalProps {
   rewardTemplateIds: CardTemplateId[];
@@ -68,27 +69,15 @@ export function CardRewardModal({
           const card = CARD_TEMPLATES[templateId];
           const typeStyle =
             CARD_TYPE_COLORS[card.type] ?? "ink-card-type-basic bg-[#1a1814]";
-          const typeAccent =
-            CARD_TYPE_ACCENT[card.type] ?? "text-[#c9a84c]";
+          const face = cardFaceFromTemplate(card, { enlarged: true });
 
           return (
             <button
               key={templateId}
               onClick={() => handleSelect(templateId)}
-              className={`card-hover ink-card flex flex-col p-2 text-left active:scale-[0.98] ${typeStyle}`}
+              className={`card-hover ink-card overflow-hidden text-left active:scale-[0.98] ${typeStyle}`}
             >
-              <div className="mb-0.5 flex items-center justify-between gap-1">
-                <span className={`text-[8px] font-semibold ${typeAccent}`}>
-                  {card.type}
-                </span>
-                <span className="text-[8px] text-[#7aab9a]">真元{card.cost}</span>
-              </div>
-              <h3 className="line-clamp-2 text-[10px] font-bold leading-tight text-stone-200">
-                {card.name}
-              </h3>
-              <p className="mt-1 min-h-0 flex-1 overflow-hidden text-[8px] leading-snug text-stone-500">
-                {card.description}
-              </p>
+              <CardFace {...face} />
             </button>
           );
         })}

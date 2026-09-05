@@ -23,9 +23,30 @@ export interface KarmaCardTemplate {
   cost: number;
   description: string;
   aspect: KarmaAspect;
+  /** 卡面插畫（public 路徑）；缺檔時 UI 用 placeholder */
+  art: string;
   /** 不觸發【因果相生】 */
   suppressKarmaPassive?: boolean;
   isExhaust?: boolean;
+}
+
+/** 檔名與 id 分離：邏輯 id 穩定，素材檔可獨立命名 */
+export const KARMA_ART_FILES: Record<KarmaCardTemplateId, string> = {
+  qiandhen: "qianchen-zhongyin.webp",
+  zhongyin: "zhongyin-deguo.webp",
+  sheyin: "sheyin-jieguo.webp",
+  suye: "suye-zhongju.webp",
+  duanjue: "yinguo-duanjue.webp",
+  lunzhuan: "yinguo-lunzhuan.webp",
+  kuguo: "kuguo-zichang.webp",
+  guosheng: "guosheng-xinyin.webp",
+  shanguo: "shanguo-zibao.webp",
+  suyin: "suyinchongyan.webp",
+  yinian: "yinian-yinguo.webp",
+};
+
+function karmaArtPath(id: KarmaCardTemplateId): string {
+  return `/cards/causality/${KARMA_ART_FILES[id]}`;
 }
 
 export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
@@ -35,6 +56,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     type: "因牌",
     cost: 1,
     aspect: "yin",
+    art: karmaArtPath("qiandhen"),
     description:
       "造成 10 點傷害。若目標身上存在任意負面效果，本次傷害提高 50%。",
   },
@@ -44,6 +66,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     type: "因牌",
     cost: 1,
     aspect: "yin",
+    art: karmaArtPath("zhongyin"),
     description:
       "造成 15 點傷害。若由此牌觸發【因果相生】所牽引出的果牌在本回合內被打出，則立即追加 8 點傷害。",
   },
@@ -53,6 +76,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     type: "因牌",
     cost: 1,
     aspect: "yin",
+    art: karmaArtPath("sheyin"),
     description: "棄置手牌中的 1 張因牌，抽取 2 張果牌。",
   },
   suye: {
@@ -61,6 +85,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     type: "因牌",
     cost: 2,
     aspect: "yin",
+    art: karmaArtPath("suye"),
     description:
       "造成 25 點傷害。手中至少 1 張果牌：附加 1 層【因果印記】。至少 2 張果牌：額外造成 15 點傷害。兩項可同時觸發。",
   },
@@ -70,6 +95,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     type: "因牌",
     cost: 3,
     aspect: "yin",
+    art: karmaArtPath("duanjue"),
     description:
       "下回合額外獲得 3 點真元。由此牌觸發【因果相生】所牽引出的果牌將立即免費打出，而非加入手牌。",
   },
@@ -79,6 +105,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     type: "果牌",
     cost: 1,
     aspect: "yang",
+    art: karmaArtPath("lunzhuan"),
     description:
       "獲得 10 點護盾。記錄本回合受到的傷害，將其 30% 轉化為下一個玩家回合第一次傷害的額外傷害。",
   },
@@ -88,6 +115,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     type: "果牌",
     cost: 1,
     aspect: "yang",
+    art: karmaArtPath("kuguo"),
     description:
       "為目標附加 1 層【因果印記】。若本回合已打出至少 2 張因牌，額外附加 1 層。",
   },
@@ -97,6 +125,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     type: "果牌",
     cost: 1,
     aspect: "yang",
+    art: karmaArtPath("guosheng"),
     description: "棄置手牌中的 1 張果牌，抽取 2 張因牌。",
   },
   shanguo: {
@@ -105,6 +134,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     type: "果牌",
     cost: 2,
     aspect: "yang",
+    art: karmaArtPath("shanguo"),
     description:
       "上一張為因牌：下回合所有因牌傷害提高 75%。上一張為果牌：下回合打出的所有果牌額外附加 1 層【因果印記】。",
   },
@@ -114,6 +144,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     type: "果牌",
     cost: 3,
     aspect: "yang",
+    art: karmaArtPath("suyin"),
     description:
       "按順序重演上一回合打出的所有卡牌（不含本牌）。重演不消耗真元、不觸發【因果相生】。",
   },
@@ -123,6 +154,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     type: "因／果牌",
     cost: 3,
     aspect: "both",
+    art: karmaArtPath("yinian"),
     suppressKarmaPassive: true,
     description:
       "造成 20 點基礎傷害並結算所有【因果印記】（每層 +10）。至少 5 層時最終傷害額外 +50%，然後清除印記。",

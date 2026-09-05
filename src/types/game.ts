@@ -120,9 +120,9 @@ export const CARD_TYPE_COLORS: Record<string, string> = {
   劍道蓄勢: "ink-card-type-charge bg-[#1a1810]",
   劍意增幅: "ink-card-type-boost bg-[#1a1414]",
   絕技終結: "ink-card-type-ultimate bg-[#1a1810]",
-  因牌: "ink-card-type-boost bg-[#1a1414]",
-  果牌: "ink-card-type-step bg-[#141820]",
-  "因／果牌": "ink-card-type-ultimate bg-[#1a1810]",
+  因牌: "ink-card-aspect-yin",
+  果牌: "ink-card-aspect-yang",
+  "因／果牌": "ink-card-aspect-both",
 };
 
 export const CARD_TYPE_ACCENT: Record<string, string> = {
@@ -132,7 +132,7 @@ export const CARD_TYPE_ACCENT: Record<string, string> = {
   劍道蓄勢: "text-[#c9a84c]",
   劍意增幅: "text-[#c45c5c]",
   絕技終結: "text-[#ffd700]",
-  因牌: "text-[#c48888]",
-  果牌: "text-[#9ab8aa]",
-  "因／果牌": "text-[#e8d5a3]",
+  因牌: "text-[#c4b89a]",
+  果牌: "text-[#a8b8b4]",
+  "因／果牌": "text-[#d0c8b0]",
 };

@@ -1821,6 +1821,56 @@ html.combat-scroll-lock {
   --card-glow: rgba(201, 168, 76, 0.1);
 }
 
+/* 因果道面向：克制、低飽和 */
+.ink-card-aspect-yin {
+  --card-border: rgba(160, 148, 120, 0.5);
+  --card-border-inner: rgba(201, 168, 76, 0.1);
+  --card-glow: rgba(90, 80, 60, 0.08);
+  background-image:
+    linear-gradient(165deg, rgba(36, 32, 28, 0.55) 0%, transparent 45%),
+    linear-gradient(180deg, rgba(14, 12, 11, 0.92), rgba(8, 7, 6, 0.95));
+}
+.ink-card-aspect-yang {
+  --card-border: rgba(140, 156, 162, 0.48);
+  --card-border-inner: rgba(170, 190, 186, 0.12);
+  --card-glow: rgba(90, 110, 108, 0.07);
+  background-image:
+    linear-gradient(165deg, rgba(40, 46, 48, 0.45) 0%, transparent 45%),
+    linear-gradient(180deg, rgba(16, 18, 20, 0.9), rgba(10, 12, 14, 0.94));
+}
+.ink-card-aspect-both {
+  --card-border: rgba(170, 160, 140, 0.52);
+  --card-border-inner: rgba(200, 190, 170, 0.12);
+  --card-glow: rgba(120, 120, 120, 0.08);
+  background-image:
+    linear-gradient(120deg, rgba(28, 26, 24, 0.75) 0%, transparent 48%),
+    linear-gradient(300deg, rgba(36, 40, 42, 0.55) 0%, transparent 50%),
+    linear-gradient(180deg, rgba(12, 12, 12, 0.92), rgba(8, 8, 9, 0.95));
+}
+
+.ink-card-art {
+  height: 40%;
+  min-height: 3.4rem;
+  background: #0e0d0c;
+}
+.ink-card-art--enlarged {
+  height: 44%;
+}
+.ink-card-art--compact {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.2rem;
+  border: 1px solid rgba(138, 115, 64, 0.25);
+}
+.ink-card-art-veil {
+  background: linear-gradient(
+    180deg,
+    rgba(8, 7, 6, 0.55) 0%,
+    rgba(8, 7, 6, 0.12) 42%,
+    rgba(8, 7, 6, 0.35) 100%
+  );
+}
+
 .ink-card-selected,
 .ink-card:hover {
   --card-border: color-mix(in srgb, var(--card-border) 70%, #e8d5a3 30%);

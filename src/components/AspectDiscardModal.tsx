@@ -4,6 +4,7 @@ import type { Card } from "@/types/battle";
 import { getEffectiveCost } from "@/types/battle";
 import { getCardTemplate } from "@/lib/battle-deck";
 import { CARD_TYPE_COLORS } from "@/types/game";
+import { CardFace } from "@/components/CardFace";
 
 interface AspectDiscardModalProps {
   open: boolean;
@@ -44,15 +45,19 @@ export function AspectDiscardModal({
               <li key={card.instanceId}>
                 <button
                   type="button"
-                  className={`ink-card flex w-full items-center justify-between gap-2 p-2 text-left ${typeStyle}`}
+                  className={`ink-card flex w-full !h-auto !min-h-0 overflow-hidden text-left ${typeStyle}`}
+                  style={{ width: "100%", height: "auto" }}
                   onClick={() => onChoose(card.instanceId)}
                 >
-                  <span className="text-[12px] font-bold text-[#f0e6d3]">
-                    {card.name}
-                  </span>
-                  <span className="text-[10px] text-[#7aab9a]">
-                    {getEffectiveCost(card)}
-                  </span>
+                  <CardFace
+                    name={card.name}
+                    type={template?.type ?? ""}
+                    cost={getEffectiveCost(card)}
+                    description={template?.description ?? ""}
+                    art={template?.art}
+                    templateId={card.id}
+                    compact
+                  />
                 </button>
               </li>
             );
