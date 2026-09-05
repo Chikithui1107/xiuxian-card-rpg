@@ -2,15 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import enemiesData from "@/data/enemies.json";
-import startingDeckIds from "@/data/starting-deck.json";
 import startingInventoryData from "@/data/starting-inventory.json";
+import {
+  DEFAULT_CHARACTER_ID,
+  getCharacter,
+  listPlayableCharacters,
+  type PlayableCharacter,
+} from "@/data/characters";
 import { MobileFrame } from "@/components/MobileFrame";
 import { BottomNav } from "@/components/BottomNav";
 import { LobbyView } from "@/components/LobbyView";
 import { CombatView } from "@/components/CombatView";
 import { TierSelectionView } from "@/components/TierSelectionView";
 import { PathChoiceView } from "@/components/PathChoiceView";
-import { InventoryView } from "@/components/InventoryView";
+import { CharacterSelectModal } from "@/components/CharacterSelectModal";
 import { CardRewardModal } from "@/components/CardRewardModal";
 import { EventModal } from "@/components/EventModal";
 import { InGameMenu } from "@/components/InGameMenu";
@@ -24,8 +29,6 @@ import {
 } from "@/lib/stats";
 import {
   createInitialInventory,
-  equipItem,
-  unequipItem,
 } from "@/lib/equipment";
 import {
   CARD_TEMPLATES,
@@ -45,6 +48,7 @@ import {
   applyRegenPassive,
   getAllDungeonTiers,
   getCompletionSpiritReward,
+  getDungeonChapterMeta,
   getDungeonTier,
   getEnemyForMapNode,
   getEnemyIntent,
@@ -85,7 +89,6 @@ import { HIGH_DAMAGE_THRESHOLD } from "@/types/game";
 
 const ENEMY_LIST = enemiesData as Enemy[];
 const DUNGEON_TIERS = getAllDungeonTiers();
-const INITIAL_DECK_IDS = startingDeckIds as CardTemplateId[];
 const INITIAL_INVENTORY = createInitialInventory(startingInventoryData);
 const EMPTY_DECK: BattleDeckState = {
   drawPile: [],
@@ -93,33 +96,66 @@ const EMPTY_DECK: BattleDeckState = {
   discardPile: [],
   exhaustPile: [],
 };
+const PLAYABLE = listPlayableCharacters();
+const ACTIVE_CHAR_KEY = "xiuxian_active_character_v1";
+const CHAR_PROGRESS_KEY = "xiuxian_character_progress_v1";
+
+type CharacterProgress = {
+  permanentDeck: CardTemplateId[];
+  playerHp: number;
+  spiritStones: number;
+  totalClears: number;
+};
 
 const TAB_LABELS: Record<AppTab, string> = {
   lobby: "青雲宗 · 山門",
-  combat: "天下祕境 · 試煉",
-  inventory: "修士行囊",
+  combat: "天下秘境",
+  characters: "選擇角色",
 };
 
-function getInitialPermanentDeck(): CardTemplateId[] {
-  return [...INITIAL_DECK_IDS];
+function createProgress(character: PlayableCharacter): CharacterProgress {
+  return {
+    permanentDeck: [...character.startingDeck],
+    playerHp: character.maxHp,
+    spiritStones: character.spiritStones,
+    totalClears: 0,
+  };
 }
 
 function initBattleDeck(templateIds: CardTemplateId[]): BattleDeckState {
   return createBattleDeck(templateIds, COMBAT_HAND_SIZE);
 }
 
-function createInitialMetaState() {
-  const permanentDeck = getInitialPermanentDeck();
-  const inventory = createInitialInventory(startingInventoryData);
-  const hero = getHero();
-  const stats = calculateHeroStats(hero, inventory.equippedIds);
-  return { permanentDeck, inventory, playerHp: stats.maxHp };
+function readStoredActiveId(): string {
+  try {
+    const id = localStorage.getItem(ACTIVE_CHAR_KEY);
+    if (id && PLAYABLE.some((c) => c.id === id)) return id;
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_CHARACTER_ID;
+}
+
+function readStoredProgress(): Record<string, CharacterProgress> {
+  try {
+    const raw = localStorage.getItem(CHAR_PROGRESS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, CharacterProgress>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 export default function GamePage() {
-  const hero = getHero();
-
   const [ready, setReady] = useState(false);
+  const [activeCharacterId, setActiveCharacterId] = useState(
+    DEFAULT_CHARACTER_ID
+  );
+  const [characterSelectOpen, setCharacterSelectOpen] = useState(false);
+  const [progressByCharacter, setProgressByCharacter] = useState<
+    Record<string, CharacterProgress>
+  >({});
   const [activeTab, setActiveTab] = useState<AppTab>("lobby");
   const [combatScreen, setCombatScreen] = useState<CombatScreen>("tier-select");
   const [isInCombat, setIsInCombat] = useState(false);
@@ -128,11 +164,11 @@ export default function GamePage() {
   const [selectedTier, setSelectedTier] = useState<DungeonTier | null>(null);
   const [tierFloor, setTierFloor] = useState(1);
   const [totalClears, setTotalClears] = useState(0);
-  const [spiritStones, setSpiritStones] = useState(hero.spiritStones);
+  const [spiritStones, setSpiritStones] = useState(1280);
   const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>(
     []
   );
-  const [playerHp, setPlayerHp] = useState(hero.maxHp);
+  const [playerHp, setPlayerHp] = useState(60);
   const [lastRunMessage, setLastRunMessage] = useState<string | null>(null);
 
   const [enemy, setEnemy] = useState<CombatEnemy>(() => ({
@@ -178,22 +214,112 @@ export default function GamePage() {
     INITIAL_COMBAT_BUFFS
   );
 
+  const character = useMemo(
+    () => getCharacter(activeCharacterId),
+    [activeCharacterId]
+  );
+  const hero = useMemo(() => getHero(activeCharacterId), [activeCharacterId]);
+
   const heroStats = useMemo(
     () => calculateHeroStats(hero, inventory.equippedIds),
     [hero, inventory.equippedIds]
   );
 
   useEffect(() => {
-    const initial = createInitialMetaState();
-    setPermanentDeck(initial.permanentDeck);
-    setInventory(initial.inventory);
-    setPlayerHp(initial.playerHp);
+    const activeId = readStoredActiveId();
+    const stored = readStoredProgress();
+    const progress =
+      stored[activeId] ?? createProgress(getCharacter(activeId));
+    setActiveCharacterId(activeId);
+    setProgressByCharacter({
+      ...stored,
+      [activeId]: progress,
+    });
+    setPermanentDeck(progress.permanentDeck);
+    setPlayerHp(progress.playerHp);
+    setSpiritStones(progress.spiritStones);
+    setTotalClears(progress.totalClears);
+    setInventory(createInitialInventory(startingInventoryData));
     setReady(true);
   }, []);
 
   useEffect(() => {
+    if (!ready) return;
+    const snapshot: CharacterProgress = {
+      permanentDeck,
+      playerHp,
+      spiritStones,
+      totalClears,
+    };
+    setProgressByCharacter((prev) => {
+      const next = { ...prev, [activeCharacterId]: snapshot };
+      try {
+        localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(next));
+        localStorage.setItem(ACTIVE_CHAR_KEY, activeCharacterId);
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, [
+    ready,
+    activeCharacterId,
+    permanentDeck,
+    playerHp,
+    spiritStones,
+    totalClears,
+  ]);
+
+  useEffect(() => {
     setPlayerHp((hp) => Math.min(hp, heroStats.maxHp));
   }, [heroStats.maxHp]);
+
+  const switchCharacter = useCallback(
+    (nextId: string) => {
+      if (nextId === activeCharacterId) return;
+      if (selectedTier !== null) return;
+
+      const currentSnap: CharacterProgress = {
+        permanentDeck,
+        playerHp,
+        spiritStones,
+        totalClears,
+      };
+      const nextChar = getCharacter(nextId);
+      const nextSnap =
+        progressByCharacter[nextId] ?? createProgress(nextChar);
+
+      const merged = {
+        ...progressByCharacter,
+        [activeCharacterId]: currentSnap,
+        [nextId]: nextSnap,
+      };
+      setProgressByCharacter(merged);
+      setActiveCharacterId(nextId);
+      setPermanentDeck(nextSnap.permanentDeck);
+      setPlayerHp(nextSnap.playerHp);
+      setSpiritStones(nextSnap.spiritStones);
+      setTotalClears(nextSnap.totalClears);
+      setLastRunMessage(`已入駐：${nextChar.name}`);
+      setCharacterSelectOpen(false);
+      setActiveTab("lobby");
+      try {
+        localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(merged));
+        localStorage.setItem(ACTIVE_CHAR_KEY, nextId);
+      } catch {
+        /* ignore */
+      }
+    },
+    [
+      activeCharacterId,
+      permanentDeck,
+      playerHp,
+      spiritStones,
+      totalClears,
+      progressByCharacter,
+      selectedTier,
+    ]
+  );
 
   useEffect(() => {
     return () => {
@@ -227,8 +353,8 @@ export default function GamePage() {
   }, []);
 
   const resetPermanentDeck = useCallback(() => {
-    setPermanentDeck(getInitialPermanentDeck());
-  }, []);
+    setPermanentDeck([...character.startingDeck]);
+  }, [character.startingDeck]);
 
   const returnToLobby = useCallback(
     (message: string | null = null, healPlayer = false) => {
@@ -386,13 +512,17 @@ export default function GamePage() {
 
   const quitRun = useCallback(() => {
     resetPermanentDeck();
-    returnToLobby("已退出本次修行，秘境進度已清空。", true);
+    returnToLobby("已退出秘境，本次進度已重置", true);
   }, [returnToLobby, resetPermanentDeck]);
+
+  const dismissRunMessage = useCallback(() => {
+    setLastRunMessage(null);
+  }, []);
 
   const abandonGame = useCallback(() => {
     if (
       typeof window !== "undefined" &&
-      !window.confirm("確定退出本次修行？當前秘境進度將無法恢復。")
+      !window.confirm("確定退出本次秘境？當前進度將重置。")
     ) {
       return;
     }
@@ -429,17 +559,6 @@ export default function GamePage() {
     },
     [resetCombatState, resetPermanentDeck]
   );
-
-  const handleEquip = useCallback(
-    (equipmentId: string) => {
-      setInventory((prev) => equipItem(prev, equipmentId, hero.realm));
-    },
-    [hero.realm]
-  );
-
-  const handleUnequip = useCallback((equipmentId: string) => {
-    setInventory((prev) => unequipItem(prev, equipmentId));
-  }, []);
 
   const addDamagePopup = useCallback((damage: number) => {
     popupIdRef.current += 1;
@@ -758,57 +877,47 @@ export default function GamePage() {
   const renderContent = () => {
     switch (activeTab) {
       case "lobby":
+      case "characters":
         return (
-          <LobbyView
-            hero={hero}
-            stats={heroStats}
-            playerHp={playerHp}
-            spiritStones={spiritStones}
-            totalClears={totalClears}
-            achievementCount={unlockedAchievements.length}
-            deckCount={permanentDeck.length}
-            lastRunMessage={lastRunMessage}
-            hasActiveRun={hasActiveRun}
-            runLabel={
-              selectedTier
-                ? `${selectedTier.name}${
-                    isInCombat
-                      ? " · 戰鬥中"
-                      : combatScreen === "path"
-                        ? " · 岔路"
-                        : ""
-                  }`
-                : null
-            }
-            onEnterDungeon={enterTierSelect}
-            onContinueGame={continueGame}
-            onAbandonGame={abandonGame}
-          />
-        );
-      case "inventory":
-        return (
-          <InventoryView
-            inventory={inventory}
-            heroRealm={hero.realm}
-            onEquip={handleEquip}
-            onUnequip={handleUnequip}
-          />
+          <div className="flex min-h-0 flex-1 flex-col">
+            <LobbyView
+              hero={hero}
+              character={character}
+              stats={heroStats}
+              playerHp={playerHp}
+              spiritStones={spiritStones}
+              totalClears={totalClears}
+              achievementCount={unlockedAchievements.length}
+              deckCount={permanentDeck.length}
+              lastRunMessage={lastRunMessage}
+              hasActiveRun={hasActiveRun}
+              runLabel={
+                selectedTier
+                  ? `${selectedTier.name}${
+                      isInCombat
+                        ? " · 戰鬥中"
+                        : combatScreen === "path"
+                          ? " · 岔路"
+                          : ""
+                    }`
+                  : null
+              }
+              onEnterDungeon={enterTierSelect}
+              onContinueGame={continueGame}
+              onAbandonGame={abandonGame}
+              onDismissRunMessage={dismissRunMessage}
+            />
+          </div>
         );
       case "combat":
         if (combatScreen === "tier-select") {
           return (
-            <div className="flex flex-col gap-3">
-              {lastRunMessage && (
-                <div className="mx-3 mt-3 glass-panel-gold px-3 py-2.5 text-center text-xs text-[#c9a84c]">
-                  {lastRunMessage}
-                </div>
-              )}
+            <div className="flex min-h-0 flex-1 flex-col">
               <TierSelectionView
                 tiers={DUNGEON_TIERS}
                 unlockedAchievements={unlockedAchievements}
                 playerAttack={heroStats.attack}
                 onSelectTier={startTierRun}
-                onBack={() => returnToLobby(null, false)}
               />
             </div>
           );
@@ -840,8 +949,13 @@ export default function GamePage() {
             heroStats={heroStats}
             enemy={enemy}
             tierName={selectedTier?.name}
+            locationName={
+              selectedTier
+                ? getDungeonChapterMeta(selectedTier).locationName
+                : undefined
+            }
             tierFloor={tierFloor}
-            totalFloors={MOON_NIGHT_STEPS}
+            totalFloors={selectedTier?.floors ?? 3}
             playerHp={playerHp}
             energy={energy}
             combatBuffs={combatBuffs}
@@ -866,6 +980,19 @@ export default function GamePage() {
     }
   };
 
+  const handleTabChange = useCallback(
+    (tab: AppTab) => {
+      if (tab === "characters") {
+        setActiveTab("lobby");
+        setCharacterSelectOpen(true);
+        return;
+      }
+      setCharacterSelectOpen(false);
+      setActiveTab(tab);
+    },
+    []
+  );
+
   const showRunMenu =
     hasActiveRun &&
     activeTab === "combat" &&
@@ -885,26 +1012,44 @@ export default function GamePage() {
 
   return (
     <MobileFrame
-      title="修仙卡牌錄"
+      title="仙途"
       subtitle={
-        hasActiveRun && selectedTier
-          ? `${selectedTier.name} · 修行中`
-          : TAB_LABELS[activeTab]
+        isInCombat
+          ? undefined
+          : hasActiveRun && selectedTier
+            ? `${selectedTier.name} · 修行中`
+            : activeTab === "lobby"
+              ? "天樞聖宗"
+              : TAB_LABELS[activeTab]
       }
+      immersive={activeTab === "lobby" && !isInCombat}
+      compactHeader={isInCombat}
       bgmScene={isInCombat ? "combat" : "lobby"}
       inGameMenu={
         showRunMenu ? <InGameMenu onQuit={quitRun} /> : null
       }
       bottomNav={
-        <BottomNav
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          inCombat={hasActiveRun}
-          combatLocked={isInCombat}
-        />
+        isInCombat ? null : (
+          <BottomNav
+            activeTab={characterSelectOpen ? "characters" : activeTab}
+            onTabChange={handleTabChange}
+            inCombat={hasActiveRun}
+            combatLocked={false}
+          />
+        )
       }
     >
       {renderContent()}
+
+      <CharacterSelectModal
+        open={characterSelectOpen}
+        characters={PLAYABLE}
+        activeId={character.id}
+        locked={hasActiveRun}
+        lockReason="請先結束或退出本次修行"
+        onSelect={switchCharacter}
+        onClose={() => setCharacterSelectOpen(false)}
+      />
 
       {isInCombat && battlePhase === "VICTORY_ANIM" && (
         <VictoryAnimOverlay enemyName={defeatedEnemyName} />

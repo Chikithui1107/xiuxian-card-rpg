@@ -1,0 +1,203 @@
+/* 手機優先 9:16 構圖；大廳內由父層撐滿高度 */
+.scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  isolation: isolate;
+
+  background: #d9e2ea;
+}
+
+/* -------------------------
+   背景：全螢幕 cover，完全固定
+   只壓背景曝光／飽和，不碰男主
+------------------------- */
+
+.background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+
+  /* 預設輕壓；角色資料可設 backgroundFilter: none 以保留原圖銳度 */
+  filter: brightness(0.9) saturate(0.92) contrast(1.02);
+
+  user-select: none;
+  pointer-events: none;
+}
+
+.scene[data-lobby-theme="ink"] .background {
+  filter: none;
+}
+
+.figureShade {
+  display: none;
+  pointer-events: none;
+}
+
+/* 已移除全屏 vignette／四角暗角；上下功能性漸變改由 header／lobby veil／底欄負責 */
+
+/* -------------------------
+   男主：完全靜止
+   白衣高光極輕降（約 4%）；臉仍為視覺中心
+------------------------- */
+
+.character {
+  position: absolute;
+  left: 50%;
+  /* 腳貼近底欄；高度主導，對齊手機截圖約佔畫面 78–82% */
+  bottom: 0;
+  z-index: 10;
+
+  height: 82%;
+  width: auto;
+  max-width: none;
+
+  object-fit: contain;
+  object-position: center bottom;
+
+  transform: translateX(-50%);
+
+  /* 人物 PNG 亮度／顏色不改；只保留水平置中 */
+  filter: none;
+
+  user-select: none;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+
+/* 腳底柔和環境影：與濕石地融合 */
+.groundShadow {
+  position: absolute;
+  left: 50%;
+  bottom: 0.6%;
+  z-index: 9;
+
+  width: 48%;
+  height: 3.8%;
+  transform: translateX(-50%);
+
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    rgba(8, 14, 22, 0.28) 0%,
+    rgba(8, 14, 22, 0.12) 42%,
+    transparent 72%
+  );
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+/* -------------------------
+   遠霧：非常慢、很淡
+------------------------- */
+
+.mist {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+
+  filter: blur(32px);
+  opacity: 0.09;
+
+  background: radial-gradient(
+    ellipse,
+    rgba(168, 196, 216, 0.36),
+    rgba(130, 162, 188, 0.1) 50%,
+    transparent 72%
+  );
+}
+
+.mistBack {
+  z-index: 4;
+  width: 120%;
+  height: 28%;
+  left: -15%;
+  top: 34%;
+  animation: mistBack 22s ease-in-out infinite alternate;
+}
+
+@keyframes mistBack {
+  from {
+    transform: translateX(-1.5%);
+  }
+  to {
+    transform: translateX(3.5%);
+  }
+}
+
+/* -------------------------
+   少量環境粒子
+------------------------- */
+
+.particles {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.particles i {
+  --n: calc(var(--i) * 14%);
+
+  position: absolute;
+  width: 1.5px;
+  height: 1.5px;
+  left: calc(18% + var(--n));
+  bottom: calc(12% + (var(--i) * 2.2%));
+  border-radius: 50%;
+  background: rgba(220, 236, 248, 0.55);
+  box-shadow: 0 0 3px rgba(170, 210, 235, 0.35);
+  opacity: 0;
+  animation: particleRise calc(11s + var(--i) * 0.55s) ease-in-out infinite;
+  animation-delay: calc(var(--i) * -1.1s);
+}
+
+/* 墨弈：粒子偏冷灰，背景底色略沉 */
+.scene[data-lobby-theme="ink"] {
+  background: #0c0c0e;
+}
+
+.scene[data-lobby-theme="ink"] .particles i {
+  background: rgba(210, 210, 214, 0.4);
+  box-shadow: 0 0 3px rgba(180, 175, 160, 0.25);
+}
+
+.scene[data-lobby-theme="ink"] .mist {
+  background: radial-gradient(
+    ellipse,
+    rgba(160, 160, 168, 0.22),
+    rgba(90, 90, 98, 0.08) 50%,
+    transparent 72%
+  );
+}
+
+@keyframes particleRise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  30% {
+    opacity: 0.28;
+  }
+  70% {
+    opacity: 0.1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(8px, -90px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mist,
+  .particles i {
+    animation: none;
+  }
+}

@@ -5,6 +5,13 @@ export interface MonsterConfig {
   name: string;
   image: string;
   description: string;
+  /**
+   * 立繪相對「人形基準」的縮放。
+   * 普通怪 ~0.88–1.0，精英略大，Boss 更大。
+   */
+  visualScale: number;
+  /** 立繪垂直微調（vh），正值下移 */
+  visualOffsetY: number;
 }
 
 export const DEMON_WOLF: MonsterConfig = {
@@ -12,6 +19,8 @@ export const DEMON_WOLF: MonsterConfig = {
   name: "妖狼",
   image: publicAsset("/monsters/demon_wolf.png"),
   description: "盤踞山道的低階妖獸，周身幽火，適合熱身",
+  visualScale: 0.9,
+  visualOffsetY: 0.5,
 };
 
 export const BANDIT: MonsterConfig = {
@@ -19,6 +28,8 @@ export const BANDIT: MonsterConfig = {
   name: "劫修",
   image: publicAsset("/monsters/bandit.png"),
   description: "散修惡徒，劍招粗淺但兇狠",
+  visualScale: 1,
+  visualOffsetY: 0,
 };
 
 export const TRAITOR: MonsterConfig = {
@@ -26,6 +37,8 @@ export const TRAITOR: MonsterConfig = {
   name: "叛劍客",
   image: publicAsset("/monsters/traitor.png"),
   description: "精英敵手，善使三連斬壓制對手",
+  visualScale: 1.08,
+  visualOffsetY: 0,
 };
 
 export const BLOOD_ELDER: MonsterConfig = {
@@ -33,6 +46,8 @@ export const BLOOD_ELDER: MonsterConfig = {
   name: "血魔長老",
   image: publicAsset("/monsters/blood_elder.png"),
   description: "章節魔首，血焰纏身，需在殘血拉扯中尋找核爆時機",
+  visualScale: 1.2,
+  visualOffsetY: -0.5,
 };
 
 const MONSTER_BY_ID: Record<string, MonsterConfig> = {

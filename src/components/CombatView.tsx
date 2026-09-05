@@ -27,12 +27,16 @@ import {
   unlockCombatAudio,
 } from "@/lib/combat-audio";
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
+import { publicAsset } from "@/lib/paths";
+
+const COMBAT_BG = publicAsset("/backgrounds/combat-moon-path.jpg");
 
 interface CombatViewProps {
   hero: Hero;
   heroStats: HeroStats;
   enemy: CombatEnemy;
   tierName?: string;
+  locationName?: string;
   tierFloor?: number;
   totalFloors?: number;
   playerHp: number;
@@ -72,6 +76,7 @@ export function CombatView({
   heroStats,
   enemy,
   tierName,
+  locationName,
   tierFloor,
   totalFloors,
   playerHp,
@@ -90,17 +95,20 @@ export function CombatView({
   lastEnemyDamage,
   lastDodge,
   lastPassiveHeal,
-  totalDamage,
+  totalDamage: _totalDamage,
   onPlayCard,
   onEndTurn,
 }: CombatViewProps) {
   const isPlaying = phase === "playing" && battlePhase === "IN_BATTLE";
-  const floorLabel =
-    tierName && tierFloor && totalFloors
-      ? `${tierName} · 關卡 ${tierFloor}/${totalFloors}`
-      : tierFloor
-        ? `關卡 ${tierFloor}`
-        : "祕境試煉";
+  const placeLabel = locationName ?? tierName ?? "秘境";
+  const progressFloor = Math.min(
+    Math.max(1, tierFloor ?? 1),
+    totalFloors ?? 3
+  );
+  const battleLabel =
+    totalFloors != null
+      ? `${placeLabel} · ${progressFloor} / ${totalFloors}`
+      : placeLabel;
 
   const enemyTargetRef = useRef<HTMLDivElement>(null);
   const playerTargetRef = useRef<HTMLDivElement>(null);
@@ -122,6 +130,24 @@ export function CombatView({
 
   useEffect(() => {
     preloadCombatSfx();
+  }, []);
+
+  // 進戰鬥即鎖死頁面滾動，避免拖牌/出牌把畫面頂上去
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    html.classList.add("combat-scroll-lock");
+    body.classList.add("combat-scroll-lock");
+    const y = window.scrollY;
+    const lock = () => {
+      if (window.scrollY !== y) window.scrollTo(0, y);
+    };
+    window.addEventListener("scroll", lock, { passive: true });
+    return () => {
+      html.classList.remove("combat-scroll-lock");
+      body.classList.remove("combat-scroll-lock");
+      window.removeEventListener("scroll", lock);
+    };
   }, []);
 
   const showToast = useCallback((msg: string) => {
@@ -225,44 +251,31 @@ export function CombatView({
   );
 
   return (
-    <div
-      className="relative flex min-h-0 flex-1 flex-col"
-      onPointerDown={unlockCombatAudio}
-    >
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-[#4a7c6f]/15 bg-stone-950/80 px-3 py-1.5">
-        <p className="zone-label shrink-0">戰鬥中</p>
-        <p className="min-w-0 flex-1 truncate text-center text-[10px] text-[#7aab9a]">
-          {floorLabel}
-        </p>
-        <p className="stat-value shrink-0 text-[11px] font-bold text-[#c9a84c]">
-          {totalDamage.toLocaleString()}
+    <div className="combat-shell" onPointerDown={unlockCombatAudio}>
+      <div className="combat-shell-bg" aria-hidden>
+        <img src={COMBAT_BG} alt="" draggable={false} />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/15 to-[#0c1014]/78" />
+      </div>
+
+      <div className="combat-shell-top flex items-center justify-center px-3">
+        <p className="truncate text-[10px] tracking-wide text-[#c5d8cc] drop-shadow">
+          {battleLabel}
         </p>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2">
-        <div ref={enemyTargetRef}>
-          <EnemyPanel
-            enemy={enemy}
-            damagePopups={damagePopups}
-            isShaking={isShaking}
-            hitFlash={hitFlash}
-            lastEnemyDamage={lastEnemyDamage}
-            lastDodge={lastDodge}
-            lastPassiveHeal={lastPassiveHeal}
-          />
-        </div>
-        <div ref={playerTargetRef}>
-          <CombatPlayerBar
-            hero={hero}
-            stats={heroStats}
-            currentHp={playerHp}
-            energy={energy}
-            combatBuffs={combatBuffs}
-          />
-        </div>
+      <div ref={enemyTargetRef} className="combat-shell-stage">
+        <EnemyPanel
+          enemy={enemy}
+          damagePopups={damagePopups}
+          isShaking={isShaking}
+          hitFlash={hitFlash}
+          lastEnemyDamage={lastEnemyDamage}
+          lastDodge={lastDodge}
+          lastPassiveHeal={lastPassiveHeal}
+        />
       </div>
 
-      <div className="relative z-20 shrink-0 overflow-visible border-t border-[#4a7c6f]/20 bg-[#121110]/95 px-3 pb-2 pt-2">
+      <div ref={playerTargetRef} className="combat-shell-dock">
         <CardHand
           hand={hand}
           energy={energy}
@@ -277,6 +290,15 @@ export function CombatView({
           disabled={!isPlaying || enemy.currentHp <= 0}
           denyShake={denyShake}
           feelToast={feelToast}
+          playerBar={
+            <CombatPlayerBar
+              hero={hero}
+              stats={heroStats}
+              currentHp={playerHp}
+              energy={energy}
+              combatBuffs={combatBuffs}
+            />
+          }
         />
       </div>
 

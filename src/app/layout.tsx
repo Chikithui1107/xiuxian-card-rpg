@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "修仙卡牌錄 · 國風仙俠",
+  title: "仙途 · 天樞聖宗",
   description: "水墨仙俠風格 RPG 卡牌祕境試煉",
 };
 

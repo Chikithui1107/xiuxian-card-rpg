@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { HandUI } from "@/components/HandUI";
 import type { Card } from "@/types/battle";
+import type { ReactNode } from "react";
 
 interface CardHandProps {
   hand: Card[];
@@ -17,90 +19,87 @@ interface CardHandProps {
   disabled: boolean;
   denyShake?: boolean;
   feelToast?: string | null;
+  playerBar?: ReactNode;
 }
+
+const TIP_KEY = "xiuxian_swipe_tip_seen";
 
 export function CardHand({
   hand,
   energy,
   drawPileCount,
   discardPileCount,
-  exhaustPileCount,
-  deckCount,
+  exhaustPileCount: _exhaustPileCount,
+  deckCount: _deckCount,
   onPlayCard,
   onDenyPlay,
   onEndTurn,
-  lastDamage,
+  lastDamage: _lastDamage,
   disabled,
   denyShake = false,
   feelToast = null,
+  playerBar,
 }: CardHandProps) {
+  const [showTip, setShowTip] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(TIP_KEY)) return;
+      sessionStorage.setItem(TIP_KEY, "1");
+      setShowTip(true);
+      const t = window.setTimeout(() => setShowTip(false), 2400);
+      return () => window.clearTimeout(t);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
   return (
-    <div className="relative space-y-2">
-      <div className="flex items-end justify-between px-0.5">
-        <p className="zone-label">手牌 · 上拖出牌</p>
-        <div className="flex gap-3 text-center">
-          <MiniStat label="牌庫" value={String(drawPileCount)} color="jade" />
-          <MiniStat label="棄牌" value={String(discardPileCount)} color="stone" />
-          <MiniStat label="消耗" value={String(exhaustPileCount)} color="stone" />
-          <MiniStat label="牌組" value={`${deckCount}`} color="gold" />
+    <div className="relative flex h-full min-h-0 flex-col gap-0.5">
+      <div className="flex shrink-0 items-start justify-between gap-2 px-0.5">
+        <div className="min-w-0 flex-1">{playerBar}</div>
+        <p className="shrink-0 pt-1 text-[9px] tracking-wide text-stone-500">
+          <span className="text-stone-600">抽</span>{" "}
+          <span className="tabular-nums text-[#9ab8aa]">{drawPileCount}</span>
+          <span className="mx-1 text-stone-700">·</span>
+          <span className="text-stone-600">棄</span>{" "}
+          <span className="tabular-nums text-stone-400">{discardPileCount}</span>
+        </p>
+      </div>
+
+      {/* 手牌區：貼近 HUD、佔滿寬；結束回合獨立在下方，絕不壓牌 */}
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-visible">
+        <div className="relative flex min-h-0 flex-1 items-start justify-center pt-0.5">
+          <HandUI
+            hand={hand}
+            energy={energy}
+            disabled={disabled}
+            denyShake={denyShake}
+            onPlayCard={onPlayCard}
+            onDenyPlay={onDenyPlay}
+          />
+          {(feelToast || showTip) && (
+            <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 rounded-sm border border-stone-600/30 bg-stone-950/70 px-2.5 py-0.5 text-[10px] tracking-wide text-stone-300">
+              {feelToast ?? "上拖出牌"}
+            </p>
+          )}
+        </div>
+
+        <div className="flex shrink-0 items-center justify-end pb-0.5 pr-0.5 pt-1">
+          <button
+            type="button"
+            onClick={onEndTurn}
+            disabled={disabled}
+            className="btn-end-turn-seal disabled:cursor-not-allowed disabled:opacity-35"
+            aria-label="結束回合"
+          >
+            <span className="btn-end-turn-seal-label">
+              <span>結束</span>
+              <span>回合</span>
+            </span>
+          </button>
         </div>
       </div>
-
-      <HandUI
-        hand={hand}
-        energy={energy}
-        disabled={disabled}
-        denyShake={denyShake}
-        onPlayCard={onPlayCard}
-        onDenyPlay={onDenyPlay}
-      />
-
-      {feelToast && (
-        <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-8 z-20 -translate-x-1/2 rounded border border-[#a85555]/50 bg-stone-950/90 px-3 py-1 text-[11px] font-semibold text-[#c48888] shadow-lg">
-          {feelToast}
-        </p>
-      )}
-
-      <div>
-        <button
-          onClick={onEndTurn}
-          disabled={disabled}
-          className="btn-cyber-gold w-full py-3 text-sm disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          收功結束
-        </button>
-        {lastDamage !== null && (
-          <p className="mt-2 text-center text-[9px] leading-relaxed text-stone-500">
-            上式傷害{" "}
-            <span className="text-[#c9a84c]">
-              {lastDamage.toLocaleString()}
-            </span>
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function MiniStat({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: string;
-  color: "jade" | "stone" | "gold";
-}) {
-  const c = {
-    jade: "text-[#7aab9a]",
-    stone: "text-stone-400",
-    gold: "text-[#c9a84c]",
-  }[color];
-
-  return (
-    <div>
-      <p className="text-[9px] text-stone-500">{label}</p>
-      <p className={`stat-value text-xs font-bold ${c}`}>{value}</p>
     </div>
   );
 }

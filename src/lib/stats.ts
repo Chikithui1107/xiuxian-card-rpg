@@ -1,4 +1,4 @@
-import heroData from "@/data/hero.json";
+import { getCharacter, DEFAULT_CHARACTER_ID } from "@/data/characters";
 import { getEquipmentList } from "@/lib/equipment";
 
 export interface Hero {
@@ -11,6 +11,12 @@ export interface Hero {
   critMultiplier: number;
   maxHp: number;
   spiritStones: number;
+  avatar?: string;
+  portrait?: string;
+  /** 大廳海報立繪 */
+  lobbyPortrait?: string;
+  /** 山門背景（資料驅動；缺省則用白夜） */
+  lobbyBackground?: string;
 }
 
 export interface HeroStats {
@@ -32,8 +38,24 @@ export interface DamageResult {
   isCrit: boolean;
 }
 
-export function getHero(): Hero {
-  return heroData as Hero;
+/** @param characterId 可切換角色 id；預設白夜 */
+export function getHero(characterId: string = DEFAULT_CHARACTER_ID): Hero {
+  const c = getCharacter(characterId);
+  return {
+    id: c.id,
+    name: c.name,
+    title: c.title,
+    realm: c.realm,
+    baseAttack: c.baseAttack,
+    critRate: c.critRate,
+    critMultiplier: c.critMultiplier,
+    maxHp: c.maxHp,
+    spiritStones: c.spiritStones,
+    avatar: c.avatar,
+    portrait: c.portrait,
+    lobbyPortrait: c.lobbyPortrait,
+    lobbyBackground: c.lobbyBackground,
+  };
 }
 
 export function calculateHeroStats(

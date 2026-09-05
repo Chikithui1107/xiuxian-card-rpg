@@ -215,11 +215,39 @@ export function getRecommendedPowerLabel(tier: DungeonTier): string {
 
 const CHAPTER_META: Record<
   string,
-  { stage: number; chapterLabel: string; realmLabel: string }
+  {
+    stage: number;
+    chapterLabel: string;
+    realmLabel: string;
+    locationName: string;
+    stageTab: string;
+    lawName: string | null;
+  }
 > = {
-  tier_qi: { stage: 1, chapterLabel: "新手試煉", realmLabel: "煉氣期" },
-  tier_foundation: { stage: 2, chapterLabel: "進階試煉", realmLabel: "築基期" },
-  tier_golden: { stage: 3, chapterLabel: "極限挑戰", realmLabel: "金丹期" },
+  tier_qi: {
+    stage: 1,
+    chapterLabel: "新手試煉",
+    realmLabel: "煉氣期",
+    locationName: "青嵐谷",
+    stageTab: "煉氣",
+    lawName: null,
+  },
+  tier_foundation: {
+    stage: 2,
+    chapterLabel: "進階試煉",
+    realmLabel: "築基期",
+    locationName: "古修洞府",
+    stageTab: "築基",
+    lawName: "生生不息",
+  },
+  tier_golden: {
+    stage: 3,
+    chapterLabel: "極限挑戰",
+    realmLabel: "金丹期",
+    locationName: "血禁地",
+    stageTab: "金丹",
+    lawName: "業火餘燼",
+  },
 };
 
 export function getDungeonChapterMeta(tier: DungeonTier) {
@@ -228,6 +256,39 @@ export function getDungeonChapterMeta(tier: DungeonTier) {
       stage: 1,
       chapterLabel: "祕境試煉",
       realmLabel: tier.recommendedPower,
+      locationName: tier.name,
+      stageTab: "秘境",
+      lawName: null as string | null,
     }
   );
+}
+
+/** 秘境選擇頁全屏場景圖；尚未製作的階段回傳 null，用 CSS 氛圍底 */
+const REALM_BACKGROUNDS: Record<string, string> = {
+  tier_qi: "/backgrounds/realm-qinglan-valley.jpg",
+};
+
+export function getDungeonRealmBackground(tierId: string): string | null {
+  return REALM_BACKGROUNDS[tierId] ?? null;
+}
+
+/** 前一階通關後解鎖；第一階永遠可挑戰 */
+export function isDungeonTierUnlocked(
+  tiers: DungeonTier[],
+  index: number,
+  unlockedAchievements: string[]
+): boolean {
+  if (index <= 0) return true;
+  const prev = tiers[index - 1];
+  return Boolean(prev && unlockedAchievements.includes(prev.achievementId));
+}
+
+export function getDungeonUnlockHint(
+  tiers: DungeonTier[],
+  index: number
+): string {
+  if (index <= 0) return "";
+  const prev = tiers[index - 1];
+  const meta = prev ? getDungeonChapterMeta(prev) : null;
+  return `通關${meta?.locationName ?? prev?.name ?? "前一秘境"}後解鎖`;
 }
