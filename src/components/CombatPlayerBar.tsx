@@ -36,7 +36,7 @@ export function CombatPlayerBar({
               <img
                 src={avatarSrc}
                 alt=""
-                className="h-full w-full object-cover object-[center_18%]"
+                className="h-full w-full object-cover object-center"
               />
             </div>
           )}

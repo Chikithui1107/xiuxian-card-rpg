@@ -35,7 +35,7 @@ export function CultivatorPanel({
             <img
               src={avatarSrc}
               alt={hero.name}
-              className="relative h-full w-full object-cover object-[center_18%]"
+              className="relative h-full w-full object-cover object-center"
             />
           ) : (
             <span className="relative flex h-full w-full items-center justify-center text-2xl font-black text-[#c9a84c]">
