@@ -18,7 +18,6 @@ interface CardHandProps {
   disabled: boolean;
   denyShake?: boolean;
   feelToast?: string | null;
-  /** 主角狀態條：放在手牌下方 */
   playerBar?: ReactNode;
 }
 
@@ -39,8 +38,8 @@ export function CardHand({
   playerBar,
 }: CardHandProps) {
   return (
-    <div className="relative space-y-1.5">
-      <div className="flex items-center justify-between gap-2 px-0.5">
+    <div className="relative flex h-full flex-col gap-1.5">
+      <div className="flex shrink-0 items-center justify-between gap-2 px-0.5">
         <p className="text-[10px] tracking-[0.18em] text-stone-400">上拖出牌</p>
         <p className="text-[10px] tabular-nums text-stone-400">
           <span className="text-[#9ab8aa]">{drawPileCount}</span>
@@ -53,36 +52,43 @@ export function CardHand({
         </p>
       </div>
 
-      <HandUI
-        hand={hand}
-        energy={energy}
-        disabled={disabled}
-        denyShake={denyShake}
-        onPlayCard={onPlayCard}
-        onDenyPlay={onDenyPlay}
-      />
+      <div className="relative shrink-0">
+        <HandUI
+          hand={hand}
+          energy={energy}
+          disabled={disabled}
+          denyShake={denyShake}
+          onPlayCard={onPlayCard}
+          onDenyPlay={onDenyPlay}
+        />
+        {feelToast && (
+          <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2 rounded border border-[#a85555]/50 bg-stone-950/90 px-3 py-1 text-[11px] font-semibold text-[#c48888] shadow-lg">
+            {feelToast}
+          </p>
+        )}
+      </div>
 
-      {feelToast && (
-        <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-6 z-20 -translate-x-1/2 rounded border border-[#a85555]/50 bg-stone-950/90 px-3 py-1 text-[11px] font-semibold text-[#c48888] shadow-lg">
-          {feelToast}
-        </p>
-      )}
-
-      {playerBar}
+      <div className="shrink-0">{playerBar}</div>
 
       <button
         onClick={onEndTurn}
         disabled={disabled}
-        className="btn-cyber-gold w-full py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
+        className="btn-cyber-gold w-full shrink-0 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-40"
       >
         收功結束
       </button>
-      {lastDamage !== null && (
-        <p className="text-center text-[9px] text-stone-500">
-          上式{" "}
-          <span className="text-[#c9a84c]">{lastDamage.toLocaleString()}</span>
-        </p>
-      )}
+
+      {/* 固定佔位，避免出牌後出現「上式傷害」把整頁頂上去 */}
+      <p
+        className={`shrink-0 text-center text-[9px] leading-4 ${
+          lastDamage !== null ? "text-stone-500" : "invisible"
+        }`}
+      >
+        上式{" "}
+        <span className="text-[#c9a84c]">
+          {(lastDamage ?? 0).toLocaleString()}
+        </span>
+      </p>
     </div>
   );
 }

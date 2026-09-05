@@ -151,6 +151,24 @@ function HandCard({
     clearGhostStyles();
   }, [clearGhostStyles]);
 
+  // 拖牌期間禁止頁面跟隨手指滾動
+  useEffect(() => {
+    if (!dragging) return;
+    const blockTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+    const y = window.scrollY;
+    const lockScroll = () => {
+      if (window.scrollY !== y) window.scrollTo(0, y);
+    };
+    document.addEventListener("touchmove", blockTouchMove, { passive: false });
+    window.addEventListener("scroll", lockScroll, { passive: true });
+    return () => {
+      document.removeEventListener("touchmove", blockTouchMove);
+      window.removeEventListener("scroll", lockScroll);
+    };
+  }, [dragging]);
+
   const tryPlay = useCallback(
     (origin: DOMRect) => {
       if (locked) {
@@ -172,6 +190,7 @@ function HandCard({
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     e.stopPropagation();
+    e.preventDefault();
     const ghost = ghostRef.current;
     if (!ghost) return;
     const rect = ghost.getBoundingClientRect();
@@ -204,7 +223,6 @@ function HandCard({
     setDragging(true);
     setHovered(false);
 
-    // 直接改 style（不搬 DOM、不每幀 setState），跟手最穩
     ghost.style.position = "fixed";
     ghost.style.left = `${e.clientX - drag.grabX}px`;
     ghost.style.top = `${e.clientY - drag.grabY}px`;
@@ -221,6 +239,9 @@ function HandCard({
     const drag = dragRef.current;
     const ghost = ghostRef.current;
     if (!drag || !ghost || drag.pointerId !== e.pointerId) return;
+
+    // 阻止瀏覽器把拖曳當成滾動
+    e.preventDefault();
 
     const dx = e.clientX - drag.startX;
     const dy = e.clientY - drag.startY;

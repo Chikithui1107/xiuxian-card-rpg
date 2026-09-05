@@ -127,6 +127,24 @@ export function CombatView({
     preloadCombatSfx();
   }, []);
 
+  // 進戰鬥即鎖死頁面滾動，避免拖牌/出牌把畫面頂上去
+  useEffect(() => {
+    const html = document.documentElement;
+    const body = document.body;
+    html.classList.add("combat-scroll-lock");
+    body.classList.add("combat-scroll-lock");
+    const y = window.scrollY;
+    const lock = () => {
+      if (window.scrollY !== y) window.scrollTo(0, y);
+    };
+    window.addEventListener("scroll", lock, { passive: true });
+    return () => {
+      html.classList.remove("combat-scroll-lock");
+      body.classList.remove("combat-scroll-lock");
+      window.removeEventListener("scroll", lock);
+    };
+  }, []);
+
   const showToast = useCallback((msg: string) => {
     setFeelToast(msg);
     setDenyShake(true);
@@ -228,30 +246,19 @@ export function CombatView({
   );
 
   return (
-    <div
-      className="relative grid min-h-0 flex-1 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden"
-      onPointerDown={unlockCombatAudio}
-    >
-      <div
-        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
-        aria-hidden
-      >
-        <img
-          src={COMBAT_BG}
-          alt=""
-          className="h-full w-full object-cover object-[center_28%]"
-          draggable={false}
-        />
+    <div className="combat-shell" onPointerDown={unlockCombatAudio}>
+      <div className="combat-shell-bg" aria-hidden>
+        <img src={COMBAT_BG} alt="" draggable={false} />
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/30 to-[#121110]/95" />
       </div>
 
-      <div className="relative z-10 flex shrink-0 items-center justify-center px-3 py-1">
+      <div className="combat-shell-top flex items-center justify-center px-3">
         <p className="truncate text-[10px] tracking-wide text-[#a8c4b8] drop-shadow">
           {floorLabel}
         </p>
       </div>
 
-      <div ref={enemyTargetRef} className="relative z-10 min-h-0 px-3 pt-1">
+      <div ref={enemyTargetRef} className="combat-shell-stage">
         <EnemyPanel
           enemy={enemy}
           damagePopups={damagePopups}
@@ -263,10 +270,7 @@ export function CombatView({
         />
       </div>
 
-      <div
-        ref={playerTargetRef}
-        className="relative z-30 shrink-0 border-t border-[#8a7340]/25 bg-[#121110]/90 px-3 pb-2.5 pt-1"
-      >
+      <div ref={playerTargetRef} className="combat-shell-dock">
         <CardHand
           hand={hand}
           energy={energy}
