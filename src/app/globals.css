@@ -1849,26 +1849,21 @@ html.combat-scroll-lock {
 }
 
 .ink-card-art {
-  height: 40%;
-  min-height: 3.4rem;
-  background: #0e0d0c;
+  height: 38%;
+  min-height: 3.6rem;
+  border-radius: 0.2rem;
+  border: 1px solid rgba(138, 115, 64, 0.22);
+  background: #090908;
 }
 .ink-card-art--enlarged {
-  height: 44%;
+  height: 42%;
+  min-height: 4.2rem;
 }
 .ink-card-art--compact {
   width: 2.4rem;
   height: 2.4rem;
   border-radius: 0.2rem;
   border: 1px solid rgba(138, 115, 64, 0.25);
-}
-.ink-card-art-veil {
-  background: linear-gradient(
-    180deg,
-    rgba(8, 7, 6, 0.55) 0%,
-    rgba(8, 7, 6, 0.12) 42%,
-    rgba(8, 7, 6, 0.35) 100%
-  );
 }
 
 .ink-card-selected,

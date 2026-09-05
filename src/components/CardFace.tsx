@@ -46,7 +46,7 @@ export function CardFace({
   cost,
   description,
   art,
-  templateId,
+  templateId: _templateId,
   canAfford = true,
   isExhaust = false,
   pulledByKarma = false,
@@ -70,7 +70,7 @@ export function CardFace({
             src={src}
             alt=""
             draggable={false}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-contain"
             onError={() => setBroken(true)}
           />
         </div>
@@ -91,8 +91,29 @@ export function CardFace({
 
   return (
     <div className="relative z-[2] flex h-full w-full min-h-0 flex-col">
+      {/* 卡名／費用獨立一列，不壓在插畫上 */}
+      <div className="flex shrink-0 items-start justify-between gap-1 px-1.5 pb-0.5 pt-1.5">
+        <span
+          className={`min-w-0 flex-1 text-left font-bold leading-tight tracking-wide text-[#f0e6d3] ${
+            enlarged ? "text-[13px]" : "text-[11px]"
+          }`}
+        >
+          {name}
+        </span>
+        <span
+          className={`flex h-[1.2rem] w-[1.2rem] shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
+            canAfford
+              ? "bg-[#7aab9a]/92 text-stone-950"
+              : "bg-[#a85555]/85 text-stone-100"
+          }`}
+        >
+          {cost}
+        </span>
+      </div>
+
+      {/* 插畫專區：整圖可見，無文字遮罩 */}
       <div
-        className={`ink-card-art relative shrink-0 overflow-hidden ${
+        className={`ink-card-art relative mx-1.5 shrink-0 overflow-hidden ${
           enlarged ? "ink-card-art--enlarged" : ""
         }`}
       >
@@ -101,28 +122,9 @@ export function CardFace({
           src={src}
           alt=""
           draggable={false}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-contain"
           onError={() => setBroken(true)}
         />
-        <div className="ink-card-art-veil pointer-events-none absolute inset-0" />
-        <div className="relative z-[1] flex items-start justify-between gap-1 px-1.5 pt-1.5">
-          <span
-            className={`min-w-0 flex-1 text-left font-bold leading-tight tracking-wide text-[#f0e6d3] drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] ${
-              enlarged ? "text-[13px]" : "text-[11px]"
-            }`}
-          >
-            {name}
-          </span>
-          <span
-            className={`flex h-[1.2rem] w-[1.2rem] shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold shadow-sm ${
-              canAfford
-                ? "bg-[#7aab9a]/92 text-stone-950"
-                : "bg-[#a85555]/85 text-stone-100"
-            }`}
-          >
-            {cost}
-          </span>
-        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col px-1.5 pb-1.5 pt-1">
