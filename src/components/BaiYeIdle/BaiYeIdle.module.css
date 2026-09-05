@@ -1,8 +1,5 @@
 /* 手機優先 9:16 構圖；大廳內由父層撐滿高度 */
 .scene {
-  --mx: 0;
-  --my: 0;
-
   position: relative;
   width: 100%;
   height: 100%;
@@ -15,7 +12,7 @@
 }
 
 /* -------------------------
-   背景：全螢幕 cover，可微視差
+   背景：全螢幕 cover，完全固定
 ------------------------- */
 
 .background {
@@ -26,13 +23,6 @@
   object-fit: cover;
   object-position: center center;
 
-  transform: translate(
-    calc(var(--mx) * -4px),
-    calc(var(--my) * -3px)
-  )
-  scale(1.03);
-
-  transition: transform 0.5s ease-out;
   user-select: none;
   pointer-events: none;
 }
@@ -324,9 +314,5 @@
 
   .swordGlow {
     opacity: 0.22;
-  }
-
-  .background {
-    transition: none;
   }
 }
