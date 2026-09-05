@@ -27,10 +27,26 @@ interface HandUIProps {
 const PLAY_SWIPE_Y = -52;
 const TAP_SLOP = 8;
 
-function getOverlapClass(total: number) {
-  if (total <= 4) return "-space-x-3";
-  if (total === 5) return "-space-x-7";
-  return "-space-x-11";
+function fanAngle(index: number, total: number) {
+  if (total <= 1) return 0;
+  const spread = Math.min(10, 3.2 * (total - 1));
+  const start = -spread / 2;
+  const step = spread / (total - 1);
+  return start + step * index;
+}
+
+function fanLift(index: number, total: number) {
+  if (total <= 1) return 0;
+  const mid = (total - 1) / 2;
+  const dist = Math.abs(index - mid);
+  return dist * 2.5;
+}
+
+function overlapPx(total: number) {
+  if (total <= 3) return 14;
+  if (total === 4) return 22;
+  if (total === 5) return 30;
+  return 36;
 }
 
 export function HandUI({
@@ -51,8 +67,10 @@ export function HandUI({
 
   return (
     <div
-      className={`relative px-1 pb-1 pt-14 ${denyShake ? "animate-deny-shake" : ""}`}
-      style={{ minHeight: "calc(3.5rem + var(--game-card-height))" }}
+      className={`hand-fan relative px-1 pb-7 pt-10 ${
+        denyShake ? "animate-deny-shake" : ""
+      }`}
+      style={{ minHeight: "calc(2.5rem + var(--game-card-height))" }}
     >
       {hand.length === 0 ? (
         <p className="flex min-h-[var(--game-card-height)] items-center justify-center text-xs text-stone-500">
@@ -60,14 +78,13 @@ export function HandUI({
         </p>
       ) : (
         <div className="flex justify-center">
-          <div
-            className={`flex items-end justify-center ${getOverlapClass(hand.length)}`}
-          >
+          <div className="relative flex items-end justify-center">
             {hand.map((card, index) => (
               <HandCard
                 key={card.instanceId}
                 card={card}
                 index={index}
+                total={hand.length}
                 energy={energy}
                 locked={disabled}
                 selected={selectedId === card.instanceId}
@@ -88,6 +105,7 @@ export function HandUI({
 function HandCard({
   card,
   index,
+  total,
   energy,
   locked,
   selected,
@@ -97,6 +115,7 @@ function HandCard({
 }: {
   card: Card;
   index: number;
+  total: number;
   energy: number;
   locked: boolean;
   selected: boolean;
@@ -129,6 +148,10 @@ function HandCard({
   const typeAccent =
     CARD_TYPE_ACCENT[template?.type ?? ""] ?? "text-[#c9a84c]";
 
+  const angle = fanAngle(index, total);
+  const baseLift = fanLift(index, total);
+  const marginLeft = index === 0 ? 0 : -overlapPx(total);
+
   const clearGhostStyles = useCallback(() => {
     const ghost = ghostRef.current;
     if (!ghost) return;
@@ -151,7 +174,6 @@ function HandCard({
     clearGhostStyles();
   }, [clearGhostStyles]);
 
-  // 拖牌期間禁止頁面跟隨手指滾動
   useEffect(() => {
     if (!dragging) return;
     const blockTouchMove = (e: TouchEvent) => {
@@ -240,7 +262,6 @@ function HandCard({
     const ghost = ghostRef.current;
     if (!drag || !ghost || drag.pointerId !== e.pointerId) return;
 
-    // 阻止瀏覽器把拖曳當成滾動
     e.preventDefault();
 
     const dx = e.clientX - drag.startX;
@@ -294,11 +315,23 @@ function HandCard({
   const inspecting = !dragging && (selected || hovered);
   const z = dragging ? 90 : inspecting ? 60 : index;
 
+  const restTransform = inspecting
+    ? `translateY(-22px) scale(1.1) rotate(0deg)`
+    : `translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
+
+  // 核心效果：描述首句或前 ~18 字
+  const coreLine = (template?.description ?? "")
+    .split(/[。；;\n]/)[0]
+    ?.slice(0, 18);
+
   return (
     <div
       ref={slotRef}
       className="hand-card-slot relative shrink-0"
-      style={{ zIndex: z }}
+      style={{
+        zIndex: z,
+        marginLeft: index === 0 ? undefined : marginLeft,
+      }}
       onMouseEnter={() => {
         if (!dragging) setHovered(true);
       }}
@@ -338,51 +371,53 @@ function HandCard({
         } ${typeStyle} ${
           dragging ? "" : "transition-transform duration-200 ease-out"
         } ${inspecting ? "ink-card-selected" : ""} ${
-          readyHint ? "ring-2 ring-[#7aab9a]/75" : ""
+          readyHint ? "ring-1 ring-[#7aab9a]/55" : ""
         }`}
         style={{
           touchAction: "none",
           ...(dragging
             ? {}
             : {
-                transform: inspecting ? "translateY(-18px)" : "translateY(0)",
+                transform: restTransform,
                 zIndex: inspecting ? 60 : undefined,
               }),
         }}
       >
-        <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-2">
-          <div className="flex items-start justify-between gap-1">
-            <span className="line-clamp-2 text-left text-[10px] font-bold leading-tight text-[#f0e6d3]">
+        <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-1.5">
+          <div className="flex items-start justify-between gap-0.5">
+            <span className="line-clamp-2 text-left text-[11px] font-bold leading-tight tracking-wide text-[#f0e6d3]">
               {card.name}
             </span>
             <span
-              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
+              className={`flex h-[1.15rem] w-[1.15rem] shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
                 canAfford
-                  ? "bg-[#7aab9a] text-stone-950"
-                  : "bg-[#a85555] text-stone-100"
+                  ? "bg-[#7aab9a]/90 text-stone-950"
+                  : "bg-[#a85555]/85 text-stone-100"
               }`}
             >
               {card.cost}
             </span>
           </div>
-          <p
-            className={`mt-1.5 min-h-0 flex-1 text-left text-[8px] leading-snug ${
-              inspecting
-                ? "overflow-y-auto text-stone-300"
-                : "line-clamp-5 overflow-hidden text-stone-400"
-            }`}
-          >
-            {template?.description}
-          </p>
+
+          {inspecting ? (
+            <p className="mt-1.5 min-h-0 flex-1 overflow-y-auto text-left text-[9px] leading-snug text-stone-300">
+              {template?.description}
+            </p>
+          ) : (
+            <p className="mt-1.5 line-clamp-3 min-h-0 flex-1 overflow-hidden text-left text-[9px] leading-snug text-stone-400">
+              {coreLine}
+            </p>
+          )}
+
           <div className="mt-1 shrink-0">
             <p className={`text-[8px] font-semibold ${typeAccent}`}>
               {template?.type}
             </p>
             {card.isExhaust && (
-              <p className="text-[8px] text-amber-500/80">消耗</p>
+              <p className="text-[8px] text-amber-500/70">消耗</p>
             )}
             {inspecting && !readyHint && (
-              <p className="mt-1 text-[8px] text-stone-500">
+              <p className="mt-0.5 text-[8px] text-stone-500">
                 {selected ? "上拖出牌 · 再點取消" : "點選鎖定 · 上拖出牌"}
               </p>
             )}

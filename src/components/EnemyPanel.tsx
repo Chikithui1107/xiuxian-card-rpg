@@ -37,13 +37,11 @@ export function EnemyPanel({
         ? intent.damage * 3
         : intent.damage
       : 0;
-  const intentDamageHint =
-    enemy.attackPattern === "triple_slash" && intent.damage > 0
-      ? `（${intent.damage}×3）`
-      : "";
 
   const [hitShake, setHitShake] = useState(false);
+  const [intentFloat, setIntentFloat] = useState<string | null>(null);
   const prevHpRef = useRef(enemy.currentHp);
+  const feedbackKeyRef = useRef(0);
 
   useEffect(() => {
     if (enemy.currentHp < prevHpRef.current) {
@@ -55,30 +53,83 @@ export function EnemyPanel({
     prevHpRef.current = enemy.currentHp;
   }, [enemy.currentHp]);
 
+  // 敵方攻擊發生後短暫浮字，不常駐
+  useEffect(() => {
+    let label: string | null = null;
+    if (lastDodge) {
+      label = "閃避成功";
+    } else if (lastEnemyDamage != null && lastEnemyDamage > 0) {
+      const hint =
+        intentDamage > 0
+          ? `${intent.label} · ${intentDamage}傷`
+          : `反噬 · ${lastEnemyDamage}`;
+      label = enemy.passive === "burn" ? `${hint}（灼燒）` : hint;
+    } else if (lastPassiveHeal != null && lastPassiveHeal > 0) {
+      label = `回復 +${lastPassiveHeal}`;
+    }
+    if (!label) return;
+    feedbackKeyRef.current += 1;
+    setIntentFloat(label);
+    const t = setTimeout(() => setIntentFloat(null), 1100);
+    return () => clearTimeout(t);
+  }, [
+    lastDodge,
+    lastEnemyDamage,
+    lastPassiveHeal,
+    intent.label,
+    intentDamage,
+    enemy.passive,
+  ]);
+
   const shaking = isShaking || hitShake;
-  const hasFeedback =
-    lastDodge ||
-    (lastEnemyDamage != null && lastEnemyDamage > 0) ||
-    (lastPassiveHeal != null && lastPassiveHeal > 0);
 
   return (
     <div
-      className={`flex h-full min-h-0 flex-col items-center justify-end gap-2 pb-2 ${
+      className={`enemy-panel relative flex h-full min-h-0 flex-col items-center justify-end ${
         isDefeated ? "opacity-70" : ""
       }`}
     >
+      {/* 頭頂輕量 HUD */}
+      <div className="enemy-hud pointer-events-none z-20 mb-1 w-full max-w-[14rem] shrink-0 text-center">
+        <p className="flex items-baseline justify-center gap-2 text-[11px] tracking-wide">
+          <span
+            className={`font-bold ${
+              isDefeated ? "text-stone-500 line-through" : "text-[#f0e6d3]"
+            }`}
+          >
+            {displayName}
+          </span>
+          <span className="text-stone-400">{enemy.realm}</span>
+          <span className="tabular-nums text-[#e0a8a8]">
+            {formatNumber(Math.max(0, enemy.currentHp))}/
+            {formatNumber(enemy.maxHp)}
+          </span>
+        </p>
+        <div className="mx-auto mt-1 h-[3px] w-[88%] overflow-hidden rounded-full bg-black/45">
+          <div
+            className="enemy-hp-fill h-full rounded-full transition-all duration-300"
+            style={{ width: `${hpPercent}%` }}
+          />
+        </div>
+        {enemy.passiveLabel && (
+          <p className="mt-0.5 text-[9px] tracking-wide text-[#a8a0c8]/80">
+            {enemy.passiveLabel}
+          </p>
+        )}
+      </div>
+
       <div
-        className={`enemy-sprite-stage relative mx-auto flex h-56 w-full max-w-[19rem] shrink-0 items-end justify-center sm:h-60 ${
+        className={`enemy-sprite-stage relative mx-auto flex h-[min(42vh,15.5rem)] w-full max-w-[18rem] shrink-0 items-end justify-center ${
           shaking ? "animate-shake" : ""
         } ${hitFlash ? "enemy-hit-flash" : ""}`}
       >
-        {/* 整塊暗底托住半透明立繪，避免融進月夜 */}
+        {/* 淡接地影／霧，無黑底方塊 */}
         <div
-          className="pointer-events-none absolute inset-x-6 bottom-0 top-6 rounded-[2rem] bg-gradient-to-t from-black/80 via-black/45 to-black/10"
+          className="pointer-events-none absolute bottom-[2%] left-1/2 h-[12%] w-[58%] -translate-x-1/2 rounded-[100%] bg-[radial-gradient(ellipse,rgba(4,8,14,0.45)_0%,rgba(4,8,14,0.12)_55%,transparent_75%)] blur-[6px]"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute bottom-2 left-1/2 h-14 w-44 -translate-x-1/2 rounded-[100%] bg-black/55 blur-lg"
+          className="pointer-events-none absolute bottom-[4%] left-1/2 h-[18%] w-[70%] -translate-x-1/2 rounded-[100%] bg-[radial-gradient(ellipse,rgba(90,130,150,0.12)_0%,transparent_70%)] blur-[10px]"
           aria-hidden
         />
 
@@ -86,86 +137,40 @@ export function EnemyPanel({
           <img
             src={monster.image}
             alt={displayName}
-            className={`enemy-sprite relative z-[1] h-[95%] w-auto max-w-[92%] object-contain object-bottom ${
+            className={`enemy-sprite relative z-[1] h-[100%] w-auto max-w-[100%] object-contain object-bottom ${
               isDefeated
                 ? "scale-90 opacity-40 grayscale transition-all duration-500"
                 : "enemy-sprite-float"
             }`}
             style={{
               filter:
-                "drop-shadow(0 10px 18px rgba(0,0,0,0.75)) contrast(1.12) saturate(1.08) brightness(1.06)",
+                "drop-shadow(0 8px 14px rgba(0,0,0,0.55)) contrast(1.08) saturate(1.02) brightness(1.04)",
             }}
             draggable={false}
           />
         ) : (
-          <div className="relative z-[1] mb-2 flex h-28 w-28 items-center justify-center rounded-full border border-[#8b3a3a]/45 bg-stone-950/90">
-            <span className="text-4xl font-black text-[#c48888]">
+          <div className="relative z-[1] mb-2 flex h-24 w-24 items-center justify-center rounded-full border border-[#8b3a3a]/35 bg-stone-950/50">
+            <span className="text-3xl font-black text-[#c48888]">
               {displayName.slice(0, 1)}
             </span>
           </div>
         )}
 
-        {!isDefeated && (
-          <div className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2">
-            <div className="rounded-full border border-amber-400/60 bg-black/85 px-3 py-1 shadow-lg">
-              <p className="whitespace-nowrap text-center text-[11px] font-semibold tracking-wide text-amber-200">
-                {intent.label}
-                {intentDamage > 0
-                  ? ` · ${intentDamage} 傷${intentDamageHint}`
-                  : ""}
-              </p>
-            </div>
+        {intentFloat && (
+          <div
+            key={feedbackKeyRef.current}
+            className="animate-combat-float pointer-events-none absolute left-1/2 top-[8%] z-30 -translate-x-1/2 whitespace-nowrap text-[12px] font-semibold tracking-wide text-[#f0d8a8]"
+            style={{
+              textShadow: "0 1px 4px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.4)",
+            }}
+          >
+            {intentFloat}
           </div>
         )}
 
         {damagePopups.map((popup) => (
           <DamageNumber key={popup.id} popup={popup} />
         ))}
-      </div>
-
-      <div className="w-full max-w-[16rem] shrink-0 rounded-md border border-[#8b3a3a]/40 bg-black/55 px-2.5 py-1.5">
-        <div className="mb-1 flex items-baseline justify-between gap-2">
-          <h2
-            className={`text-sm font-bold tracking-[0.14em] ${
-              isDefeated ? "text-stone-500 line-through" : "text-[#f0c8c8]"
-            }`}
-          >
-            {displayName}
-          </h2>
-          <span className="shrink-0 text-[10px] text-stone-300">
-            {enemy.realm}
-          </span>
-        </div>
-        <div className="mb-0.5 flex justify-between text-[10px]">
-          <span className="text-[#e0a0a0]">氣血</span>
-          <span className="stat-value font-bold text-[#f0d0d0]">
-            {formatNumber(Math.max(0, enemy.currentHp))} /{" "}
-            {formatNumber(enemy.maxHp)}
-          </span>
-        </div>
-        <div className="h-2.5 overflow-hidden rounded-full border border-black/50 bg-black/70">
-          <div
-            className="enemy-hp-fill h-full rounded-full transition-all duration-300"
-            style={{ width: `${hpPercent}%` }}
-          />
-        </div>
-        {(enemy.passiveLabel || hasFeedback) && (
-          <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[10px]">
-            {enemy.passiveLabel && (
-              <span className="text-[#c0c0e0]">{enemy.passiveLabel}</span>
-            )}
-            {lastDodge && <span className="text-[#8bc4b0]">閃避成功</span>}
-            {lastEnemyDamage != null && lastEnemyDamage > 0 && (
-              <span className="text-[#d08888]">
-                反噬 -{lastEnemyDamage}
-                {enemy.passive === "burn" ? "（灼燒）" : ""}
-              </span>
-            )}
-            {lastPassiveHeal != null && lastPassiveHeal > 0 && (
-              <span className="text-[#8bc4b0]">回復 +{lastPassiveHeal}</span>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
@@ -177,11 +182,13 @@ function DamageNumber({ popup }: { popup: DamagePopup }) {
 
   return (
     <div
-      className={`pointer-events-none absolute z-20 font-black ${isCrit ? "animate-crit-pop" : "animate-float-up"}`}
+      className={`pointer-events-none absolute z-20 font-black ${
+        isCrit ? "animate-crit-pop" : "animate-float-up"
+      }`}
       style={{
         left: `${popup.x}%`,
         top: `${popup.y}%`,
-        fontSize: isCrit ? "2rem" : isHigh ? "1.6rem" : "1.2rem",
+        fontSize: isCrit ? "1.75rem" : isHigh ? "1.45rem" : "1.15rem",
         color: isCrit ? "#c9a84c" : isHigh ? "#c48888" : "#e8e0d4",
         textShadow: isCrit
           ? "1px 1px 0 #3a3530, -1px -1px 0 #3a3530"
@@ -189,7 +196,9 @@ function DamageNumber({ popup }: { popup: DamagePopup }) {
       }}
     >
       {isCrit && (
-        <span className="block text-center text-[10px] text-[#c9a84c]">暴擊</span>
+        <span className="block text-center text-[10px] text-[#c9a84c]">
+          暴擊
+        </span>
       )}
       -{popup.value.toLocaleString()}
     </div>

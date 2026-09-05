@@ -36,6 +36,7 @@ interface CombatViewProps {
   heroStats: HeroStats;
   enemy: CombatEnemy;
   tierName?: string;
+  locationName?: string;
   tierFloor?: number;
   totalFloors?: number;
   playerHp: number;
@@ -75,6 +76,7 @@ export function CombatView({
   heroStats,
   enemy,
   tierName,
+  locationName,
   tierFloor,
   totalFloors,
   playerHp,
@@ -98,12 +100,13 @@ export function CombatView({
   onEndTurn,
 }: CombatViewProps) {
   const isPlaying = phase === "playing" && battlePhase === "IN_BATTLE";
-  const floorLabel =
-    tierName && tierFloor && totalFloors
-      ? `${tierName} · 關卡 ${tierFloor}/${totalFloors}`
+  const placeLabel = locationName ?? tierName ?? "秘境";
+  const battleLabel =
+    tierFloor && totalFloors
+      ? `${placeLabel} · 第 ${tierFloor} / ${totalFloors} 戰`
       : tierFloor
-        ? `關卡 ${tierFloor}`
-        : "祕境試煉";
+        ? `${placeLabel} · 第 ${tierFloor} 戰`
+        : placeLabel;
 
   const enemyTargetRef = useRef<HTMLDivElement>(null);
   const playerTargetRef = useRef<HTMLDivElement>(null);
@@ -249,12 +252,12 @@ export function CombatView({
     <div className="combat-shell" onPointerDown={unlockCombatAudio}>
       <div className="combat-shell-bg" aria-hidden>
         <img src={COMBAT_BG} alt="" draggable={false} />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/30 to-[#121110]/95" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/15 to-[#0c1014]/78" />
       </div>
 
       <div className="combat-shell-top flex items-center justify-center px-3">
-        <p className="truncate text-[10px] tracking-wide text-[#a8c4b8] drop-shadow">
-          {floorLabel}
+        <p className="truncate text-[10px] tracking-wide text-[#c5d8cc] drop-shadow">
+          {battleLabel}
         </p>
       </div>
 

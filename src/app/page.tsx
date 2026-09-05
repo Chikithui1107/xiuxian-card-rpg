@@ -45,6 +45,7 @@ import {
   applyRegenPassive,
   getAllDungeonTiers,
   getCompletionSpiritReward,
+  getDungeonChapterMeta,
   getDungeonTier,
   getEnemyForMapNode,
   getEnemyIntent,
@@ -837,6 +838,11 @@ export default function GamePage() {
             heroStats={heroStats}
             enemy={enemy}
             tierName={selectedTier?.name}
+            locationName={
+              selectedTier
+                ? getDungeonChapterMeta(selectedTier).locationName
+                : undefined
+            }
             tierFloor={tierFloor}
             totalFloors={MOON_NIGHT_STEPS}
             playerHp={playerHp}
