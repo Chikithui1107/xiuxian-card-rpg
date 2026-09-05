@@ -852,12 +852,12 @@ html.combat-scroll-lock {
 .realm-select {
   min-height: 100%;
   background: #0a0c0e;
-  /* 境界身份色：煉氣／青嵐谷預設 */
-  --realm-accent: #9ebdb0;
-  --realm-title: #d8ebe3;
-  --realm-muted: #9aaba3;
-  --realm-body: #c5d0c9;
-  --realm-enter: #d4e8df;
+  /* 青嵐谷：霜青白＋明亮青玉（對齊定稿感覺） */
+  --realm-accent: #7ec8b4;
+  --realm-title: #e8f4ef;
+  --realm-muted: #a8b8b0;
+  --realm-body: #c8d4ce;
+  --realm-enter: #d8f0e6;
 }
 
 .realm-select-bg {
@@ -1011,42 +1011,49 @@ html.combat-scroll-lock {
   letter-spacing: 0.42em;
   text-indent: 0.42em;
   color: var(--realm-enter);
+  text-shadow:
+    0 0 14px rgba(126, 200, 180, 0.35),
+    0 1px 8px rgba(0, 0, 0, 0.45);
   animation: enter-realm-breathe 3.2s ease-in-out infinite;
 }
 
 .btn-enter-realm-diamond {
-  font-size: 0.7rem;
-  color: rgba(201, 168, 76, 0.72);
-  opacity: 0.9;
+  font-size: 0.72rem;
+  color: rgba(201, 168, 76, 0.78);
+  opacity: 0.95;
 }
 
 .btn-enter-realm-line {
   font-size: 0.75rem;
   letter-spacing: 0.05em;
-  color: rgba(201, 168, 76, 0.42);
+  color: rgba(201, 168, 76, 0.48);
 }
 
 .btn-enter-realm:hover:not(:disabled) {
-  filter: drop-shadow(0 0 8px rgba(158, 189, 176, 0.22));
+  filter: drop-shadow(0 0 10px rgba(126, 200, 180, 0.28));
 }
 
 .btn-enter-realm:hover:not(:disabled) .btn-enter-realm-label {
-  color: #e8f4ee;
+  color: #eef8f3;
 }
 
 .btn-enter-realm:active:not(:disabled) {
   transform: scale(0.985);
-  filter: drop-shadow(0 0 12px rgba(158, 189, 176, 0.28));
+  filter: drop-shadow(0 0 14px rgba(126, 200, 180, 0.35));
 }
 
 @keyframes enter-realm-breathe {
   0%,
   100% {
-    text-shadow: 0 0 0 transparent;
-    opacity: 0.9;
+    text-shadow:
+      0 0 8px rgba(126, 200, 180, 0.18),
+      0 1px 8px rgba(0, 0, 0, 0.45);
+    opacity: 0.92;
   }
   50% {
-    text-shadow: 0 0 10px rgba(158, 189, 176, 0.28);
+    text-shadow:
+      0 0 16px rgba(126, 200, 180, 0.4),
+      0 1px 8px rgba(0, 0, 0, 0.45);
     opacity: 1;
   }
 }
@@ -1059,30 +1066,93 @@ html.combat-scroll-lock {
 
 .realm-title {
   color: var(--realm-title);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.55);
 }
 
 .realm-eyebrow {
   color: var(--realm-muted);
 }
 
+.realm-chapter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--realm-muted);
+  letter-spacing: 0.22em;
+}
+
+.realm-chapter::before,
+.realm-chapter::after {
+  content: "";
+  width: 1.35rem;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(168, 184, 176, 0.55),
+    transparent
+  );
+}
+
 .realm-body {
   color: var(--realm-body);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
 }
 
 .realm-accent {
   color: var(--realm-accent);
 }
 
-.realm-floor-active {
+.realm-floor-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.realm-floor-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  transform: rotate(45deg);
+  border: 1px solid rgba(138, 158, 150, 0.45);
+  background: rgba(8, 12, 14, 0.25);
+}
+
+.realm-floor-node > span {
+  transform: rotate(-45deg);
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.realm-floor-node.is-active {
+  border-color: color-mix(in srgb, var(--realm-accent) 85%, white 15%);
+  background: color-mix(in srgb, var(--realm-accent) 28%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--realm-accent) 35%, transparent);
+}
+
+.realm-floor-node.is-active > span {
   color: var(--realm-accent);
 }
 
-.realm-floor-idle {
-  color: rgba(138, 158, 150, 0.45);
+.realm-floor-node.is-idle > span {
+  color: rgba(138, 158, 150, 0.5);
+}
+
+.realm-floor-node.is-done {
+  border-color: color-mix(in srgb, var(--realm-accent) 55%, transparent);
+}
+
+.realm-floor-node.is-done > span {
+  color: color-mix(in srgb, var(--realm-accent) 80%, white 10%);
 }
 
 .realm-floor-sep {
-  color: rgba(106, 122, 114, 0.4);
+  width: 1.1rem;
+  height: 1px;
+  background: rgba(106, 122, 114, 0.45);
 }
 
 .realm-reward {
@@ -1090,7 +1160,7 @@ html.combat-scroll-lock {
 }
 
 .realm-meta-dim {
-  color: rgba(197, 208, 201, 0.78);
+  color: rgba(220, 228, 222, 0.82);
 }
 
 .realm-tab-active {
@@ -1105,7 +1175,7 @@ html.combat-scroll-lock {
 
 .realm-tab-dot-active {
   background: var(--realm-accent);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--realm-accent) 45%, transparent);
+  box-shadow: 0 0 7px color-mix(in srgb, var(--realm-accent) 50%, transparent);
 }
 
 .run-toast {

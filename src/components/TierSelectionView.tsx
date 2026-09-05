@@ -86,16 +86,10 @@ export function TierSelectionView({
           <div className="realm-info-mist pointer-events-none" aria-hidden />
 
           <div className="relative z-10 flex flex-col items-center text-center">
-            <p className="realm-eyebrow text-[10px] tracking-[0.32em]">
-              ───── 秘境 ─────
-            </p>
-
-            <h2 className="realm-title mt-2.5 text-[1.12rem] font-bold tracking-[0.26em]">
+            <h2 className="realm-title text-[1.15rem] font-bold tracking-[0.28em]">
               {realmTitle}
             </h2>
-            <p className="realm-eyebrow mt-1.5 text-[10px] tracking-[0.22em]">
-              {meta.chapterLabel}
-            </p>
+            <p className="realm-chapter mt-2 text-[10px]">{meta.chapterLabel}</p>
 
             <p className="realm-body mt-2.5 max-w-[17rem] text-[12px] leading-relaxed tracking-wide">
               {tier.description}
@@ -118,33 +112,27 @@ export function TierSelectionView({
               </div>
             )}
 
-            <div className="mt-3.5 flex items-center gap-1.5">
-              <span className="realm-accent text-[9px] opacity-60">◇</span>
+            <div className="realm-floor-row mt-3.5">
               {Array.from({ length: tier.floors }, (_, i) => {
                 const floor = i + 1;
                 const isCurrent = unlocked && !cleared && floor === 1;
                 const isDone = cleared;
-                const active = isCurrent || (isDone && floor === 1);
+                const nodeClass = isCurrent
+                  ? "is-active"
+                  : isDone
+                    ? "is-done"
+                    : "is-idle";
                 return (
                   <div key={floor} className="flex items-center gap-1.5">
-                    <span
-                      className={`text-[13px] font-semibold tabular-nums ${
-                        active
-                          ? "realm-floor-active"
-                          : isDone
-                            ? "realm-accent opacity-80"
-                            : "realm-floor-idle"
-                      }`}
-                    >
-                      {floor}
-                    </span>
+                    <div className={`realm-floor-node ${nodeClass}`}>
+                      <span>{floor}</span>
+                    </div>
                     {floor < tier.floors && (
-                      <span className="realm-floor-sep">──</span>
+                      <span className="realm-floor-sep" aria-hidden />
                     )}
                   </div>
                 );
               })}
-              <span className="realm-floor-idle text-[9px]">◇</span>
             </div>
 
             <p className="mt-3 text-[11px] tracking-[0.12em]">
