@@ -145,8 +145,17 @@ function HandCard({
     moved: boolean;
     active: boolean;
   } | null>(null);
+  const dragPosRef = useRef({ x: 0, y: 0 });
+  const detachRef = useRef<(() => void) | null>(null);
+  const rafRef = useRef(0);
   const [dragging, setDragging] = useState(false);
   const [readyHint, setReadyHint] = useState(false);
+  const [dragBox, setDragBox] = useState<{
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } | null>(null);
 
   const template = CARD_TEMPLATES[card.id as CardTemplateId];
   const canAfford = energy >= card.cost;
@@ -166,26 +175,29 @@ function HandCard({
     : `translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
 
   const clearGhostStyles = useCallback(() => {
-    const ghost = ghostRef.current;
-    if (!ghost) return;
-    ghost.style.position = "";
-    ghost.style.left = "";
-    ghost.style.top = "";
-    ghost.style.width = "";
-    ghost.style.height = "";
-    ghost.style.zIndex = "";
-    ghost.style.margin = "";
-    ghost.style.transform = "";
-    ghost.style.transition = "";
-    ghost.style.pointerEvents = "";
+    setDragBox(null);
   }, []);
 
   const finishDrag = useCallback(() => {
+    detachRef.current?.();
+    detachRef.current = null;
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = 0;
+    }
     dragRef.current = null;
     setDragging(false);
     setReadyHint(false);
     clearGhostStyles();
   }, [clearGhostStyles]);
+
+  useEffect(
+    () => () => {
+      detachRef.current?.();
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    },
+    []
+  );
 
   useEffect(() => {
     if (!dragging) return;
@@ -241,77 +253,84 @@ function HandCard({
       moved: false,
       active: false,
     };
-  };
 
-  const promoteToFreeDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    const ghost = ghostRef.current;
-    if (!drag || !ghost || drag.active) return;
+    const onWinMove = (ev: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== ev.pointerId) return;
+      ev.preventDefault();
 
-    drag.active = true;
-    setDragging(true);
+      const dx = ev.clientX - drag.startX;
+      const dy = ev.clientY - drag.startY;
+      const x = ev.clientX - drag.grabX;
+      const y = ev.clientY - drag.grabY;
 
-    ghost.style.position = "fixed";
-    ghost.style.left = `${e.clientX - drag.grabX}px`;
-    ghost.style.top = `${e.clientY - drag.grabY}px`;
-    ghost.style.width = `${drag.width}px`;
-    ghost.style.height = `${drag.height}px`;
-    ghost.style.zIndex = "9999";
-    ghost.style.margin = "0";
-    ghost.style.transform = "none";
-    ghost.style.transition = "none";
-    ghost.style.pointerEvents = "auto";
-  };
+      if (!drag.moved && (Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP)) {
+        drag.moved = true;
+        drag.active = true;
+        dragPosRef.current = { x, y };
+        setDragging(true);
+        setDragBox({ x, y, w: drag.width, h: drag.height });
+      }
 
-  const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    const ghost = ghostRef.current;
-    if (!drag || !ghost || drag.pointerId !== e.pointerId) return;
+      if (!drag.active) return;
 
-    e.preventDefault();
+      dragPosRef.current = { x, y };
+      if (!rafRef.current) {
+        rafRef.current = requestAnimationFrame(() => {
+          rafRef.current = 0;
+          const d = dragRef.current;
+          if (!d?.active) return;
+          const p = dragPosRef.current;
+          setDragBox({ x: p.x, y: p.y, w: d.width, h: d.height });
+        });
+      }
 
-    const dx = e.clientX - drag.startX;
-    const dy = e.clientY - drag.startY;
+      const upEnough = dy <= PLAY_SWIPE_Y;
+      setReadyHint((prev) => (prev === upEnough ? prev : upEnough));
+    };
 
-    if (!drag.moved && (Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP)) {
-      drag.moved = true;
-      promoteToFreeDrag(e);
-    }
+    const onWinUp = (ev: PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag || drag.pointerId !== ev.pointerId) return;
 
-    if (!drag.active) return;
+      detachRef.current?.();
+      detachRef.current = null;
+      try {
+        ghost.releasePointerCapture(ev.pointerId);
+      } catch {
+        /* ignore */
+      }
 
-    ghost.style.left = `${e.clientX - drag.grabX}px`;
-    ghost.style.top = `${e.clientY - drag.grabY}px`;
+      const dy = ev.clientY - drag.startY;
+      const origin = new DOMRect(
+        dragPosRef.current.x,
+        dragPosRef.current.y,
+        drag.width,
+        drag.height
+      );
+      const wasActive = drag.active;
+      const moved = drag.moved;
 
-    const upEnough = dy <= PLAY_SWIPE_Y;
-    setReadyHint((prev) => (prev === upEnough ? prev : upEnough));
-  };
+      if (wasActive && dy <= PLAY_SWIPE_Y) {
+        tryPlay(origin);
+        return;
+      }
 
-  const onPointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    const ghost = ghostRef.current;
-    if (!drag || drag.pointerId !== e.pointerId) return;
+      if (!moved) {
+        onSelect(card.instanceId);
+      }
+      finishDrag();
+    };
 
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-
-    const dy = e.clientY - drag.startY;
-    const origin =
-      ghost?.getBoundingClientRect() ??
-      slotRef.current?.getBoundingClientRect();
-
-    if (drag.moved && dy <= PLAY_SWIPE_Y && origin) {
-      tryPlay(origin);
-      return;
-    }
-
-    if (!drag.moved) {
-      onSelect(card.instanceId);
-    }
-    finishDrag();
+    detachRef.current?.();
+    window.addEventListener("pointermove", onWinMove, { passive: false });
+    window.addEventListener("pointerup", onWinUp);
+    window.addEventListener("pointercancel", onWinUp);
+    detachRef.current = () => {
+      window.removeEventListener("pointermove", onWinMove);
+      window.removeEventListener("pointerup", onWinUp);
+      window.removeEventListener("pointercancel", onWinUp);
+    };
   };
 
   const onPointerCancel = () => {
@@ -336,8 +355,6 @@ function HandCard({
         aria-pressed={selected}
         aria-disabled={locked || !canAfford}
         onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -352,7 +369,9 @@ function HandCard({
             if (origin) tryPlay(origin);
           }
         }}
-        className={`ink-card absolute inset-0 origin-bottom select-none ${
+        className={`ink-card origin-bottom select-none ${
+          dragging ? "ink-card-dragging" : "absolute inset-0"
+        } ${
           locked
             ? "cursor-not-allowed opacity-40"
             : !canAfford
@@ -360,13 +379,23 @@ function HandCard({
               : "cursor-grab active:cursor-grabbing"
         } ${typeStyle} ${
           dragging ? "" : "transition-transform duration-150 ease-out"
-        } ${selected ? "ink-card-selected" : ""} ${
+        } ${selected && !dragging ? "ink-card-selected" : ""} ${
           readyHint ? "ring-2 ring-[#7aab9a]/75" : ""
         }`}
         style={{
           touchAction: "none",
-          ...(dragging
-            ? {}
+          ...(dragging && dragBox
+            ? {
+                position: "fixed",
+                left: dragBox.x,
+                top: dragBox.y,
+                width: dragBox.w,
+                height: dragBox.h,
+                zIndex: 9999,
+                margin: 0,
+                transform: "none",
+                transition: "none",
+              }
             : {
                 transform: restTransform,
                 zIndex: selected ? 80 : undefined,

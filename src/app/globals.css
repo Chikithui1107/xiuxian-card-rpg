@@ -596,10 +596,42 @@ body {
     rgba(10, 12, 14, 0.5) 28%,
     rgba(8, 10, 12, 0.78) 100%
   );
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* blur 放在伪元素，避免 backdrop-filter 讓 fixed 卡牌座標系錯亂／手機拖牌消失 */
   padding: 0.2rem 0.45rem 0.25rem;
   box-sizing: border-box;
+}
+
+.combat-shell-dock::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.combat-shell-dock > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* 拖牌中：實心底、拿掉 inset，避免被 absolute inset-0 拉變形 */
+.ink-card-dragging {
+  position: fixed !important;
+  inset: auto !important;
+  background-image: none !important;
+  background-color: #141210 !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.45),
+    0 12px 28px rgba(0, 0, 0, 0.55) !important;
+  opacity: 1 !important;
+}
+
+.ink-card-dragging::after {
+  display: none;
 }
 
 .combat-player-hud {
