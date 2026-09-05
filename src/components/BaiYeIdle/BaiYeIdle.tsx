@@ -12,8 +12,8 @@ type BaiYeIdleProps = {
 };
 
 export default function BaiYeIdle({
-  characterSrc = "/images/baiye/baiye.png",
-  backgroundSrc = "/images/baiye/bg-day-sect.webp",
+  characterSrc = "/images/baiye/baiye-character.png",
+  backgroundSrc = "/images/baiye/baiye-bg.png",
   characterName = "白夜",
   className,
 }: BaiYeIdleProps) {
@@ -50,21 +50,25 @@ export default function BaiYeIdle({
       ref={rootRef}
       className={[styles.scene, className].filter(Boolean).join(" ")}
     >
+      {/* 層 1：高清背景全螢幕 cover */}
       <img
         className={styles.background}
         src={publicAsset(backgroundSrc)}
         alt=""
         draggable={false}
+        decoding="async"
       />
 
       <div className={`${styles.mist} ${styles.mistBack}`} />
 
-      {/* 男主整張固定：不做 transform 動畫 */}
+      {/* 層 2：透明男主 — 完全靜止，不拉伸、不加 blur */}
       <img
         className={styles.character}
         src={publicAsset(characterSrc)}
         alt={characterName}
         draggable={false}
+        decoding="async"
+        fetchPriority="high"
       />
 
       <div className={styles.swordGlow} />
@@ -76,10 +80,7 @@ export default function BaiYeIdle({
 
       <div className={styles.particles}>
         {Array.from({ length: 10 }).map((_, i) => (
-          <i
-            key={i}
-            style={{ "--i": i } as CSSProperties}
-          />
+          <i key={i} style={{ "--i": i } as CSSProperties} />
         ))}
       </div>
 

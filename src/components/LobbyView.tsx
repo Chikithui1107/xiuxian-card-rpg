@@ -40,8 +40,10 @@ export function LobbyView({
     <div className="lobby-home animate-fade-in relative min-h-0 flex-1 overflow-hidden">
       <BaiYeIdle
         className="absolute inset-0"
-        characterSrc={hero.lobbyPortrait ?? "/images/baiye/baiye.png"}
-        backgroundSrc="/images/baiye/bg-day-sect.webp"
+        characterSrc={
+          hero.lobbyPortrait ?? "/images/baiye/baiye-character.png"
+        }
+        backgroundSrc="/images/baiye/baiye-bg.png"
         characterName={hero.name}
       />
 
