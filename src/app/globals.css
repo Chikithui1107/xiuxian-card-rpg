@@ -613,6 +613,8 @@ body {
 .ink-card-drag-source::after {
   display: none !important;
 }
+
+.ink-card-drag-portal {
   position: fixed !important;
   inset: auto !important;
   background-image: none !important;
