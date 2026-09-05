@@ -1353,42 +1353,19 @@ html.combat-scroll-lock {
   color: #c8c4b8;
 }
 
-/* 切換角色：掛在名字下方，克制但可點 */
+/* 切換角色改由底欄「角色」進入 */
 .lobby-switch-entry {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 0.55rem;
-  padding: 0.32rem 0.7rem;
-  border: 1px solid rgba(168, 140, 72, 0.32);
-  border-radius: 0.15rem;
-  background: rgba(8, 9, 11, 0.55);
-  color: rgba(232, 220, 190, 0.92);
-  font-size: 11px;
-  letter-spacing: 0.28em;
-  text-indent: 0.28em;
-  line-height: 1;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
-  transition:
-    color 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease;
-}
-
-.lobby-switch-entry:active {
-  color: #f5efe4;
-  border-color: rgba(201, 168, 76, 0.55);
-  background: rgba(14, 14, 16, 0.72);
+  display: none;
 }
 
 .character-select-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 80;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.75rem 0.75rem calc(4.75rem + env(safe-area-inset-bottom, 0px));
   background: rgba(4, 5, 7, 0.55);
 }
 

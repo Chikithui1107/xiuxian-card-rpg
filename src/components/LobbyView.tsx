@@ -1,17 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import type { Hero, HeroStats } from "@/lib/stats";
 import { formatNumber } from "@/lib/stats";
 import type { PlayableCharacter } from "@/data/characters";
 import BaiYeIdle from "@/components/BaiYeIdle/BaiYeIdle";
-import { CharacterSelectModal } from "@/components/CharacterSelectModal";
 import { RunToast } from "@/components/RunToast";
 
 interface LobbyViewProps {
   hero: Hero;
   character: PlayableCharacter;
-  characters: PlayableCharacter[];
   stats: HeroStats;
   playerHp: number;
   spiritStones: number;
@@ -25,13 +22,11 @@ interface LobbyViewProps {
   onContinueGame: () => void;
   onAbandonGame: () => void;
   onDismissRunMessage?: () => void;
-  onSwitchCharacter: (id: string) => void;
 }
 
 export function LobbyView({
   hero,
   character,
-  characters,
   stats,
   playerHp,
   spiritStones,
@@ -44,9 +39,7 @@ export function LobbyView({
   onContinueGame,
   onAbandonGame,
   onDismissRunMessage,
-  onSwitchCharacter,
 }: LobbyViewProps) {
-  const [selectOpen, setSelectOpen] = useState(false);
   const hpPercent = Math.max(0, (playerHp / stats.maxHp) * 100);
   const art = character.lobbyArt;
 
@@ -76,7 +69,6 @@ export function LobbyView({
         characterHeight={art?.characterHeight}
       />
 
-      {/* 只壓底部，讓 dock 可讀；不蓋住立繪主體 */}
       <div className="lobby-bg-veil pointer-events-none absolute inset-0 z-[19]" />
 
       {lastRunMessage && onDismissRunMessage && (
@@ -87,7 +79,6 @@ export function LobbyView({
         />
       )}
 
-      {/* 名字區：切換入口放這裡，避免被頂欄／選單遮住 */}
       <div className="lobby-hero-title pointer-events-none absolute inset-x-0 z-20 px-4 pb-3 pt-8 text-center">
         <h2 className="text-[1.55rem] font-bold tracking-[0.36em] text-[#f5efe4] drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
           {hero.name}
@@ -95,14 +86,6 @@ export function LobbyView({
         <p className="lobby-hero-subtitle mt-1 text-[11px] tracking-[0.22em]">
           {hero.title} · {hero.realm}
         </p>
-        <button
-          type="button"
-          className="lobby-switch-entry pointer-events-auto"
-          onClick={() => setSelectOpen(true)}
-          aria-label="切換角色"
-        >
-          切換角色
-        </button>
       </div>
 
       <div className="lobby-dock absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-3">
@@ -180,19 +163,6 @@ export function LobbyView({
           </button>
         )}
       </div>
-
-      <CharacterSelectModal
-        open={selectOpen}
-        characters={characters}
-        activeId={character.id}
-        locked={hasActiveRun}
-        lockReason="請先結束或退出本次修行"
-        onSelect={(id) => {
-          onSwitchCharacter(id);
-          setSelectOpen(false);
-        }}
-        onClose={() => setSelectOpen(false)}
-      />
     </div>
   );
 }

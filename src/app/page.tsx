@@ -15,7 +15,7 @@ import { LobbyView } from "@/components/LobbyView";
 import { CombatView } from "@/components/CombatView";
 import { TierSelectionView } from "@/components/TierSelectionView";
 import { PathChoiceView } from "@/components/PathChoiceView";
-import { InventoryView } from "@/components/InventoryView";
+import { CharacterSelectModal } from "@/components/CharacterSelectModal";
 import { CardRewardModal } from "@/components/CardRewardModal";
 import { EventModal } from "@/components/EventModal";
 import { InGameMenu } from "@/components/InGameMenu";
@@ -29,8 +29,6 @@ import {
 } from "@/lib/stats";
 import {
   createInitialInventory,
-  equipItem,
-  unequipItem,
 } from "@/lib/equipment";
 import {
   CARD_TEMPLATES,
@@ -111,7 +109,7 @@ type CharacterProgress = {
 const TAB_LABELS: Record<AppTab, string> = {
   lobby: "青雲宗 · 山門",
   combat: "天下秘境",
-  inventory: "修士行囊",
+  characters: "選擇角色",
 };
 
 function createProgress(character: PlayableCharacter): CharacterProgress {
@@ -153,6 +151,7 @@ export default function GamePage() {
   const [activeCharacterId, setActiveCharacterId] = useState(
     DEFAULT_CHARACTER_ID
   );
+  const [characterSelectOpen, setCharacterSelectOpen] = useState(false);
   const [progressByCharacter, setProgressByCharacter] = useState<
     Record<string, CharacterProgress>
   >({});
@@ -301,6 +300,8 @@ export default function GamePage() {
       setSpiritStones(nextSnap.spiritStones);
       setTotalClears(nextSnap.totalClears);
       setLastRunMessage(`已入駐：${nextChar.name}`);
+      setCharacterSelectOpen(false);
+      setActiveTab("lobby");
       try {
         localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(merged));
         localStorage.setItem(ACTIVE_CHAR_KEY, nextId);
@@ -554,17 +555,6 @@ export default function GamePage() {
     },
     [resetCombatState, resetPermanentDeck]
   );
-
-  const handleEquip = useCallback(
-    (equipmentId: string) => {
-      setInventory((prev) => equipItem(prev, equipmentId, hero.realm));
-    },
-    [hero.realm]
-  );
-
-  const handleUnequip = useCallback((equipmentId: string) => {
-    setInventory((prev) => unequipItem(prev, equipmentId));
-  }, []);
 
   const addDamagePopup = useCallback((damage: number) => {
     popupIdRef.current += 1;
@@ -883,12 +873,12 @@ export default function GamePage() {
   const renderContent = () => {
     switch (activeTab) {
       case "lobby":
+      case "characters":
         return (
           <div className="flex min-h-0 flex-1 flex-col">
             <LobbyView
               hero={hero}
               character={character}
-              characters={PLAYABLE}
               stats={heroStats}
               playerHp={playerHp}
               spiritStones={spiritStones}
@@ -912,18 +902,8 @@ export default function GamePage() {
               onContinueGame={continueGame}
               onAbandonGame={abandonGame}
               onDismissRunMessage={dismissRunMessage}
-              onSwitchCharacter={switchCharacter}
             />
           </div>
-        );
-      case "inventory":
-        return (
-          <InventoryView
-            inventory={inventory}
-            heroRealm={hero.realm}
-            onEquip={handleEquip}
-            onUnequip={handleUnequip}
-          />
         );
       case "combat":
         if (combatScreen === "tier-select") {
@@ -996,6 +976,19 @@ export default function GamePage() {
     }
   };
 
+  const handleTabChange = useCallback(
+    (tab: AppTab) => {
+      if (tab === "characters") {
+        setActiveTab("lobby");
+        setCharacterSelectOpen(true);
+        return;
+      }
+      setCharacterSelectOpen(false);
+      setActiveTab(tab);
+    },
+    []
+  );
+
   const showRunMenu =
     hasActiveRun &&
     activeTab === "combat" &&
@@ -1034,8 +1027,8 @@ export default function GamePage() {
       bottomNav={
         isInCombat ? null : (
           <BottomNav
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
+            activeTab={characterSelectOpen ? "characters" : activeTab}
+            onTabChange={handleTabChange}
             inCombat={hasActiveRun}
             combatLocked={false}
           />
@@ -1043,6 +1036,16 @@ export default function GamePage() {
       }
     >
       {renderContent()}
+
+      <CharacterSelectModal
+        open={characterSelectOpen}
+        characters={PLAYABLE}
+        activeId={character.id}
+        locked={hasActiveRun}
+        lockReason="請先結束或退出本次修行"
+        onSelect={switchCharacter}
+        onClose={() => setCharacterSelectOpen(false)}
+      />
 
       {isInCombat && battlePhase === "VICTORY_ANIM" && (
         <VictoryAnimOverlay enemyName={defeatedEnemyName} />

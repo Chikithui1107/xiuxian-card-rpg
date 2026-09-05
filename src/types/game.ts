@@ -83,7 +83,7 @@ export type BattlePhase =
   | "REWARD"
   | "STAGE_CLEAR";
 
-export type AppTab = "lobby" | "combat" | "inventory";
+export type AppTab = "lobby" | "combat" | "characters";
 
 /** @deprecated use AppTab */
 export type GameView = "lobby" | "combat";

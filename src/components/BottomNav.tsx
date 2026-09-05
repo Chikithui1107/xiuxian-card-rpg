@@ -17,7 +17,6 @@ function IconMountain({ className }: { className?: string }) {
       fill="none"
       aria-hidden
     >
-      {/* 遠山層次 */}
       <path
         d="M2.8 17.8 L7.5 11.2 L10.6 14.6 L14.8 9.4 L21.2 17.8"
         stroke="currentColor"
@@ -26,7 +25,6 @@ function IconMountain({ className }: { className?: string }) {
         strokeLinecap="round"
         opacity="0.55"
       />
-      {/* 近處山門／屋簷牌坊 */}
       <path
         d="M8.2 17.8 V12.4"
         stroke="currentColor"
@@ -94,7 +92,8 @@ function IconRealm({ className }: { className?: string }) {
   );
 }
 
-function IconPouch({ className }: { className?: string }) {
+/** 角色：簡筆人形，風格與山門／秘境一致 */
+function IconCultivator({ className }: { className?: string }) {
   return (
     <svg
       className={className}
@@ -102,22 +101,17 @@ function IconPouch({ className }: { className?: string }) {
       fill="none"
       aria-hidden
     >
-      <path
-        d="M8.2 9.2 C8.2 7.2 9.7 5.8 12 5.8 C14.3 5.8 15.8 7.2 15.8 9.2"
+      <circle
+        cx="12"
+        cy="7.2"
+        r="2.35"
         stroke="currentColor"
         strokeWidth="1.15"
-        strokeLinecap="round"
       />
       <path
-        d="M7 9.6 H17 C17.8 9.6 18.4 10.3 18.2 11.1 L16.9 17.2 C16.7 18.2 15.8 19 14.8 19 H9.2 C8.2 19 7.3 18.2 7.1 17.2 L5.8 11.1 C5.6 10.3 6.2 9.6 7 9.6 Z"
+        d="M7.4 18.4 C8.2 14.8 9.6 13.1 12 13.1 C14.4 13.1 15.8 14.8 16.6 18.4"
         stroke="currentColor"
         strokeWidth="1.15"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M10.2 12.2 H13.8"
-        stroke="currentColor"
-        strokeWidth="1.05"
         strokeLinecap="round"
       />
     </svg>
@@ -131,7 +125,7 @@ const TABS: {
 }[] = [
   { id: "lobby", label: "山門", Icon: IconMountain },
   { id: "combat", label: "秘境", Icon: IconRealm },
-  { id: "inventory", label: "行囊", Icon: IconPouch },
+  { id: "characters", label: "角色", Icon: IconCultivator },
 ];
 
 export function BottomNav({
