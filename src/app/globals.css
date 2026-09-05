@@ -653,16 +653,21 @@ html.combat-scroll-lock {
 }
 
 .lobby-bg-veil {
-  /* 白天合成圖：中段幾乎不壓，只顧底部 UI 可讀 */
+  /* 白天雲海：中段保持亮，只壓頂底好讀字 */
   background:
     linear-gradient(
       180deg,
-      rgba(12, 18, 28, 0.18) 0%,
-      transparent 24%,
-      transparent 58%,
-      rgba(8, 10, 14, 0.22) 74%,
-      rgba(6, 8, 12, 0.86) 100%
+      rgba(12, 18, 28, 0.22) 0%,
+      transparent 26%,
+      transparent 55%,
+      rgba(8, 10, 14, 0.25) 72%,
+      rgba(6, 8, 12, 0.88) 100%
     );
+}
+
+.lobby-actor-art {
+  animation: lobby-hero-breathe 6.5s ease-in-out infinite;
+  will-change: transform;
 }
 
 .lobby-dock {
