@@ -90,7 +90,7 @@ export function setBgmScene(next: BgmScene): void {
  * 可重疊呼叫：以最晚結束時間為準，避免第二次失敗音把第一次 hold 提前鬆開。
  */
 let sfxHoldUntil = 0;
-let sfxHoldTimer: ReturnType<typeof setTimeout> | null = null;
+let sfxHoldTimer: number | null = null;
 
 export function holdBgmForSfx(durationMs: number): () => void {
   const until = Date.now() + Math.max(0, durationMs);
@@ -98,7 +98,7 @@ export function holdBgmForSfx(durationMs: number): () => void {
   sfxHold = true;
   syncPlayback();
 
-  if (sfxHoldTimer) window.clearTimeout(sfxHoldTimer);
+  if (sfxHoldTimer !== null) window.clearTimeout(sfxHoldTimer);
   const delay = Math.max(0, sfxHoldUntil - Date.now());
   sfxHoldTimer = window.setTimeout(() => {
     sfxHoldTimer = null;
@@ -108,7 +108,7 @@ export function holdBgmForSfx(durationMs: number): () => void {
   }, delay);
 
   return () => {
-    if (sfxHoldTimer) {
+    if (sfxHoldTimer !== null) {
       window.clearTimeout(sfxHoldTimer);
       sfxHoldTimer = null;
     }
