@@ -173,9 +173,9 @@ function HandCard({
   const placeDragPortal = useCallback((x: number, y: number) => {
     const el = dragPortalElRef.current;
     if (!el) return;
-    el.style.left = `${x}px`;
-    el.style.top = `${y}px`;
+    el.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
   }, []);
+
 
 
   useEffect(() => {
@@ -292,9 +292,12 @@ function HandCard({
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
+    // 用槽位量尺寸，避免扇形 rotate／hover 影響抓取點
+    const measureEl = slotRef.current ?? ghostRef.current;
+    if (!measureEl) return;
+    const rect = measureEl.getBoundingClientRect();
     const ghost = ghostRef.current;
     if (!ghost) return;
-    const rect = ghost.getBoundingClientRect();
 
     try {
       ghost.setPointerCapture(e.pointerId);
@@ -414,27 +417,43 @@ function HandCard({
     />
   );
 
-  /* 拖曳幽靈：全螢幕 layer 掛 body，座標用 left/top 直寫，避開 overflow／transform 裁切 */
+  /* 拖曳幽靈：不用 ink-card（避免被 CSS 藏掉），純 fixed + translate3d 跟手 */
   const dragPortal =
     dragging &&
     dragBox &&
     typeof document !== "undefined" &&
     createPortal(
-      <div className="ink-card-drag-layer" aria-hidden>
-        <div
-          ref={dragPortalElRef}
-          className={`ink-card ink-card-drag-portal select-none ${typeStyle} ${
-            card.pulledByKarma ? "ink-card-pulled" : ""
-          } ${readyHint ? "ring-2 ring-[#7aab9a]/75" : ""}`}
-          style={{
-            left: dragBox.x,
-            top: dragBox.y,
-            width: dragBox.w,
-            height: dragBox.h,
-          }}
-        >
-          {renderCardFace({ showSelectHint: false, showReady: readyHint })}
-        </div>
+      <div
+        ref={dragPortalElRef}
+        className="select-none"
+        aria-hidden
+        style={{
+          position: "fixed",
+          left: 0,
+          top: 0,
+          width: dragBox.w,
+          height: dragBox.h,
+          zIndex: 2147483646,
+          margin: 0,
+          padding: 0,
+          pointerEvents: "none",
+          opacity: 1,
+          visibility: "visible",
+          transform: `translate3d(${Math.round(dragBox.x)}px, ${Math.round(dragBox.y)}px, 0)`,
+          willChange: "transform",
+          background: "#161410",
+          border: readyHint
+            ? "2px solid rgba(122, 171, 154, 0.85)"
+            : "1px solid rgba(201, 168, 76, 0.55)",
+          borderRadius: "0.35rem",
+          overflow: "hidden",
+          boxShadow: "0 16px 40px rgba(0,0,0,0.75)",
+        }}
+      >
+        <div className={`h-full w-full ${typeStyle}`}>{renderCardFace({
+          showSelectHint: false,
+          showReady: readyHint,
+        })}</div>
       </div>,
       document.body
     );
@@ -528,24 +547,23 @@ function HandCard({
               ? "cursor-grab opacity-55"
               : "cursor-grab active:cursor-grabbing"
         } ${typeStyle} ${
-          dragging
-            ? "ink-card-drag-source"
-            : "transition-transform duration-200 ease-out"
-        } ${preview && !hovered ? "ink-card-selected" : ""} ${
-          card.pulledByKarma ? "ink-card-pulled" : ""
+          dragging ? "" : "transition-transform duration-200 ease-out"
+        } ${preview && !hovered && !dragging ? "ink-card-selected" : ""} ${
+          card.pulledByKarma && !dragging ? "ink-card-pulled" : ""
         } ${hovered && !dragging ? "opacity-30" : ""}`}
         style={{
           touchAction: "none",
           transform: restTransform,
           zIndex: preview ? 80 : undefined,
+          // 拖曳中原位淡化完整牌面，不再卸掉內容變成空白殼
+          opacity: dragging ? 0.28 : undefined,
         }}
       >
-        {!dragging &&
-          renderCardFace({
-            showSelectHint: selected && !readyHint && !hovered,
-            showReady: false,
-            enlarged: false,
-          })}
+        {renderCardFace({
+          showSelectHint: selected && !readyHint && !hovered && !dragging,
+          showReady: false,
+          enlarged: false,
+        })}
       </div>
       {dragPortal}
       {hoverPortal}
