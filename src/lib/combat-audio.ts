@@ -16,12 +16,13 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
   start_cultivation: ["horror-hit", "start-cultivation"],
   card_draw: ["card-draw", "card_draw"],
   reward_click: ["reward-click", "reward_click"],
+  battle_win: ["battle-win", "battle_win", "level-up"],
 };
 
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
 
 /** 換樣本時遞增，強制繞過 HTTP 快取 */
-const SFX_CACHE_BUST = "v5";
+const SFX_CACHE_BUST = "v6";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -161,10 +162,17 @@ export function playRewardClickSfx(): void {
   void playSample("reward_click", 0.95, 0.2);
 }
 
+/** 每場戰鬥獲勝時播放 */
+export function playBattleWinSfx(): void {
+  unlockCombatAudio();
+  void playSample("battle_win", 1);
+}
+
 export function preloadCombatSfx(): void {
   void loadBuffer("fuxue_slash");
   void loadBuffer("tuxu_whoosh");
   void loadBuffer("start_cultivation");
   void loadBuffer("card_draw");
   void loadBuffer("reward_click");
+  void loadBuffer("battle_win");
 }

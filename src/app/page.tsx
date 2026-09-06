@@ -70,7 +70,7 @@ import {
   rollStackDodge,
   type CombatBuffs,
 } from "@/lib/battle-resolve";
-import { playStartCultivationSfx, playCardDrawSfx } from "@/lib/combat-audio";
+import { playStartCultivationSfx, playCardDrawSfx, playBattleWinSfx } from "@/lib/combat-audio";
 import type { BattleDeckState } from "@/types/battle";
 import type { Card } from "@/types/battle";
 import type {
@@ -591,6 +591,8 @@ export default function GamePage() {
     ) => {
       if (victoryStartedRef.current) return;
       victoryStartedRef.current = true;
+
+      playBattleWinSfx();
 
       const node = getMapNode(mapNodes, mapNodeId);
       setDefeatedEnemyName(enemyName);
