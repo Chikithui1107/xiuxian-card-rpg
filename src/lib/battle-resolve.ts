@@ -76,6 +76,9 @@ export function resolveCardEffects(
       case "buff_next_sword":
         next = { ...next, nextSwordBonus: fx.percent };
         break;
+      case "karma":
+        // 因果牌效果由 karma-combat 結算
+        break;
     }
   }
 

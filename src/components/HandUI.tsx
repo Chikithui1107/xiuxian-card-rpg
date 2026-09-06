@@ -10,10 +10,13 @@ import {
 import { createPortal } from "react-dom";
 import {
   CARD_TEMPLATES,
+  getCardTemplate,
   type CardTemplateId,
 } from "@/lib/battle-deck";
 import type { Card } from "@/types/battle";
-import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
+import { getEffectiveCost } from "@/types/battle";
+import { CARD_TYPE_COLORS } from "@/types/game";
+import { CardFace } from "@/components/CardFace";
 
 interface HandUIProps {
   hand: Card[];
@@ -28,7 +31,7 @@ interface HandUIProps {
 const PLAY_SWIPE_Y = -52;
 const TAP_SLOP = 8;
 
-/** 固定扇形角度（不隨 hover 改變） */
+/** 靜止時扇形角度；hover／選取時歸零方便閱讀 */
 function fanAngle(index: number, total: number) {
   if (total <= 1) return 0;
   const spread = Math.min(10, 3 * (total - 1));
@@ -42,7 +45,7 @@ function fanLift(index: number, total: number) {
   return Math.abs(index - mid) * 2.5;
 }
 
-/** 重疊適中：卡名必露；完整效果靠點選提到最前閱讀 */
+/** 重疊適中：卡名必露；完整效果靠 hover／點選放大閱讀 */
 function overlapPx(total: number) {
   const raw =
     typeof window !== "undefined"
@@ -151,29 +154,71 @@ function HandCard({
   const rafRef = useRef(0);
   const [dragging, setDragging] = useState(false);
   const [readyHint, setReadyHint] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [hoverBox, setHoverBox] = useState<{
+    left: number;
+    bottom: number;
+    w: number;
+    h: number;
+  } | null>(null);
   const [dragBox, setDragBox] = useState<{
     x: number;
     y: number;
     w: number;
     h: number;
   } | null>(null);
+  const fineHoverRef = useRef(false);
 
-  const template = CARD_TEMPLATES[card.id as CardTemplateId];
-  const canAfford = energy >= card.cost;
+  useEffect(() => {
+    fineHoverRef.current = window.matchMedia(
+      "(hover: hover) and (pointer: fine)"
+    ).matches;
+  }, []);
+
+  const syncHoverBox = useCallback(() => {
+    const el = slotRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    setHoverBox({
+      left: r.left + r.width / 2,
+      bottom: window.innerHeight - r.bottom,
+      w: r.width,
+      h: r.height,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!hovered || dragging) {
+      setHoverBox(null);
+      return;
+    }
+    syncHoverBox();
+    const onReposition = () => syncHoverBox();
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [hovered, dragging, syncHoverBox]);
+
+  const template = getCardTemplate(card) ?? CARD_TEMPLATES[card.id as CardTemplateId];
+  const effectiveCost = getEffectiveCost(card);
+  const canAfford = energy >= effectiveCost;
   const typeStyle =
     CARD_TYPE_COLORS[template?.type ?? ""] ??
     "ink-card-type-basic bg-[#1a1814]";
-  const typeAccent =
-    CARD_TYPE_ACCENT[template?.type ?? ""] ?? "text-[#c9a84c]";
 
   const angle = fanAngle(index, total);
   const baseLift = fanLift(index, total);
   const marginLeft = index === 0 ? 0 : -overlapPx(total);
+  const preview = !dragging && (hovered || selected);
 
-  /* 點選：提到最前並略抬高，方便讀完整內容；不做鄰牌讓位 */
-  const restTransform = selected
-    ? `translateY(${baseLift - 16}px) scale(1.06) rotate(0deg)`
-    : `translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
+  /* hover 改用 body portal 放大，避免被戰場／HUD 裁切；點選仍略抬高 */
+  const restTransform =
+    selected && !dragging && !hovered
+      ? `translateY(${baseLift - 16}px) scale(1.06) rotate(0deg)`
+      : `translateY(${baseLift}px) scale(1) rotate(${hovered && !dragging ? 0 : angle}deg)`;
 
   const clearGhostStyles = useCallback(() => {
     setDragBox(null);
@@ -340,44 +385,25 @@ function HandCard({
 
   const description = template?.description ?? "";
 
-  const renderCardFace = (opts: { showSelectHint: boolean; showReady: boolean }) => (
-    <div className="relative z-[2] flex h-full w-full min-h-0 flex-col p-1.5">
-      <div className="flex items-start justify-between gap-1">
-        <span className="min-w-0 flex-1 text-left text-[12px] font-bold leading-tight tracking-wide text-[#f0e6d3]">
-          {card.name}
-        </span>
-        <span
-          className={`flex h-[1.25rem] w-[1.25rem] shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold ${
-            canAfford
-              ? "bg-[#7aab9a]/90 text-stone-950"
-              : "bg-[#a85555]/85 text-stone-100"
-          }`}
-        >
-          {card.cost}
-        </span>
-      </div>
-
-      <p className="mt-1.5 min-h-0 flex-1 overflow-y-auto break-words text-left text-[10px] leading-[1.35] text-stone-300">
-        {description}
-      </p>
-
-      <div className="mt-1 shrink-0">
-        <p className={`text-[8px] font-semibold ${typeAccent}`}>
-          {template?.type}
-        </p>
-        {card.isExhaust && (
-          <p className="text-[8px] text-amber-500/70">消耗</p>
-        )}
-        {opts.showSelectHint && (
-          <p className="mt-0.5 text-[8px] text-stone-500">上拖出牌</p>
-        )}
-        {opts.showReady && (
-          <p className="mt-0.5 text-[9px] font-bold text-[#7aab9a]">
-            松手出牌
-          </p>
-        )}
-      </div>
-    </div>
+  const renderCardFace = (opts: {
+    showSelectHint: boolean;
+    showReady: boolean;
+    enlarged?: boolean;
+  }) => (
+    <CardFace
+      name={card.name}
+      type={template?.type ?? ""}
+      cost={effectiveCost}
+      description={description}
+      art={template?.art}
+      templateId={card.id}
+      canAfford={canAfford}
+      isExhaust={card.isExhaust}
+      pulledByKarma={card.pulledByKarma}
+      enlarged={opts.enlarged}
+      showSelectHint={opts.showSelectHint}
+      showReady={opts.showReady}
+    />
   );
 
   /* 拖曳幽靈掛到 body：避開 dock / shell 的 filter、overflow 把 fixed 座標搞歪 */
@@ -388,8 +414,8 @@ function HandCard({
     createPortal(
       <div
         className={`ink-card ink-card-drag-portal pointer-events-none select-none ${typeStyle} ${
-          readyHint ? "ring-2 ring-[#7aab9a]/75" : ""
-        }`}
+          card.pulledByKarma ? "ink-card-pulled" : ""
+        } ${readyHint ? "ring-2 ring-[#7aab9a]/75" : ""}`}
         style={{
           position: "fixed",
           left: dragBox.x,
@@ -408,22 +434,74 @@ function HandCard({
       document.body
     );
 
+  /* hover 放大預覽掛 body，不被戰場／玩家條裁切 */
+  const hoverPortal =
+    hovered &&
+    !dragging &&
+    hoverBox &&
+    typeof document !== "undefined" &&
+    createPortal(
+      <div
+        className={`ink-card ink-card-hover-portal pointer-events-none select-none ${typeStyle} ${
+          card.pulledByKarma ? "ink-card-pulled" : ""
+        } ink-card-selected`}
+        style={{
+          position: "fixed",
+          left: hoverBox.left,
+          bottom: hoverBox.bottom,
+          width: hoverBox.w,
+          height: hoverBox.h,
+          zIndex: 100000,
+          margin: 0,
+          transform: "translateX(-50%) scale(1.55)",
+          transformOrigin: "bottom center",
+        }}
+        aria-hidden
+      >
+        {renderCardFace({
+          showSelectHint: false,
+          showReady: false,
+          enlarged: true,
+        })}
+      </div>,
+      document.body
+    );
+
   return (
     <div
       ref={slotRef}
       className="hand-card-slot relative shrink-0"
       style={{
-        zIndex: dragging ? 90 : selected ? 80 : 10 + index,
+        zIndex: dragging ? 90 : hovered ? 88 : selected ? 80 : 10 + index,
         marginLeft: index === 0 ? undefined : marginLeft,
       }}
+      onMouseEnter={() => {
+        if (fineHoverRef.current && !dragging) setHovered(true);
+      }}
+      onMouseLeave={() => setHovered(false)}
     >
+      {/* 向上延伸熱區，滑鼠移到放大預覽上時不中斷 hover */}
+      {hovered && !dragging && (
+        <div
+          className="absolute left-1/2 -translate-x-1/2"
+          style={{
+            bottom: 0,
+            width: "170%",
+            height: "calc(100% + 11rem)",
+          }}
+          aria-hidden
+        />
+      )}
       <div
         ref={ghostRef}
         role="button"
         tabIndex={0}
         aria-pressed={selected}
         aria-disabled={locked || !canAfford}
-        onPointerDown={onPointerDown}
+        onPointerDown={(e) => {
+          setHovered(false);
+          onPointerDown(e);
+        }}
         onPointerCancel={onPointerCancel}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
@@ -447,21 +525,25 @@ function HandCard({
         } ${typeStyle} ${
           dragging
             ? "ink-card-drag-source"
-            : "transition-transform duration-150 ease-out"
-        } ${selected && !dragging ? "ink-card-selected" : ""}`}
+            : "transition-transform duration-200 ease-out"
+        } ${preview && !hovered ? "ink-card-selected" : ""} ${
+          card.pulledByKarma ? "ink-card-pulled" : ""
+        } ${hovered && !dragging ? "opacity-30" : ""}`}
         style={{
           touchAction: "none",
           transform: restTransform,
-          zIndex: selected ? 80 : undefined,
+          zIndex: preview ? 80 : undefined,
         }}
       >
         {!dragging &&
           renderCardFace({
-            showSelectHint: selected && !readyHint,
+            showSelectHint: selected && !readyHint && !hovered,
             showReady: false,
+            enlarged: false,
           })}
       </div>
       {dragPortal}
+      {hoverPortal}
     </div>
   );
 }

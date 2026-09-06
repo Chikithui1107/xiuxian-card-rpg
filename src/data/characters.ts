@@ -1,28 +1,23 @@
 import type { CardTemplateId } from "@/lib/battle-deck";
 import type { Hero } from "@/lib/stats";
+import { MOYI_STARTING_DECK } from "@/lib/karma-deck";
 
 /** 山門立繪構圖微調（可選） */
 export interface LobbyArtTuning {
-  /** CSS object-position for background */
   backgroundPosition?: string;
-  /** CSS filter on background; empty string = none */
   backgroundFilter?: string;
-  /** character bottom offset, e.g. "4%" */
   characterBottom?: string;
-  /** character height, e.g. "78%" */
   characterHeight?: string;
-  /** 限制立繪寬度，避免衣袖貼邊，e.g. "78%" */
   characterMaxWidth?: string;
 }
 
+export type CombatPathId = "sword" | "karma";
+
 export interface PlayableCharacter extends Hero {
-  /** 山門全螢幕背景 */
   lobbyBackground: string;
-  /** 開局卡組（暫與白夜相同，不改戰鬥平衡） */
   startingDeck: CardTemplateId[];
-  /** 角色技能顯示名（資料預留；暫不改戰鬥） */
   skillLabels: string[];
-  /** 山門氛圍：jade=白夜冷青；ink=陰陽水墨 */
+  combatPath: CombatPathId;
   lobbyTheme: "jade" | "ink";
   lobbyArt?: LobbyArtTuning;
 }
@@ -51,6 +46,7 @@ export const PLAYABLE_CHARACTERS: PlayableCharacter[] = [
     lobbyBackground: "/images/baiye/baiye-bg.png",
     startingDeck: [...BAIYE_DECK],
     skillLabels: ["拂雪流光", "踏虛掠影", "靈台觀劍"],
+    combatPath: "sword",
     lobbyTheme: "jade",
   },
   {
@@ -67,11 +63,11 @@ export const PLAYABLE_CHARACTERS: PlayableCharacter[] = [
     portrait: "/images/moyi/moyi-character.png",
     lobbyPortrait: "/images/moyi/moyi-character.png",
     lobbyBackground: "/images/moyi/moyi-bg.png",
-    startingDeck: [...BAIYE_DECK],
-    skillLabels: ["陰陽鎖", "因果子", "一子定局"],
+    startingDeck: [...MOYI_STARTING_DECK],
+    skillLabels: ["因果相生", "因牌", "果牌"],
+    combatPath: "karma",
     lobbyTheme: "ink",
     lobbyArt: {
-      /* 第一版構圖：大立繪 */
       backgroundPosition: "center 42%",
       backgroundFilter: "none",
       characterBottom: "3%",
