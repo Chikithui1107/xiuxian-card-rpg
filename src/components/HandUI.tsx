@@ -152,6 +152,7 @@ function HandCard({
   const dragPosRef = useRef({ x: 0, y: 0 });
   const detachRef = useRef<(() => void) | null>(null);
   const rafRef = useRef(0);
+  const dragPortalElRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
   const [readyHint, setReadyHint] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -168,6 +169,14 @@ function HandCard({
     h: number;
   } | null>(null);
   const fineHoverRef = useRef(false);
+
+  const placeDragPortal = useCallback((x: number, y: number) => {
+    const el = dragPortalElRef.current;
+    if (!el) return;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+  }, []);
+
 
   useEffect(() => {
     fineHoverRef.current = window.matchMedia(
@@ -246,6 +255,11 @@ function HandCard({
   );
 
   useEffect(() => {
+    if (!dragging || !dragBox) return;
+    placeDragPortal(dragBox.x, dragBox.y);
+  }, [dragging, dragBox, placeDragPortal]);
+
+  useEffect(() => {
     if (!dragging) return;
     const blockTouchMove = (e: TouchEvent) => {
       e.preventDefault();
@@ -316,20 +330,14 @@ function HandCard({
         dragPosRef.current = { x, y };
         setDragging(true);
         setDragBox({ x, y, w: drag.width, h: drag.height });
+        // 下一幀強制寫座標，避免 React commit 前幽靈還在錯誤位置
+        requestAnimationFrame(() => placeDragPortal(x, y));
       }
 
       if (!drag.active) return;
 
       dragPosRef.current = { x, y };
-      if (!rafRef.current) {
-        rafRef.current = requestAnimationFrame(() => {
-          rafRef.current = 0;
-          const d = dragRef.current;
-          if (!d?.active) return;
-          const p = dragPosRef.current;
-          setDragBox({ x: p.x, y: p.y, w: d.width, h: d.height });
-        });
-      }
+      placeDragPortal(x, y);
 
       const upEnough = dy <= PLAY_SWIPE_Y;
       setReadyHint((prev) => (prev === upEnough ? prev : upEnough));
@@ -406,30 +414,27 @@ function HandCard({
     />
   );
 
-  /* 拖曳幽靈掛到 body：避開 dock / shell 的 filter、overflow 把 fixed 座標搞歪 */
+  /* 拖曳幽靈：全螢幕 layer 掛 body，座標用 left/top 直寫，避開 overflow／transform 裁切 */
   const dragPortal =
     dragging &&
     dragBox &&
     typeof document !== "undefined" &&
     createPortal(
-      <div
-        className={`ink-card ink-card-drag-portal pointer-events-none select-none ${typeStyle} ${
-          card.pulledByKarma ? "ink-card-pulled" : ""
-        } ${readyHint ? "ring-2 ring-[#7aab9a]/75" : ""}`}
-        style={{
-          position: "fixed",
-          left: dragBox.x,
-          top: dragBox.y,
-          width: dragBox.w,
-          height: dragBox.h,
-          zIndex: 100000,
-          margin: 0,
-          transform: "none",
-          transition: "none",
-        }}
-        aria-hidden
-      >
-        {renderCardFace({ showSelectHint: false, showReady: readyHint })}
+      <div className="ink-card-drag-layer" aria-hidden>
+        <div
+          ref={dragPortalElRef}
+          className={`ink-card ink-card-drag-portal select-none ${typeStyle} ${
+            card.pulledByKarma ? "ink-card-pulled" : ""
+          } ${readyHint ? "ring-2 ring-[#7aab9a]/75" : ""}`}
+          style={{
+            left: dragBox.x,
+            top: dragBox.y,
+            width: dragBox.w,
+            height: dragBox.h,
+          }}
+        >
+          {renderCardFace({ showSelectHint: false, showReady: readyHint })}
+        </div>
       </div>,
       document.body
     );

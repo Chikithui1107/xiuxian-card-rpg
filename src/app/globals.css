@@ -603,7 +603,7 @@ body {
   box-sizing: border-box;
 }
 
-/* 拖曳中：原位牌完全隱藏（只留槽位空間），幽靈在 body portal */
+/* 拖曳中：原位牌隱藏，幽靈在 body 的 drag-layer 上 */
 .ink-card-drag-source {
   visibility: hidden !important;
   opacity: 0 !important;
@@ -616,19 +616,36 @@ body {
   display: none !important;
 }
 
-.ink-card-drag-portal {
+.ink-card-drag-layer {
   position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483000 !important;
+  pointer-events: none !important;
+  overflow: visible !important;
+  transform: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.ink-card-drag-portal {
+  position: absolute !important;
   inset: auto !important;
+  margin: 0 !important;
+  transform: translate3d(0, 0, 0) !important;
+  will-change: left, top;
   background-image: none !important;
   background-color: #141210 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   mix-blend-mode: normal !important;
+  filter: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.45),
     0 14px 32px rgba(0, 0, 0, 0.6) !important;
-  opacity: 1 !important;
-  pointer-events: none !important;
 }
 
 .ink-card-drag-portal::after,
@@ -1761,7 +1778,7 @@ html.combat-scroll-lock {
     0 0 0 1px rgba(0, 0, 0, 0.35),
     inset 0 1px 0 rgba(255, 245, 220, 0.04),
     0 3px 10px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(2px);
+  backdrop-filter: none;
 }
 
 .ink-card::before {
