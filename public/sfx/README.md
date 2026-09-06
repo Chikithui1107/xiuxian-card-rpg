@@ -8,6 +8,7 @@
 | 戰鬥抽牌 | `card-draw.mp3` |
 | 戰鬥獲勝 | `battle-win.mp3` |
 | 擇劍訣入庫 | `reward-click.mp3` |
+| 退出 / 失敗 | `game-over.mp3` |
 | 拂雪流光命中 | `fuxue-slash.mp3` |
 | 踏虛掠影起手 | `tuxu-whoosh.mp3` |
 

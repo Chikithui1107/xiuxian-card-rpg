@@ -17,12 +17,13 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
   card_draw: ["card-draw", "card_draw"],
   reward_click: ["reward-click", "reward_click"],
   battle_win: ["battle-win", "battle_win", "level-up"],
+  game_over: ["game-over", "game_over"],
 };
 
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
 
 /** 換樣本時遞增，強制繞過 HTTP 快取 */
-const SFX_CACHE_BUST = "v6";
+const SFX_CACHE_BUST = "v7";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -170,6 +171,12 @@ export function playBattleWinSfx(): void {
   }, 1000);
 }
 
+/** 退出秘境或戰鬥失敗 */
+export function playGameOverSfx(): void {
+  unlockCombatAudio();
+  void playSample("game_over", 1);
+}
+
 export function preloadCombatSfx(): void {
   void loadBuffer("fuxue_slash");
   void loadBuffer("tuxu_whoosh");
@@ -177,4 +184,5 @@ export function preloadCombatSfx(): void {
   void loadBuffer("card_draw");
   void loadBuffer("reward_click");
   void loadBuffer("battle_win");
+  void loadBuffer("game_over");
 }

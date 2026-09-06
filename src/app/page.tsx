@@ -84,7 +84,7 @@ import {
   rollStackDodge,
   type CombatBuffs,
 } from "@/lib/battle-resolve";
-import { playStartCultivationSfx, playCardDrawSfx, playBattleWinSfx } from "@/lib/combat-audio";
+import { playStartCultivationSfx, playCardDrawSfx, playBattleWinSfx, playGameOverSfx } from "@/lib/combat-audio";
 import type { BattleDeckState } from "@/types/battle";
 import type { Card } from "@/types/battle";
 import { getEffectiveCost } from "@/types/battle";
@@ -539,6 +539,7 @@ export default function GamePage() {
   }, []);
 
   const quitRun = useCallback(() => {
+    playGameOverSfx();
     resetPermanentDeck();
     returnToLobby("已退出秘境，本次進度已重置", true);
   }, [returnToLobby, resetPermanentDeck]);
@@ -1009,6 +1010,7 @@ export default function GamePage() {
     if (newPlayerHp <= 0) {
       setDeckState(newDeck);
       if (character.combatPath === "karma") setKarmaState(karma);
+      playGameOverSfx();
       setPhase("defeat");
       return;
     }
