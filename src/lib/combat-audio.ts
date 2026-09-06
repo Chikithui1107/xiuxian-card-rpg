@@ -1,4 +1,5 @@
 import type { PlayFxKind } from "@/lib/combat-fx";
+import { holdBgmForSfx } from "@/lib/bgm";
 import { publicAsset } from "@/lib/paths";
 
 type WebkitWindow = Window & {
@@ -171,9 +172,11 @@ export function playBattleWinSfx(): void {
   }, 1000);
 }
 
-/** 退出秘境或戰鬥失敗 */
+/** 退出秘境或戰鬥失敗（期間壓住 BGM，避免與失敗音重疊） */
 export function playGameOverSfx(): void {
   unlockCombatAudio();
+  // 樣本約 2.8s，略加尾隙
+  holdBgmForSfx(3200);
   void playSample("game_over", 1);
 }
 
