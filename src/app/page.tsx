@@ -693,6 +693,7 @@ export default function GamePage() {
         let dealt = 0;
         let toast: string | undefined;
         let waitDiscard: "yin" | "yang" | null = null;
+        let cardsDrawn = 0;
 
         type PlayOpts = {
           free?: boolean;
@@ -738,6 +739,7 @@ export default function GamePage() {
           deck = result.deck;
           karma = result.karma;
           dealt += result.damage;
+          cardsDrawn += result.cardsDrawn;
           if (result.feelToast) toast = result.feelToast;
 
           if (result.needsDiscardChoice) {
@@ -771,6 +773,10 @@ export default function GamePage() {
         if (!resolveOne(card)) {
           playLockRef.current = false;
           return false;
+        }
+
+        if (cardsDrawn > 0) {
+          playCardDrawSfx(cardsDrawn);
         }
 
         setDeckState(deck);
@@ -918,13 +924,16 @@ export default function GamePage() {
     (instanceId: string) => {
       if (!pendingDiscard) return;
       const drawAspect = pendingDiscard.aspect === "yin" ? "yang" : "yin";
-      const next = finishAspectDiscardAndDraw(
+      const { deck: next, cardsDrawn } = finishAspectDiscardAndDraw(
         deckState,
         instanceId,
         drawAspect
       );
       setDeckState(next);
       setPendingDiscard(null);
+      if (cardsDrawn > 0) {
+        playCardDrawSfx(cardsDrawn);
+      }
       setCombatFeelToast(
         drawAspect === "yang" ? "抽取果牌" : "抽取因牌"
       );

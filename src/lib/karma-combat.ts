@@ -246,6 +246,8 @@ export interface KarmaPlayResult {
   energy: number;
   karma: KarmaCombatState;
   damage: number;
+  /** 本次結算從牌庫牽引入手的張數 */
+  cardsDrawn: number;
   /** 需要玩家自選棄牌 */
   needsDiscardChoice?: { aspect: "yin" | "yang" };
   /** 需要立即免費打出的牽引果牌 */
@@ -265,6 +267,7 @@ export function resolveKarmaCardPlay(ctx: KarmaPlayContext): KarmaPlayResult {
   let energy = ctx.energy;
   let karma = { ...ctx.karma };
   let damage = 0;
+  let cardsDrawn = 0;
   let feelToast: string | undefined;
   let needsDiscardChoice: KarmaPlayResult["needsDiscardChoice"];
   let autoPlayCard: Card | undefined;
@@ -436,6 +439,7 @@ export function resolveKarmaCardPlay(ctx: KarmaPlayContext): KarmaPlayResult {
         deck = d2;
         karma = { ...karma, duanjueAutoPlayPull: false };
         if (pulled) {
+          cardsDrawn += 1;
           // 從手牌取出改為立即打出
           const without = {
             ...deck,
@@ -454,6 +458,7 @@ export function resolveKarmaCardPlay(ctx: KarmaPlayContext): KarmaPlayResult {
         const { deck: d2, pulled } = pullKarmaCard(deck, "yang");
         deck = d2;
         if (pulled) {
+          cardsDrawn += 1;
           feelToast = feelToast ?? `牽引・${pulled.name}`;
           if (kt.id === "zhongyin") {
             karma = {
@@ -467,7 +472,10 @@ export function resolveKarmaCardPlay(ctx: KarmaPlayContext): KarmaPlayResult {
       karma = { ...karma, yangPullUsedThisTurn: true };
       const { deck: d2, pulled } = pullKarmaCard(deck, "yin");
       deck = d2;
-      if (pulled) feelToast = feelToast ?? `牽引・${pulled.name}`;
+      if (pulled) {
+        cardsDrawn += 1;
+        feelToast = feelToast ?? `牽引・${pulled.name}`;
+      }
     }
   }
 
@@ -481,6 +489,7 @@ export function resolveKarmaCardPlay(ctx: KarmaPlayContext): KarmaPlayResult {
     energy,
     karma,
     damage,
+    cardsDrawn,
     needsDiscardChoice,
     autoPlayCard,
     replayQueue,
@@ -492,8 +501,12 @@ export function finishAspectDiscardAndDraw(
   deck: BattleDeckState,
   discardInstanceId: string,
   drawAspect: "yin" | "yang"
-): BattleDeckState {
+): { deck: BattleDeckState; cardsDrawn: number } {
   const afterDiscard = discardCardFromHand(deck, discardInstanceId);
-  const { deck: afterDraw } = drawAspectFromDeck(afterDiscard, drawAspect, 2);
-  return afterDraw;
+  const { deck: afterDraw, drawn } = drawAspectFromDeck(
+    afterDiscard,
+    drawAspect,
+    2
+  );
+  return { deck: afterDraw, cardsDrawn: drawn.length };
 }
