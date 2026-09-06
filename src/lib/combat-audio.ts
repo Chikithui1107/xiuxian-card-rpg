@@ -162,10 +162,12 @@ export function playRewardClickSfx(): void {
   void playSample("reward_click", 0.95, 0.2);
 }
 
-/** 每場戰鬥獲勝時播放 */
+/** 每場戰鬥獲勝時播放（延遲 1s，對齊勝利演出節奏） */
 export function playBattleWinSfx(): void {
   unlockCombatAudio();
-  void playSample("battle_win", 1);
+  window.setTimeout(() => {
+    void playSample("battle_win", 1);
+  }, 1000);
 }
 
 export function preloadCombatSfx(): void {
