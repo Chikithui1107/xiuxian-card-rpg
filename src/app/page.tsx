@@ -371,6 +371,9 @@ export default function GamePage() {
     setPendingTierComplete(false);
     setDeckState(EMPTY_DECK);
     setCombatBuffs(INITIAL_COMBAT_BUFFS);
+    setKarmaState(INITIAL_KARMA_STATE);
+    setPendingDiscard(null);
+    setCombatFeelToast(null);
   }, []);
 
   const resetPermanentDeck = useCallback(() => {
@@ -743,11 +746,6 @@ export default function GamePage() {
           cardsDrawn += result.cardsDrawn;
           if (result.feelToast) toast = result.feelToast;
 
-          if (result.needsDiscardChoice) {
-            waitDiscard = result.needsDiscardChoice.aspect;
-            return true;
-          }
-
           if (result.autoPlayCard) {
             resolveOne(result.autoPlayCard, {
               free: true,
@@ -765,6 +763,11 @@ export default function GamePage() {
                 skipRemoveFromHand: true,
               });
             }
+          }
+
+          if (result.needsDiscardChoice) {
+            waitDiscard = result.needsDiscardChoice.aspect;
+            return true;
           }
 
           return true;
@@ -1265,6 +1268,7 @@ export default function GamePage() {
   const showRunMenu =
     hasActiveRun &&
     activeTab === "combat" &&
+    phase !== "defeat" &&
     // 結算／選牌／通關期間禁止退出，避免吞掉通關獎勵
     !(isInCombat && battlePhase !== "IN_BATTLE") &&
     (combatScreen === "path" ||

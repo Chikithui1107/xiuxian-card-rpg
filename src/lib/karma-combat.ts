@@ -190,13 +190,11 @@ export function drawAspectFromDeck(
       }
     }
     if (idx === -1) break;
+    // 手牌已滿：停止抽取，勿把牌直接丟棄
+    if (hand.length >= 10) break;
     const [card] = drawPile.splice(idx, 1);
-    if (hand.length < 10) {
-      hand.push(card);
-      drawn.push(card);
-    } else {
-      discardPile.push(card);
-    }
+    hand.push(card);
+    drawn.push(card);
   }
 
   return {

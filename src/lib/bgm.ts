@@ -87,23 +87,32 @@ export function setBgmScene(next: BgmScene): void {
 
 /**
  * 關鍵 SFX 期間暫停全部 BGM；結束後依當前場景恢復。
- * @returns release() 可提前解除
+ * 可重疊呼叫：以最晚結束時間為準，避免第二次失敗音把第一次 hold 提前鬆開。
  */
+let sfxHoldUntil = 0;
+let sfxHoldTimer: ReturnType<typeof setTimeout> | null = null;
+
 export function holdBgmForSfx(durationMs: number): () => void {
+  const until = Date.now() + Math.max(0, durationMs);
+  sfxHoldUntil = Math.max(sfxHoldUntil, until);
   sfxHold = true;
   syncPlayback();
-  let released = false;
-  const timer = window.setTimeout(() => {
-    if (released) return;
-    released = true;
+
+  if (sfxHoldTimer) window.clearTimeout(sfxHoldTimer);
+  const delay = Math.max(0, sfxHoldUntil - Date.now());
+  sfxHoldTimer = window.setTimeout(() => {
+    sfxHoldTimer = null;
+    sfxHoldUntil = 0;
     sfxHold = false;
     syncPlayback();
-  }, Math.max(0, durationMs));
+  }, delay);
 
   return () => {
-    if (released) return;
-    released = true;
-    window.clearTimeout(timer);
+    if (sfxHoldTimer) {
+      window.clearTimeout(sfxHoldTimer);
+      sfxHoldTimer = null;
+    }
+    sfxHoldUntil = 0;
     sfxHold = false;
     syncPlayback();
   };

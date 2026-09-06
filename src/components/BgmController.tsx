@@ -10,6 +10,7 @@ import {
   unlockAndStartBgm,
   type BgmScene,
 } from "@/lib/bgm";
+import { preloadCombatSfx } from "@/lib/combat-audio";
 
 interface BgmControllerProps {
   /** 山門播輪回之脈；戰鬥播戰鼓催征 */
@@ -31,6 +32,7 @@ export function BgmController({
 
     const unlock = () => {
       unlockAndStartBgm();
+      preloadCombatSfx();
       setNeedsTap(false);
       window.removeEventListener("pointerdown", unlock, true);
       window.removeEventListener("keydown", unlock, true);

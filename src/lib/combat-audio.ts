@@ -173,11 +173,25 @@ export function playBattleWinSfx(): void {
 }
 
 /** 退出秘境或戰鬥失敗（期間壓住 BGM，避免與失敗音重疊） */
+let gameOverPlaying = false;
+
 export function playGameOverSfx(): void {
+  if (gameOverPlaying) return;
+  gameOverPlaying = true;
   unlockCombatAudio();
-  // 樣本約 2.8s，略加尾隙
-  holdBgmForSfx(3200);
-  void playSample("game_over", 1);
+  void (async () => {
+    const buffer = await loadBuffer("game_over");
+    if (!buffer) {
+      gameOverPlaying = false;
+      return;
+    }
+    // 先載好再 hold，避免冷啟動時 BGM 先恢復
+    holdBgmForSfx(buffer.duration * 1000 + 400);
+    playBuffer(buffer, 1);
+    window.setTimeout(() => {
+      gameOverPlaying = false;
+    }, buffer.duration * 1000 + 400);
+  })();
 }
 
 export function preloadCombatSfx(): void {
