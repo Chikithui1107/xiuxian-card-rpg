@@ -1978,10 +1978,10 @@ html.combat-scroll-lock {
   border: 1px solid rgba(138, 115, 64, 0.25);
 }
 
-/* 卡面：卡名 + 圓形費用 + 技能圖標 + 效果文字 */
+/* 卡面：卡名 + 圓形費用 + 長方形技能圖 + 效果文字 */
 .ink-card-face {
   display: grid;
-  grid-template-rows: 12% 24% 50% 14%;
+  grid-template-rows: 11% 26% 49% 14%;
   height: 100%;
   width: 100%;
   min-height: 0;
@@ -2045,20 +2045,22 @@ html.combat-scroll-lock {
   justify-content: center;
   min-height: 0;
   min-width: 0;
-  padding: 0.12rem 0;
+  padding: 0.15rem 0.05rem;
   box-sizing: border-box;
   background: transparent;
 }
 
-/* 技能圖標槽：約卡寬一半，辨識清楚 */
+/* 長方形技能圖區：橫向比例，貼近卡牌可讀寬度 */
 .ink-card-face__icon-slot {
-  width: min(3.05rem, 52%);
-  aspect-ratio: 1;
+  width: 86%;
+  max-width: 6.4rem;
+  aspect-ratio: 5 / 3;
   max-height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
+  border-radius: 0.18rem;
 }
 
 .ink-card-face__icon-slot--empty {
@@ -2076,8 +2078,9 @@ html.combat-scroll-lock {
 }
 
 .ink-card-icon--compact {
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 2.8rem;
+  height: 1.7rem;
+  aspect-ratio: 5 / 3;
   background: transparent;
 }
 .ink-card-icon--compact.ink-card-face__icon-slot--empty {
