@@ -50,6 +50,14 @@ function AspectMark({ type }: { type: string }) {
   return null;
 }
 
+/** 真元費用顯示為圈號：①②③… */
+function circledCost(cost: number): string {
+  if (Number.isInteger(cost) && cost >= 0 && cost <= 20) {
+    return String.fromCharCode(0x245f + cost); // ⓪=0x245F, ①=0x2460
+  }
+  return String(cost);
+}
+
 function tokenClassName(token: FaceToken): string {
   const kind = token.kind ?? "normal";
   const core = token.core ? " ink-face-token--core" : "";
@@ -113,8 +121,15 @@ export function CardFace({
             <span className="ink-card-face__name truncate text-[12px]">
               {name}
             </span>
-            <span className="text-[10px] tabular-nums text-[#7aab9a]">
-              {cost}
+            <span
+              className={`ink-card-face__cost text-[14px] ${
+                canAfford
+                  ? "ink-card-face__cost--ok"
+                  : "ink-card-face__cost--deny"
+              }`}
+              aria-label={`真元 ${cost}`}
+            >
+              {circledCost(cost)}
             </span>
           </div>
           <p className={`text-[8px] font-semibold ${typeAccent}`}>{type}</p>
@@ -131,19 +146,20 @@ export function CardFace({
           className={`ink-card-face__cost ${
             canAfford ? "ink-card-face__cost--ok" : "ink-card-face__cost--deny"
           }`}
+          aria-label={`真元 ${cost}`}
+          title={`真元 ${cost}`}
         >
-          {cost}
+          {circledCost(cost)}
         </span>
       </header>
 
-      <div className="ink-card-face__icon">
+      <div className="ink-card-face__icon" aria-hidden={iconPath ? undefined : true}>
         {iconPath ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={publicAsset(iconPath)}
             alt=""
             draggable={false}
-            className="max-h-full max-w-[88%] object-contain"
             onError={() => setIconBroken(true)}
           />
         ) : null}

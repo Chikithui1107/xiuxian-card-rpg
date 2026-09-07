@@ -1883,24 +1883,26 @@ html.combat-scroll-lock {
   border: 1px solid rgba(138, 115, 64, 0.25);
 }
 
-/* 卡面內部：flex 分區，禁止文字絕對定位疊層 */
+/* 卡面內部：固定比例 grid，避免圖標憑內容撐高 */
 .ink-card-face {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 15% 30% 40% 15%;
   height: 100%;
   width: 100%;
   min-height: 0;
-  padding: 0.4rem 0.4rem 0.35rem;
+  padding: 0.35rem 0.4rem 0.3rem;
   box-sizing: border-box;
 }
 
 .ink-card-face__header {
-  flex: 0 0 14%;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 0.25rem;
+  gap: 0.35rem;
+  min-width: 0;
   min-height: 0;
+  position: relative;
+  z-index: 3;
 }
 
 .ink-card-face__name {
@@ -1914,36 +1916,53 @@ html.combat-scroll-lock {
   text-align: left;
 }
 
+/* 真元費用：① 圈號，不要做成難辨識的實心小圓點 */
 .ink-card-face__cost {
   flex-shrink: 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.15rem;
-  height: 1.15rem;
-  border-radius: 999px;
-  font-size: 0.62rem;
-  font-weight: 800;
+  min-width: 1.15rem;
+  font-size: clamp(0.95rem, 3vw, 1.1rem);
+  line-height: 1;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  width: auto;
+  height: auto;
+  padding: 0;
 }
 .ink-card-face__cost--ok {
-  background: rgba(122, 171, 154, 0.92);
-  color: #0c0a09;
+  color: #c9a45c;
+  text-shadow: 0 0 8px rgba(201, 164, 92, 0.25);
 }
 .ink-card-face__cost--deny {
-  background: rgba(168, 85, 85, 0.85);
-  color: #f5f5f4;
+  color: #d77a72;
+  text-shadow: 0 0 8px rgba(215, 122, 114, 0.22);
 }
 
 .ink-card-face__icon {
-  flex: 0 0 30%;
-  max-height: 30%;
-  min-height: 0;
-  margin-top: 0.15rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 0;
+  min-width: 0;
+  /* breathing room：圖標不頂卡名／效果 */
+  padding: 0.28rem 0.15rem;
+  box-sizing: border-box;
   background: transparent;
+}
+
+.ink-card-face__icon img {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: 72%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 
 .ink-card-icon--compact {
@@ -1953,14 +1972,13 @@ html.combat-scroll-lock {
 }
 
 .ink-card-face__desc {
-  flex: 1 1 46%;
-  min-height: 0;
-  margin-top: 0.2rem;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   gap: 0.12rem;
-  /* 限制在 description 區內，避免蓋住底部 type（不靠 absolute） */
+  min-height: 0;
+  min-width: 0;
+  padding-top: 0.1rem;
   overflow: hidden;
 }
 
@@ -2000,13 +2018,13 @@ html.combat-scroll-lock {
 }
 
 .ink-card-face__type {
-  flex: 0 0 auto;
-  margin-top: 0.15rem;
-  min-height: 1.05rem;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   gap: 0.05rem;
+  min-height: 0;
+  min-width: 0;
+  padding-top: 0.1rem;
 }
 
 .ink-card-face__type-label {
