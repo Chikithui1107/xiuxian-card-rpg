@@ -1836,15 +1836,15 @@ html.combat-scroll-lock {
 }
 
 :root {
-  /* 手機優先：略窄以減少互相遮字，高度夠放完整效果 */
-  --game-card-width: 7.35rem;
-  --game-card-height: 11.75rem;
+  /* 手機優先：手牌略放大，效果文字仍可讀 */
+  --game-card-width: 8.15rem;
+  --game-card-height: 12.85rem;
 }
 
 @media (min-width: 400px) {
   :root {
-    --game-card-width: 8.1rem;
-    --game-card-height: 12.6rem;
+    --game-card-width: 8.9rem;
+    --game-card-height: 13.75rem;
   }
 }
 
@@ -1978,14 +1978,14 @@ html.combat-scroll-lock {
   border: 1px solid rgba(138, 115, 64, 0.25);
 }
 
-/* 卡面：小卡名 + 圓形費用 + 小圖標槽，中間留給效果 */
+/* 卡面：卡名 + 圓形費用 + 技能圖標 + 效果文字 */
 .ink-card-face {
   display: grid;
-  grid-template-rows: 12% 20% 54% 14%;
+  grid-template-rows: 12% 24% 50% 14%;
   height: 100%;
   width: 100%;
   min-height: 0;
-  padding: 0.32rem 0.38rem 0.28rem;
+  padding: 0.35rem 0.4rem 0.3rem;
   box-sizing: border-box;
 }
 
@@ -2003,7 +2003,7 @@ html.combat-scroll-lock {
 .ink-card-face__name {
   min-width: 0;
   flex: 1;
-  font-size: clamp(0.52rem, 1.75vw, 0.62rem);
+  font-size: clamp(0.58rem, 1.9vw, 0.68rem);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: 0.02em;
@@ -2050,9 +2050,9 @@ html.combat-scroll-lock {
   background: transparent;
 }
 
-/* 技能圖標槽：辨識清楚，但仍小於效果文字區 */
+/* 技能圖標槽：約卡寬一半，辨識清楚 */
 .ink-card-face__icon-slot {
-  width: min(2.45rem, 44%);
+  width: min(3.05rem, 52%);
   aspect-ratio: 1;
   max-height: 100%;
   display: flex;
@@ -2076,8 +2076,8 @@ html.combat-scroll-lock {
 }
 
 .ink-card-icon--compact {
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 2.2rem;
+  height: 2.2rem;
   background: transparent;
 }
 .ink-card-icon--compact.ink-card-face__icon-slot--empty {
