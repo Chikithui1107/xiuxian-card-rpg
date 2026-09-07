@@ -55,6 +55,7 @@ import {
   finishAspectDiscardAndDraw,
   type KarmaCombatState,
 } from "@/lib/karma-combat";
+import { buildCardFacePreviewFromKarma } from "@/lib/card-face-display";
 import { AspectDiscardModal } from "@/components/AspectDiscardModal";
 import {
   advanceEnemyIntent,
@@ -240,6 +241,14 @@ export default function GamePage() {
     [activeCharacterId]
   );
   const hero = useMemo(() => getHero(activeCharacterId), [activeCharacterId]);
+
+  const cardFacePreview = useMemo(
+    () =>
+      character.combatPath === "karma"
+        ? buildCardFacePreviewFromKarma(karmaState)
+        : undefined,
+    [character.combatPath, karmaState]
+  );
 
   const heroStats = useMemo(
     () => calculateHeroStats(hero, inventory.equippedIds),
@@ -1247,6 +1256,7 @@ export default function GamePage() {
             block={karmaState.block}
             karmaMode={character.combatPath === "karma"}
             externalFeelToast={combatFeelToast}
+            facePreview={cardFacePreview}
           />
         );
     }

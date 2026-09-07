@@ -28,6 +28,7 @@ import {
 } from "@/lib/combat-audio";
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
 import { publicAsset } from "@/lib/paths";
+import type { CardFacePreviewState } from "@/lib/card-face-display";
 
 const COMBAT_BG = publicAsset("/backgrounds/combat-moon-path.jpg");
 
@@ -62,6 +63,7 @@ interface CombatViewProps {
   block?: number;
   karmaMode?: boolean;
   externalFeelToast?: string | null;
+  facePreview?: CardFacePreviewState;
 }
 
 interface Flight {
@@ -106,6 +108,7 @@ export function CombatView({
   block = 0,
   karmaMode = false,
   externalFeelToast = null,
+  facePreview,
 }: CombatViewProps) {
   const isPlaying = phase === "playing" && battlePhase === "IN_BATTLE";
   const placeLabel = locationName ?? tierName ?? "秘境";
@@ -299,6 +302,7 @@ export function CombatView({
           disabled={!isPlaying || enemy.currentHp <= 0}
           denyShake={denyShake}
           feelToast={externalFeelToast ?? feelToast}
+          facePreview={facePreview}
           playerBar={
             <CombatPlayerBar
               hero={hero}

@@ -1883,6 +1883,21 @@ html.combat-scroll-lock {
   border: 1px solid rgba(138, 115, 64, 0.25);
 }
 
+/* 因果道小型技能圖標：約卡高 18～22% */
+.ink-card-icon {
+  width: 42%;
+  height: 20%;
+  min-height: 2.1rem;
+  max-height: 2.75rem;
+  background: transparent;
+}
+.ink-card-icon--compact {
+  width: 2.1rem;
+  height: 2.1rem;
+  min-height: 0;
+  max-height: none;
+}
+
 .ink-card-selected,
 .ink-card:hover {
   --card-border: color-mix(in srgb, var(--card-border) 70%, #e8d5a3 30%);

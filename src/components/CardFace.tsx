@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import {
-  CARD_ART_PLACEHOLDER,
-  resolveCardArt,
+  resolveCardIcon,
   type CardTemplate,
 } from "@/lib/battle-deck";
+import {
+  getKarmaCardFaceDisplay,
+  type CardFacePreviewState,
+} from "@/lib/card-face-display";
 import { getKarmaTemplate, type KarmaAspect } from "@/lib/karma-deck";
 import { publicAsset } from "@/lib/paths";
 import { CARD_TYPE_ACCENT } from "@/types/game";
@@ -16,16 +19,15 @@ export interface CardFaceProps {
   cost: number;
   description: string;
   art?: string | null;
-  /** 模板 id，用於推斷因／果視覺 */
+  icon?: string | null;
   templateId?: string;
   canAfford?: boolean;
   isExhaust?: boolean;
   pulledByKarma?: boolean;
-  enlarged?: boolean;
   showSelectHint?: boolean;
   showReady?: boolean;
-  /** 緊湊列（棄牌選擇） */
   compact?: boolean;
+  preview?: CardFacePreviewState;
 }
 
 export function aspectClassName(aspect: KarmaAspect | null): string {
@@ -40,40 +42,50 @@ export function aspectFromTemplateId(templateId?: string): KarmaAspect | null {
   return getKarmaTemplate(templateId)?.aspect ?? null;
 }
 
+function AspectMark({ type }: { type: string }) {
+  if (type === "因牌") return <span aria-hidden>因</span>;
+  if (type === "果牌") return <span aria-hidden>果</span>;
+  if (type === "因／果牌") return <span aria-hidden>因／果</span>;
+  return null;
+}
+
 export function CardFace({
   name,
   type,
   cost,
   description,
-  art,
-  templateId: _templateId,
+  icon,
+  templateId,
   canAfford = true,
   isExhaust = false,
   pulledByKarma = false,
-  enlarged = false,
   showSelectHint = false,
   showReady = false,
   compact = false,
+  preview,
 }: CardFaceProps) {
-  const [broken, setBroken] = useState(false);
+  const [iconBroken, setIconBroken] = useState(false);
   const typeAccent = CARD_TYPE_ACCENT[type] ?? "text-[#c9a84c]";
-  const src = publicAsset(
-    broken ? CARD_ART_PLACEHOLDER : resolveCardArt(art)
-  );
+  const iconPath = !iconBroken ? resolveCardIcon(icon) : null;
+  const karmaDisplay = templateId
+    ? getKarmaCardFaceDisplay(templateId, preview)
+    : null;
 
   if (compact) {
     return (
       <div className="relative z-[2] flex w-full items-center gap-2 p-1.5">
-        <div className="ink-card-art ink-card-art--compact shrink-0 overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={src}
-            alt=""
-            draggable={false}
-            className="h-full w-full object-contain"
-            onError={() => setBroken(true)}
-          />
-        </div>
+        {iconPath && (
+          <div className="ink-card-icon ink-card-icon--compact shrink-0 overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={publicAsset(iconPath)}
+              alt=""
+              draggable={false}
+              className="h-full w-full object-contain"
+              onError={() => setIconBroken(true)}
+            />
+          </div>
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1">
             <span className="truncate text-[12px] font-bold text-[#f0e6d3]">
@@ -90,14 +102,9 @@ export function CardFace({
   }
 
   return (
-    <div className="relative z-[2] flex h-full w-full min-h-0 flex-col">
-      {/* 卡名／費用獨立一列，不壓在插畫上 */}
-      <div className="flex shrink-0 items-start justify-between gap-1 px-1.5 pb-0.5 pt-1.5">
-        <span
-          className={`min-w-0 flex-1 text-left font-bold leading-tight tracking-wide text-[#f0e6d3] ${
-            enlarged ? "text-[13px]" : "text-[11px]"
-          }`}
-        >
+    <div className="relative z-[2] flex h-full w-full min-h-0 flex-col px-1.5 pb-1.5 pt-1.5">
+      <div className="flex shrink-0 items-start justify-between gap-1">
+        <span className="min-w-0 flex-1 text-left text-[11px] font-bold leading-tight tracking-wide text-[#f0e6d3]">
           {name}
         </span>
         <span
@@ -111,58 +118,64 @@ export function CardFace({
         </span>
       </div>
 
-      {/* 插畫專區：整圖可見，無文字遮罩 */}
-      <div
-        className={`ink-card-art relative mx-1.5 shrink-0 overflow-hidden ${
-          enlarged ? "ink-card-art--enlarged" : ""
-        }`}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={src}
-          alt=""
-          draggable={false}
-          className="absolute inset-0 h-full w-full object-contain"
-          onError={() => setBroken(true)}
-        />
+      {iconPath && (
+        <div className="ink-card-icon relative mx-auto mt-1 shrink-0 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={publicAsset(iconPath)}
+            alt=""
+            draggable={false}
+            className="h-full w-full object-contain"
+            onError={() => setIconBroken(true)}
+          />
+        </div>
+      )}
+
+      <div className="mt-1 flex min-h-0 flex-1 flex-col justify-center gap-0.5">
+        {karmaDisplay ? (
+          karmaDisplay.coreLines.map((line, i) => (
+            <p
+              key={`${line.text}-${i}`}
+              className={`text-left leading-snug ${
+                line.emphasis
+                  ? "text-[12px] font-semibold tabular-nums text-[#f0e6d3]"
+                  : "text-[9px] text-stone-400"
+              } ${line.dimmed ? "opacity-35" : ""}`}
+            >
+              {line.text}
+            </p>
+          ))
+        ) : (
+          <p className="text-left text-[9px] leading-snug text-stone-300">
+            {description}
+          </p>
+        )}
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col px-1.5 pb-1.5 pt-1">
+      <div className="mt-1 shrink-0">
         <p
-          className={`min-h-0 flex-1 overflow-y-auto break-words text-left text-stone-300 ${
-            enlarged
-              ? "text-[11px] leading-[1.4]"
-              : "text-[9px] leading-[1.35]"
-          }`}
+          className={`flex items-center gap-1 text-[8px] font-semibold tracking-wide ${typeAccent}`}
         >
-          {description}
+          <AspectMark type={type} />
+          <span>{type}</span>
         </p>
-
-        <div className="mt-1 shrink-0">
-          <p className={`text-[8px] font-semibold ${typeAccent}`}>{type}</p>
-          {pulledByKarma && (
-            <p className="text-[8px] font-semibold tracking-[0.18em] text-[#9ec9b8]">
-              牽引
-            </p>
-          )}
-          {isExhaust && (
-            <p className="text-[8px] text-amber-500/70">消耗</p>
-          )}
-          {showSelectHint && (
-            <p className="mt-0.5 text-[8px] text-stone-500">上拖出牌</p>
-          )}
-          {showReady && (
-            <p className="mt-0.5 text-[9px] font-bold text-[#7aab9a]">
-              松手出牌
-            </p>
-          )}
-        </div>
+        {pulledByKarma && (
+          <p className="text-[8px] font-semibold tracking-[0.18em] text-[#9ec9b8]">
+            牽引
+          </p>
+        )}
+        {isExhaust && <p className="text-[8px] text-amber-500/70">消耗</p>}
+        {showSelectHint && (
+          <p className="mt-0.5 text-[8px] text-stone-500">上拖出牌</p>
+        )}
+        {showReady && (
+          <p className="mt-0.5 text-[9px] font-bold text-[#7aab9a]">松手出牌</p>
+        )}
       </div>
     </div>
   );
 }
 
-/** 從模板組裝卡面（獎勵／靜態預覽） */
 export function cardFaceFromTemplate(
   template: CardTemplate,
   extras: Partial<CardFaceProps> = {}
@@ -172,7 +185,7 @@ export function cardFaceFromTemplate(
     type: template.type,
     cost: template.cost,
     description: template.description,
-    art: template.art,
+    icon: template.icon ?? template.art,
     templateId: template.id,
     isExhaust: template.isExhaust,
     ...extras,

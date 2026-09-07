@@ -69,7 +69,7 @@ export function CardRewardModal({
           const card = CARD_TEMPLATES[templateId];
           const typeStyle =
             CARD_TYPE_COLORS[card.type] ?? "ink-card-type-basic bg-[#1a1814]";
-          const face = cardFaceFromTemplate(card, { enlarged: true });
+          const face = cardFaceFromTemplate(card);
 
           return (
             <button

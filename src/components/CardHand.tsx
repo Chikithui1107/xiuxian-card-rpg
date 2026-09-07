@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { HandUI } from "@/components/HandUI";
 import type { Card } from "@/types/battle";
 import type { ReactNode } from "react";
+import type { CardFacePreviewState } from "@/lib/card-face-display";
 
 interface CardHandProps {
   hand: Card[];
@@ -20,6 +21,7 @@ interface CardHandProps {
   denyShake?: boolean;
   feelToast?: string | null;
   playerBar?: ReactNode;
+  facePreview?: CardFacePreviewState;
 }
 
 const TIP_KEY = "xiuxian_swipe_tip_seen";
@@ -39,6 +41,7 @@ export function CardHand({
   denyShake = false,
   feelToast = null,
   playerBar,
+  facePreview,
 }: CardHandProps) {
   const [showTip, setShowTip] = useState(false);
 
@@ -77,6 +80,7 @@ export function CardHand({
             denyShake={denyShake}
             onPlayCard={onPlayCard}
             onDenyPlay={onDenyPlay}
+            facePreview={facePreview}
           />
           {(feelToast || showTip) && (
             <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 rounded-sm border border-stone-600/30 bg-stone-950/70 px-2.5 py-0.5 text-[10px] tracking-wide text-stone-300">

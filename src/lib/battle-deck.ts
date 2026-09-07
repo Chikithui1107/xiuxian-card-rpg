@@ -33,6 +33,8 @@ export interface CardTemplate {
   description: string;
   /** 卡面插畫 public 路徑；缺省用統一 placeholder */
   art?: string;
+  /** 小型技能圖標；缺省可不顯示 */
+  icon?: string;
   isExhaust?: boolean;
   sword?: boolean;
   effects: CardEffect[];
@@ -43,6 +45,10 @@ export const CARD_ART_PLACEHOLDER = "/cards/card-art-placeholder.svg";
 
 export function resolveCardArt(art?: string | null): string {
   return art && art.length > 0 ? art : CARD_ART_PLACEHOLDER;
+}
+
+export function resolveCardIcon(icon?: string | null): string | null {
+  return icon && icon.length > 0 ? icon : null;
 }
 
 const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
@@ -119,6 +125,7 @@ function karmaToCardTemplate(
     cost: k.cost,
     description: k.description,
     art: k.art,
+    icon: k.icon,
     isExhaust: k.isExhaust,
     effects: [{ kind: "karma" }],
   };

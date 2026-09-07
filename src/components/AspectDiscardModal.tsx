@@ -55,6 +55,7 @@ export function AspectDiscardModal({
                     cost={getEffectiveCost(card)}
                     description={template?.description ?? ""}
                     art={template?.art}
+                    icon={template?.icon ?? template?.art}
                     templateId={card.id}
                     compact
                   />
