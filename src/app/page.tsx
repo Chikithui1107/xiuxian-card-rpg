@@ -138,6 +138,15 @@ function createProgress(character: PlayableCharacter): CharacterProgress {
   };
 }
 
+/** 山門狀態下氣血應為滿值（秘境進度不跨重新整理保存） */
+function fullHpProgress(
+  character: PlayableCharacter,
+  snap?: CharacterProgress
+): CharacterProgress {
+  const base = snap ?? createProgress(character);
+  return { ...base, playerHp: character.maxHp };
+}
+
 function initBattleDeck(templateIds: CardTemplateId[]): BattleDeckState {
   return createBattleDeck(templateIds, COMBAT_HAND_SIZE);
 }
@@ -258,19 +267,24 @@ export default function GamePage() {
   useEffect(() => {
     const activeId = readStoredActiveId();
     const stored = readStoredProgress();
-    const progress =
-      stored[activeId] ?? createProgress(getCharacter(activeId));
+    const character = getCharacter(activeId);
+    // 重新整理後沒有進行中的秘境 → 山門氣血回滿，避免殘血被永久存檔
+    const progress = fullHpProgress(character, stored[activeId]);
+    const nextProgress = { ...stored, [activeId]: progress };
     setActiveCharacterId(activeId);
-    setProgressByCharacter({
-      ...stored,
-      [activeId]: progress,
-    });
+    setProgressByCharacter(nextProgress);
     setPermanentDeck(progress.permanentDeck);
     setPlayerHp(progress.playerHp);
     setSpiritStones(progress.spiritStones);
     setTotalClears(progress.totalClears);
     setInventory(createInitialInventory(startingInventoryData));
     setReady(true);
+    try {
+      localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(nextProgress));
+      localStorage.setItem(ACTIVE_CHAR_KEY, activeId);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   useEffect(() => {
@@ -301,8 +315,10 @@ export default function GamePage() {
   ]);
 
   useEffect(() => {
+    if (!ready) return;
+    // 僅做上限夾緊；山門回滿在載入／切角／returnToLobby 處理
     setPlayerHp((hp) => Math.min(hp, heroStats.maxHp));
-  }, [heroStats.maxHp]);
+  }, [heroStats.maxHp, ready]);
 
   const switchCharacter = useCallback(
     (nextId: string) => {
@@ -318,8 +334,10 @@ export default function GamePage() {
         spiritStones,
         totalClears,
       };
-      const nextSnap =
-        progressByCharacter[nextId] ?? createProgress(nextChar);
+      const nextSnap = fullHpProgress(
+        nextChar,
+        progressByCharacter[nextId] ?? createProgress(nextChar)
+      );
 
       const merged = {
         ...progressByCharacter,
@@ -548,6 +566,12 @@ export default function GamePage() {
   );
 
   const hasActiveRun = selectedTier !== null && dungeonMap.length > 0;
+
+  // 裝備加血後：不在秘境中則山門氣血對齊滿血上限
+  useEffect(() => {
+    if (!ready || hasActiveRun || isInCombat) return;
+    setPlayerHp(heroStats.maxHp);
+  }, [ready, hasActiveRun, isInCombat, heroStats.maxHp]);
 
   const continueGame = useCallback(() => {
     playStartCultivationSfx();
