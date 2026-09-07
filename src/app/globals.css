@@ -1883,11 +1883,10 @@ html.combat-scroll-lock {
   border: 1px solid rgba(138, 115, 64, 0.25);
 }
 
-/* 卡面內部：固定比例 grid，避免圖標憑內容撐高 */
+/* 卡面內部：圖標只是小辨識區，空間優先給效果文字 */
 .ink-card-face {
   display: grid;
-  /* 圖標再降權重：約 20% 列高；效果文字吃到一半 */
-  grid-template-rows: 15% 20% 50% 15%;
+  grid-template-rows: 14% 20% 52% 14%;
   height: 100%;
   width: 100%;
   min-height: 0;
@@ -1917,7 +1916,7 @@ html.combat-scroll-lock {
   text-align: left;
 }
 
-/* 真元費用：① 圈號，不要做成難辨識的實心小圓點 */
+/* 真元費用：① 圈號 */
 .ink-card-face__cost {
   flex-shrink: 0;
   display: inline-flex;
@@ -1950,25 +1949,44 @@ html.combat-scroll-lock {
   justify-content: center;
   min-height: 0;
   min-width: 0;
-  padding: 0.2rem 0.2rem;
+  padding: 0.15rem 0;
   box-sizing: border-box;
   background: transparent;
 }
 
-.ink-card-face__icon img {
-  display: block;
-  width: auto;
-  height: auto;
+/* 固定小方槽：有圖／無圖都佔同一位置，避免 layout 跳動 */
+.ink-card-face__icon-slot {
+  width: min(2.35rem, 38%);
+  aspect-ratio: 1;
   max-height: 100%;
-  max-width: 52%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.ink-card-face__icon-slot--empty {
+  border: 1px dashed rgba(201, 164, 92, 0.28);
+  border-radius: 0.2rem;
+  background: rgba(8, 7, 6, 0.35);
+}
+
+.ink-card-face__icon-slot img {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   object-position: center;
 }
 
 .ink-card-icon--compact {
-  width: 2.1rem;
-  height: 2.1rem;
+  width: 1.85rem;
+  height: 1.85rem;
   background: transparent;
+}
+.ink-card-icon--compact.ink-card-face__icon-slot--empty {
+  border: 1px dashed rgba(201, 164, 92, 0.28);
+  border-radius: 0.15rem;
 }
 
 .ink-card-face__desc {

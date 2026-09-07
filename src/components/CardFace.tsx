@@ -104,18 +104,22 @@ export function CardFace({
   if (compact) {
     return (
       <div className="relative z-[2] flex w-full items-center gap-2 p-1.5">
-        {iconPath && (
-          <div className="ink-card-icon ink-card-icon--compact shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+        <div
+          className={`ink-card-icon ink-card-icon--compact ink-card-face__icon-slot shrink-0 ${
+            iconPath ? "" : "ink-card-face__icon-slot--empty"
+          }`}
+          aria-hidden
+        >
+          {iconPath ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={publicAsset(iconPath)}
               alt=""
               draggable={false}
-              className="h-full w-full object-contain"
               onError={() => setIconBroken(true)}
             />
-          </div>
-        )}
+          ) : null}
+        </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1">
             <span className="ink-card-face__name truncate text-[12px]">
@@ -153,16 +157,23 @@ export function CardFace({
         </span>
       </header>
 
-      <div className="ink-card-face__icon" aria-hidden={iconPath ? undefined : true}>
-        {iconPath ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={publicAsset(iconPath)}
-            alt=""
-            draggable={false}
-            onError={() => setIconBroken(true)}
-          />
-        ) : null}
+      <div className="ink-card-face__icon">
+        <div
+          className={`ink-card-face__icon-slot ${
+            iconPath ? "" : "ink-card-face__icon-slot--empty"
+          }`}
+          aria-hidden
+        >
+          {iconPath ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={publicAsset(iconPath)}
+              alt=""
+              draggable={false}
+              onError={() => setIconBroken(true)}
+            />
+          ) : null}
+        </div>
       </div>
 
       <div className="ink-card-face__desc">
