@@ -1886,7 +1886,8 @@ html.combat-scroll-lock {
 /* 卡面內部：固定比例 grid，避免圖標憑內容撐高 */
 .ink-card-face {
   display: grid;
-  grid-template-rows: 15% 30% 40% 15%;
+  /* 圖標再降權重：約 20% 列高；效果文字吃到一半 */
+  grid-template-rows: 15% 20% 50% 15%;
   height: 100%;
   width: 100%;
   min-height: 0;
@@ -1949,18 +1950,17 @@ html.combat-scroll-lock {
   justify-content: center;
   min-height: 0;
   min-width: 0;
-  /* breathing room：圖標不頂卡名／效果 */
-  padding: 0.28rem 0.15rem;
+  padding: 0.2rem 0.2rem;
   box-sizing: border-box;
   background: transparent;
 }
 
 .ink-card-face__icon img {
   display: block;
-  height: 100%;
   width: auto;
-  max-width: 72%;
+  height: auto;
   max-height: 100%;
+  max-width: 52%;
   object-fit: contain;
   object-position: center;
 }
