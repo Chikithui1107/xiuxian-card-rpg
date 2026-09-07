@@ -49,6 +49,28 @@ function AspectMark({ type }: { type: string }) {
   return null;
 }
 
+/** 將 **粗體** 片段渲染為高亮數值 */
+function FaceLineText({ text }: { text: string }) {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return (
+            <span
+              key={i}
+              className="font-semibold tabular-nums text-[#f0e6d3]"
+            >
+              {part.slice(2, -2)}
+            </span>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 export function CardFace({
   name,
   type,
@@ -136,13 +158,11 @@ export function CardFace({
           karmaDisplay.coreLines.map((line, i) => (
             <p
               key={`${line.text}-${i}`}
-              className={`text-left leading-snug ${
-                line.emphasis
-                  ? "text-[12px] font-semibold tabular-nums text-[#f0e6d3]"
-                  : "text-[9px] text-stone-400"
-              } ${line.dimmed ? "opacity-35" : ""}`}
+              className={`text-left text-[9px] leading-snug text-stone-400 ${
+                line.dimmed ? "opacity-35" : ""
+              }`}
             >
-              {line.text}
+              <FaceLineText text={line.text} />
             </p>
           ))
         ) : (
