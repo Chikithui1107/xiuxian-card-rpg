@@ -145,7 +145,7 @@ function initBattleDeck(templateIds: CardTemplateId[]): BattleDeckState {
 function readStoredActiveId(): string {
   try {
     const id = localStorage.getItem(ACTIVE_CHAR_KEY);
-    if (id && PLAYABLE.some((c) => c.id === id)) return id;
+    if (id && PLAYABLE.some((c) => c.id === id && c.unlocked)) return id;
   } catch {
     /* ignore */
   }
@@ -307,7 +307,10 @@ export default function GamePage() {
   const switchCharacter = useCallback(
     (nextId: string) => {
       if (nextId === activeCharacterId) return;
-      if (selectedTier !== null) return;
+      // 僅允許在山門／角色頁切換：秘境進行中或已選難度時禁止
+      if (selectedTier !== null || dungeonMap.length > 0) return;
+      const nextChar = getCharacter(nextId);
+      if (!nextChar.unlocked) return;
 
       const currentSnap: CharacterProgress = {
         permanentDeck,
@@ -315,7 +318,6 @@ export default function GamePage() {
         spiritStones,
         totalClears,
       };
-      const nextChar = getCharacter(nextId);
       const nextSnap =
         progressByCharacter[nextId] ?? createProgress(nextChar);
 
@@ -330,6 +332,8 @@ export default function GamePage() {
       setPlayerHp(nextSnap.playerHp);
       setSpiritStones(nextSnap.spiritStones);
       setTotalClears(nextSnap.totalClears);
+      setKarmaState(INITIAL_KARMA_STATE);
+      setPendingDiscard(null);
       setLastRunMessage(`已入駐：${nextChar.name}`);
       setCharacterSelectOpen(false);
       setActiveTab("lobby");
@@ -348,6 +352,7 @@ export default function GamePage() {
       totalClears,
       progressByCharacter,
       selectedTier,
+      dungeonMap.length,
     ]
   );
 
@@ -1328,9 +1333,9 @@ export default function GamePage() {
         open={characterSelectOpen}
         characters={PLAYABLE}
         activeId={character.id}
-        locked={hasActiveRun}
-        lockReason="請先結束或退出本次修行"
-        onSelect={switchCharacter}
+        locked={hasActiveRun || selectedTier !== null}
+        lockReason="請先結束或退出本次修行後再切換角色"
+        onConfirm={switchCharacter}
         onClose={() => setCharacterSelectOpen(false)}
       />
 
