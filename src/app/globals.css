@@ -1883,19 +1883,159 @@ html.combat-scroll-lock {
   border: 1px solid rgba(138, 115, 64, 0.25);
 }
 
-/* 因果道小型技能圖標：約卡高 18～22% */
-.ink-card-icon {
-  width: 42%;
-  height: 20%;
-  min-height: 2.1rem;
-  max-height: 2.75rem;
+/* 卡面內部：flex 分區，禁止文字絕對定位疊層 */
+.ink-card-face {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  padding: 0.4rem 0.4rem 0.35rem;
+  box-sizing: border-box;
+}
+
+.ink-card-face__header {
+  flex: 0 0 14%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.25rem;
+  min-height: 0;
+}
+
+.ink-card-face__name {
+  min-width: 0;
+  flex: 1;
+  font-size: clamp(0.62rem, 2.1vw, 0.72rem);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: 0.02em;
+  color: #f0e6d3;
+  text-align: left;
+}
+
+.ink-card-face__cost {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.ink-card-face__cost--ok {
+  background: rgba(122, 171, 154, 0.92);
+  color: #0c0a09;
+}
+.ink-card-face__cost--deny {
+  background: rgba(168, 85, 85, 0.85);
+  color: #f5f5f4;
+}
+
+.ink-card-face__icon {
+  flex: 0 0 30%;
+  max-height: 30%;
+  min-height: 0;
+  margin-top: 0.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
 }
+
 .ink-card-icon--compact {
   width: 2.1rem;
   height: 2.1rem;
+  background: transparent;
+}
+
+.ink-card-face__desc {
+  flex: 1 1 46%;
   min-height: 0;
-  max-height: none;
+  margin-top: 0.2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 0.12rem;
+  /* 限制在 description 區內，避免蓋住底部 type（不靠 absolute） */
+  overflow: hidden;
+}
+
+.ink-card-face__line {
+  margin: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+  font-size: clamp(0.58rem, 1.9vw, 0.68rem);
+  color: #d6d2c8;
+  text-align: left;
+}
+.ink-card-face__line--dimmed {
+  opacity: 0.35;
+}
+
+.ink-face-token--normal {
+  color: #d6d2c8;
+}
+.ink-face-token--damage {
+  color: #d77a72;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ink-face-token--shield {
+  color: #78aeb5;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.ink-face-token--keyword {
+  color: #c9a45c;
+  font-weight: 600;
+}
+.ink-face-token--core {
+  font-size: 1.12em;
+}
+
+.ink-card-face__type {
+  flex: 0 0 auto;
+  margin-top: 0.15rem;
+  min-height: 1.05rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.05rem;
+}
+
+.ink-card-face__type-label {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0;
+  font-size: clamp(0.5rem, 1.55vw, 0.58rem);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.ink-card-face__meta {
+  margin: 0;
+  font-size: 0.5rem;
+  color: #78716c;
+}
+.ink-card-face__meta--pull {
+  color: #9ec9b8;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+}
+.ink-card-face__meta--exhaust {
+  color: rgba(245, 158, 11, 0.7);
+}
+.ink-card-face__meta--ready {
+  color: #7aab9a;
+  font-weight: 700;
+  font-size: 0.56rem;
 }
 
 .ink-card-selected,

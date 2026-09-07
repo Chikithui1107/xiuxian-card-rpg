@@ -123,6 +123,7 @@ export function HandUI({
                 energy={energy}
                 locked={disabled}
                 selected={selectedId === card.instanceId}
+                hovered={hoverDetailId === card.instanceId}
                 facePreview={facePreview}
                 onSelect={(id) =>
                   setSelectedId((prev) => (prev === id ? null : id))
@@ -146,6 +147,7 @@ function HandCard({
   energy,
   locked,
   selected,
+  hovered,
   facePreview,
   onSelect,
   onHoverDetail,
@@ -158,6 +160,7 @@ function HandCard({
   energy: number;
   locked: boolean;
   selected: boolean;
+  hovered: boolean;
   facePreview?: CardFacePreviewState;
   onSelect: (id: string) => void;
   onHoverDetail: (id: string | null) => void;
@@ -214,11 +217,12 @@ function HandCard({
   const baseLift = fanLift(index, total);
   const marginLeft = index === 0 ? 0 : -overlapPx(total);
 
-  /* 點選略抬高；詳情用獨立面板，不放大整張手牌 */
-  const restTransform =
-    selected && !dragging
-      ? `translateY(${baseLift - 10}px) scale(1.03) rotate(0deg)`
-      : `translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
+  /* 點選／hover 略抬高並置頂；詳情用獨立面板，不放大整張手牌、不改 hand 尺寸 */
+  const raised = (selected || hovered) && !dragging;
+  const restTransform = raised
+    ? `translateY(${baseLift - 10}px) scale(1.03) rotate(0deg)`
+    : `translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
+  const stackZ = dragging ? 90 : raised ? 80 + index : 10 + index;
 
   const clearGhostStyles = useCallback(() => {
     setDragBox(null);
@@ -453,7 +457,7 @@ function HandCard({
       ref={slotRef}
       className="hand-card-slot relative shrink-0"
       style={{
-        zIndex: dragging ? 90 : selected ? 80 : 10 + index,
+        zIndex: stackZ,
         marginLeft: index === 0 ? undefined : marginLeft,
       }}
       onMouseEnter={() => {
@@ -495,13 +499,13 @@ function HandCard({
               : "cursor-grab active:cursor-grabbing"
         } ${typeStyle} ${
           dragging ? "" : "transition-transform duration-200 ease-out"
-        } ${selected && !dragging ? "ink-card-selected" : ""} ${
+        } ${raised ? "ink-card-selected" : ""} ${
           card.pulledByKarma && !dragging ? "ink-card-pulled" : ""
         }`}
         style={{
           touchAction: "none",
           transform: restTransform,
-          zIndex: selected ? 80 : undefined,
+          zIndex: raised ? 80 + index : undefined,
           opacity: dragging ? 0.28 : undefined,
         }}
       >

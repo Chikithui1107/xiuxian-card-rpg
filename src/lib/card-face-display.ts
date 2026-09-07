@@ -4,19 +4,25 @@ import { getKarmaTemplate, isKarmaTemplateId } from "@/lib/karma-deck";
 /** 卡面動態預覽用（只影響顯示，不參與真實結算） */
 export interface CardFacePreviewState {
   karmaMarks: number;
-  /** 本回合已打出的因牌數（含雙屬） */
   yinPlayedThisTurn: number;
   damageTakenThisTurn: number;
   lunzhuanArmed: boolean;
-  /** 上一張已打出的面向；無則 null */
   lastPlayedAspect: KarmaAspect | null;
   yangExtraMarkThisTurn: boolean;
 }
 
-export interface CardFaceLine {
-  /** 可用 **粗體** 標出重要數值 */
+/** 語義 token：由 CardFace 統一上色，勿在資料裡拼 HTML */
+export type FaceTokenKind = "normal" | "damage" | "shield" | "keyword";
+
+export interface FaceToken {
   text: string;
-  /** 善果自報：未觸發的條件降低透明度 */
+  kind?: FaceTokenKind;
+  /** 核心傷害數字略放大 */
+  core?: boolean;
+}
+
+export interface CardFaceLine {
+  tokens: FaceToken[];
   dimmed?: boolean;
 }
 
@@ -34,19 +40,16 @@ const EMPTY_PREVIEW: CardFacePreviewState = {
   yangExtraMarkThisTurn: false,
 };
 
-/** 與 karma-combat 一念因果公式一致 */
 export function previewYinianDamage(marks: number): number {
   let dmg = 20 + marks * 10;
   if (marks >= 5) dmg = Math.floor(dmg * 1.5);
   return dmg;
 }
 
-/** 與 karma-combat 前塵種因一致：有印記視為負面 → ×1.5 */
 export function previewQiandhenDamage(hasDebuff: boolean): number {
   return hasDebuff ? Math.floor(10 * 1.5) : 10;
 }
 
-/** 與 karma-combat 苦果自嘗一致 */
 export function previewKuguoMarks(
   yinPlayedThisTurn: number,
   yangExtraMarkThisTurn: boolean
@@ -57,12 +60,28 @@ export function previewKuguoMarks(
   return marks;
 }
 
-function L(...texts: string[]): CardFaceLine[] {
-  return texts.map((text) => ({ text }));
+const t = {
+  n: (text: string): FaceToken => ({ text, kind: "normal" }),
+  dmg: (text: string, core = false): FaceToken => ({
+    text,
+    kind: "damage",
+    core,
+  }),
+  sh: (text: string, core = false): FaceToken => ({
+    text,
+    kind: "shield",
+    core,
+  }),
+  kw: (text: string): FaceToken => ({ text, kind: "keyword" }),
+};
+
+function line(...tokens: FaceToken[]): CardFaceLine {
+  return { tokens };
 }
 
 /**
- * 因果卡面：簡短自然語言。動態只替換數字，不改技能結算。
+ * 因果卡面：自然語言 + 語義 token。
+ * 每張卡強調色盡量 ≤2 種；動態只替換數字。
  */
 export function getKarmaCardFaceDisplay(
   templateId: string,
@@ -76,59 +95,96 @@ export function getKarmaCardFaceDisplay(
     case "qiandhen": {
       const dmg = previewQiandhenDamage(preview.karmaMarks > 0);
       return {
-        coreLines: L(
-          `造成 **${dmg}點傷害**。`,
-          "對負面目標造成更高傷害。"
-        ),
+        coreLines: [
+          line(t.n("造成 "), t.dmg(`${dmg}點傷害`, true), t.n("。")),
+          line(t.n("對負面目標造成更高傷害。")),
+        ],
         detail: full,
       };
     }
     case "zhongyin":
       return {
-        coreLines: L(
-          "造成 **15點傷害**。",
-          "牽引的果牌本回合打出時，再造成 **8點傷害**。"
-        ),
+        coreLines: [
+          line(t.n("造成 "), t.dmg("15點傷害", true), t.n("。")),
+          line(
+            t.kw("牽引"),
+            t.n("的"),
+            t.kw("果牌"),
+            t.n("本回合打出時，再造成 "),
+            t.dmg("8點傷害"),
+            t.n("。")
+          ),
+        ],
         detail: full,
       };
     case "sheyin":
       return {
-        coreLines: L("棄置 **1張因牌**，抽取 **2張果牌**。"),
+        coreLines: [
+          line(
+            t.n("棄置 "),
+            t.kw("1張因牌"),
+            t.n("，抽取 "),
+            t.kw("2張果牌"),
+            t.n("。")
+          ),
+        ],
         detail: full,
       };
     case "suye":
       return {
-        coreLines: L(
-          "造成 **25點傷害**。",
-          "手中有1張果牌時，附加 **1層因果印記**；",
-          "有2張時，再造成 **15點傷害**。"
-        ),
+        coreLines: [
+          line(t.n("造成 "), t.dmg("25點傷害", true), t.n("。")),
+          line(
+            t.n("手中有1張"),
+            t.kw("果牌"),
+            t.n("時，附加 "),
+            t.kw("1層因果印記"),
+            t.n("；")
+          ),
+          line(t.n("有2張時，再造成 "), t.dmg("15點傷害"), t.n("。")),
+        ],
         detail: full,
       };
     case "duanjue":
       return {
-        coreLines: L(
-          "下回合額外獲得 **3點真元**。",
-          "此牌牽引出的果牌將立即打出。"
-        ),
+        coreLines: [
+          line(t.n("下回合額外獲得 "), t.kw("3點真元"), t.n("。")),
+          line(
+            t.n("此牌"),
+            t.kw("牽引"),
+            t.n("出的"),
+            t.kw("果牌"),
+            t.n("將立即打出。")
+          ),
+        ],
         detail: full,
       };
     case "lunzhuan": {
       const converted = Math.floor(preview.damageTakenThisTurn * 0.3);
       if (converted > 0) {
         return {
-          coreLines: L(
-            "獲得 **10點護盾**。",
-            `將本回合受傷的 **30%**（目前 **${converted}點**）轉為下次攻擊。`
-          ),
+          coreLines: [
+            line(t.n("獲得 "), t.sh("10點護盾", true), t.n("。")),
+            line(
+              t.n("將本回合受傷的 "),
+              t.sh("30%"),
+              t.n("（目前 "),
+              t.dmg(`${converted}點`),
+              t.n("）轉為下次攻擊。")
+            ),
+          ],
           detail: full,
         };
       }
       return {
-        coreLines: L(
-          "獲得 **10點護盾**。",
-          "將本回合受到傷害的 **30%**，轉化為下次攻擊的額外傷害。"
-        ),
+        coreLines: [
+          line(t.n("獲得 "), t.sh("10點護盾", true), t.n("。")),
+          line(
+            t.n("將本回合受到傷害的 "),
+            t.sh("30%"),
+            t.n("，轉化為下次攻擊的額外傷害。")
+          ),
+        ],
         detail: full,
       };
     }
@@ -138,16 +194,30 @@ export function getKarmaCardFaceDisplay(
         preview.yangExtraMarkThisTurn
       );
       return {
-        coreLines: L(
-          `附加 **${marks}層因果印記**。`,
-          "本回合已打出至少2張因牌時，改為附加 **2層**。"
-        ),
+        coreLines: [
+          line(t.n("附加 "), t.kw(`${marks}層因果印記`), t.n("。")),
+          line(
+            t.n("本回合已打出至少2張"),
+            t.kw("因牌"),
+            t.n("時，改為附加 "),
+            t.kw("2層"),
+            t.n("。")
+          ),
+        ],
         detail: full,
       };
     }
     case "guosheng":
       return {
-        coreLines: L("棄置 **1張果牌**，抽取 **2張因牌**。"),
+        coreLines: [
+          line(
+            t.n("棄置 "),
+            t.kw("1張果牌"),
+            t.n("，抽取 "),
+            t.kw("2張因牌"),
+            t.n("。")
+          ),
+        ],
         detail: full,
       };
     case "shanguo": {
@@ -157,11 +227,27 @@ export function getKarmaCardFaceDisplay(
       return {
         coreLines: [
           {
-            text: "上一張為因牌：下回合因牌傷害 **+75%**。",
+            tokens: [
+              t.n("上一張為"),
+              t.kw("因牌"),
+              t.n("：下回合"),
+              t.kw("因牌"),
+              t.n("傷害 "),
+              t.dmg("+75%"),
+              t.n("。"),
+            ],
             dimmed: last !== null && !yinActive,
           },
           {
-            text: "上一張為果牌：下回合果牌會附加因果印記。",
+            tokens: [
+              t.n("上一張為"),
+              t.kw("果牌"),
+              t.n("：下回合"),
+              t.kw("果牌"),
+              t.n("會附加"),
+              t.kw("因果印記"),
+              t.n("。"),
+            ],
             dimmed: last !== null && !yangActive,
           },
         ],
@@ -170,20 +256,28 @@ export function getKarmaCardFaceDisplay(
     }
     case "suyin":
       return {
-        coreLines: L(
-          "依序重新打出上回合使用過的所有卡牌。",
-          "此牌除外。"
-        ),
+        coreLines: [
+          line(t.n("依序重新打出上回合使用過的所有卡牌。")),
+          line(t.n("此牌除外。")),
+        ],
         detail: full,
       };
     case "yinian": {
       const dmg = previewYinianDamage(preview.karmaMarks);
       return {
-        coreLines: L(
-          `造成 **${dmg}點傷害**。`,
-          "每層印記額外 **+10**；達5層時最終傷害提高 **50%**。",
-          "結算後清除印記。"
-        ),
+        coreLines: [
+          line(t.n("造成 "), t.dmg(`${dmg}點傷害`, true), t.n("。")),
+          line(
+            t.n("每層"),
+            t.kw("印記"),
+            t.n("額外 "),
+            t.dmg("+10"),
+            t.n("；達5層時最終傷害提高 "),
+            t.dmg("50%"),
+            t.n("。")
+          ),
+          line(t.n("結算後清除"), t.kw("印記"), t.n("。")),
+        ],
         detail: full,
       };
     }
