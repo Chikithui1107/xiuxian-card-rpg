@@ -44,7 +44,7 @@ import {
   SWORD_TEMPLATE_IDS,
   type CardTemplateId,
 } from "@/lib/battle-deck";
-import { KARMA_REWARD_IDS, getKarmaTemplate, cardMatchesAspect } from "@/lib/karma-deck";
+import { KARMA_REWARD_IDS, getKarmaTemplate, cardMatchesAspect, isKarmaTemplateId } from "@/lib/karma-deck";
 import {
   INITIAL_KARMA_STATE,
   beginKarmaPlayerTurn,
@@ -138,13 +138,31 @@ function createProgress(character: PlayableCharacter): CharacterProgress {
   };
 }
 
+/** 過濾跨流派串牌；無效則回起始牌組 */
+function sanitizeDeckForCharacter(
+  character: PlayableCharacter,
+  deck: CardTemplateId[] | undefined
+): CardTemplateId[] {
+  const raw = Array.isArray(deck) ? deck : [];
+  const filtered = raw.filter((id) => {
+    if (!(id in CARD_TEMPLATES)) return false;
+    if (character.combatPath === "karma") return isKarmaTemplateId(id);
+    return !isKarmaTemplateId(id);
+  });
+  return filtered.length > 0 ? filtered : [...character.startingDeck];
+}
+
 /** 山門狀態下氣血應為滿值（秘境進度不跨重新整理保存） */
 function fullHpProgress(
   character: PlayableCharacter,
   snap?: CharacterProgress
 ): CharacterProgress {
   const base = snap ?? createProgress(character);
-  return { ...base, playerHp: character.maxHp };
+  return {
+    ...base,
+    permanentDeck: sanitizeDeckForCharacter(character, base.permanentDeck),
+    playerHp: character.maxHp,
+  };
 }
 
 function initBattleDeck(templateIds: CardTemplateId[]): BattleDeckState {
@@ -267,10 +285,22 @@ export default function GamePage() {
   useEffect(() => {
     const activeId = readStoredActiveId();
     const stored = readStoredProgress();
-    const character = getCharacter(activeId);
-    // 重新整理後沒有進行中的秘境 → 山門氣血回滿，避免殘血被永久存檔
-    const progress = fullHpProgress(character, stored[activeId]);
-    const nextProgress = { ...stored, [activeId]: progress };
+    const activeChar = getCharacter(activeId);
+    const nextProgress: Record<string, CharacterProgress> = {};
+    for (const c of PLAYABLE) {
+      const snap = stored[c.id];
+      nextProgress[c.id] =
+        c.id === activeId
+          ? fullHpProgress(c, snap)
+          : {
+              ...(snap ?? createProgress(c)),
+              permanentDeck: sanitizeDeckForCharacter(
+                c,
+                snap?.permanentDeck ?? c.startingDeck
+              ),
+            };
+    }
+    const progress = nextProgress[activeId] ?? fullHpProgress(activeChar);
     setActiveCharacterId(activeId);
     setProgressByCharacter(nextProgress);
     setPermanentDeck(progress.permanentDeck);
@@ -290,7 +320,10 @@ export default function GamePage() {
   useEffect(() => {
     if (!ready) return;
     const snapshot: CharacterProgress = {
-      permanentDeck,
+      permanentDeck: sanitizeDeckForCharacter(
+        getCharacter(activeCharacterId),
+        permanentDeck
+      ),
       playerHp,
       spiritStones,
       totalClears,
@@ -341,7 +374,13 @@ export default function GamePage() {
 
       const merged = {
         ...progressByCharacter,
-        [activeCharacterId]: currentSnap,
+        [activeCharacterId]: {
+          ...currentSnap,
+          permanentDeck: sanitizeDeckForCharacter(
+            getCharacter(activeCharacterId),
+            currentSnap.permanentDeck
+          ),
+        },
         [nextId]: nextSnap,
       };
       setProgressByCharacter(merged);
@@ -350,8 +389,18 @@ export default function GamePage() {
       setPlayerHp(nextSnap.playerHp);
       setSpiritStones(nextSnap.spiritStones);
       setTotalClears(nextSnap.totalClears);
+      // 清空上一角色戰鬥臨時狀態，避免劍意／印記／牌堆串用
+      setDeckState(EMPTY_DECK);
+      setCombatBuffs(INITIAL_COMBAT_BUFFS);
       setKarmaState(INITIAL_KARMA_STATE);
       setPendingDiscard(null);
+      setEnergy(MAX_ENERGY);
+      setLastDodge(false);
+      setLastDamage(null);
+      setLastEnemyDamage(null);
+      setLastPassiveHeal(null);
+      setTotalDamage(0);
+      setCombatFeelToast(null);
       setLastRunMessage(`已入駐：${nextChar.name}`);
       setCharacterSelectOpen(false);
       setActiveTab("lobby");
@@ -452,6 +501,7 @@ export default function GamePage() {
       setKarmaState(INITIAL_KARMA_STATE);
       setPendingDiscard(null);
       setCombatFeelToast(null);
+      setLastDodge(false);
       setLastRunMessage(null);
       setMapMessage(null);
       setIsInCombat(true);
@@ -1018,7 +1068,11 @@ export default function GamePage() {
     let totalDmg = 0;
     let anyDodge = false;
 
-    if (intent.damage > 0 && combatBuffs.dodge > 0) {
+    if (
+      character.combatPath === "sword" &&
+      intent.damage > 0 &&
+      combatBuffs.dodge > 0
+    ) {
       anyDodge = rollStackDodge(combatBuffs.dodge);
       setCombatBuffs((prev) => ({ ...prev, dodge: 0 }));
     }
@@ -1167,9 +1221,10 @@ export default function GamePage() {
       if (prev.includes(selectedTier.achievementId)) return prev;
       return [...prev, selectedTier.achievementId];
     });
-    // 通關封印：清空本局地圖，回山門，不可再鑽回舊圖
+    // 通關封印：清空本局地圖與本局牌組成長，回山門
+    resetPermanentDeck();
     returnToLobby(stageClearMessage, true);
-  }, [selectedTier, stageClearMessage, returnToLobby]);
+  }, [selectedTier, stageClearMessage, returnToLobby, resetPermanentDeck]);
 
   const deckInfo = useMemo(
     () => ({
