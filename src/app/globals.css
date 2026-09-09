@@ -921,6 +921,116 @@ body {
   animation-fill-mode: both;
 }
 
+/* 回合結束：扇形收攏 */
+@keyframes pile-endturn-gather {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--pile-dx), var(--pile-dy), 0) scale(0.88)
+      rotate(var(--pile-spin));
+    opacity: 1;
+  }
+}
+
+.pile-fly-endturn-gather {
+  animation-name: pile-endturn-gather;
+  animation-timing-function: cubic-bezier(0.3, 0.7, 0.2, 1);
+  animation-fill-mode: forwards;
+}
+
+/* 回合結束：整疊飛向棄牌堆 */
+@keyframes pile-endturn-stack {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(-4deg);
+    opacity: 1;
+  }
+  35% {
+    transform: translate3d(
+        calc(var(--pile-dx) * 0.4),
+        calc(var(--pile-dy) * 0.25 - 16px),
+        0
+      )
+      scale(0.82) rotate(6deg);
+    opacity: 1;
+  }
+  78% {
+    transform: translate3d(
+        calc(var(--pile-dx) * 0.95),
+        calc(var(--pile-dy) * 0.92),
+        0
+      )
+      scale(0.48) rotate(12deg);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate3d(var(--pile-dx), var(--pile-dy), 0) scale(0.22)
+      rotate(14deg);
+    opacity: 0;
+  }
+}
+
+.pile-fly-endturn-stack {
+  animation-name: pile-endturn-stack;
+  animation-timing-function: cubic-bezier(0.28, 0.55, 0.2, 1);
+  animation-fill-mode: forwards;
+  overflow: visible;
+}
+
+.pile-fly-stack {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.pile-fly-stack__sheet {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(160, 140, 100, 0.35);
+  background: linear-gradient(145deg, #2a241c 0%, #141210 100%);
+}
+
+.pile-fly-stack__sheet--2 {
+  transform: translate(3px, -3px) rotate(-3deg);
+  opacity: 0.85;
+}
+
+.pile-fly-stack__sheet--3 {
+  transform: translate(6px, -6px) rotate(4deg);
+  opacity: 0.55;
+}
+
+.pile-fly-stack__top {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 0.35rem;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.pile-fly-stack__badge {
+  position: absolute;
+  right: -0.35rem;
+  top: -0.35rem;
+  z-index: 3;
+  min-width: 1.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 76, 0.45);
+  background: rgba(18, 16, 14, 0.92);
+  padding: 0.1rem 0.35rem;
+  font-size: 10px;
+  color: #c9a84c;
+  text-align: center;
+}
+
+.pile-fly-endturn-stack .pile-fly-ink {
+  animation: pile-ink-mist 0.3s cubic-bezier(0.3, 0.55, 0.25, 1) both;
+  animation-delay: 0.2s;
+}
+
 /* 拖曳中：原位牌隱藏，幽靈在 body 的 drag-layer 上 */
 .ink-card-drag-source {
   visibility: hidden !important;
@@ -2496,6 +2606,11 @@ html.combat-scroll-lock {
   color: #9ec9b8;
   font-weight: 600;
   letter-spacing: 0.18em;
+}
+.ink-card-face__meta--retain {
+  color: rgba(201, 168, 76, 0.88);
+  font-weight: 600;
+  letter-spacing: 0.12em;
 }
 .ink-card-face__meta--exhaust {
   color: rgba(245, 158, 11, 0.7);

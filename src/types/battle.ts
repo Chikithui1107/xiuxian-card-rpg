@@ -4,6 +4,8 @@ export interface Card {
   name: string;
   cost: number;
   isExhaust?: boolean;
+  /** 回合結束不棄置；仍計入手牌上限 */
+  isRetain?: boolean;
   /** 本回合臨時費用修正（如牽引 −1）；回合結束清除 */
   costModifier?: number;
   /** 由【因果相生】牽引；不可再觸發相生 */

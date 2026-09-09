@@ -25,6 +25,7 @@ export interface CardFaceProps {
   canAfford?: boolean;
   isExhaust?: boolean;
   pulledByKarma?: boolean;
+  isRetain?: boolean;
   showSelectHint?: boolean;
   showReady?: boolean;
   compact?: boolean;
@@ -81,6 +82,7 @@ export function CardFace({
   canAfford = true,
   isExhaust = false,
   pulledByKarma = false,
+  isRetain = false,
   showSelectHint = false,
   showReady = false,
   compact = false,
@@ -193,6 +195,9 @@ export function CardFace({
         {pulledByKarma && (
           <p className="ink-card-face__meta ink-card-face__meta--pull">牽引</p>
         )}
+        {isRetain && (
+          <p className="ink-card-face__meta ink-card-face__meta--retain">保留</p>
+        )}
         {isExhaust && (
           <p className="ink-card-face__meta ink-card-face__meta--exhaust">
             消耗
@@ -223,6 +228,7 @@ export function cardFaceFromTemplate(
     icon: template.icon ?? template.art,
     templateId: template.id,
     isExhaust: template.isExhaust,
+    isRetain: template.isRetain,
     ...extras,
   };
 }

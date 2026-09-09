@@ -30,6 +30,8 @@ export interface KarmaCardTemplate {
   /** 不觸發【因果相生】 */
   suppressKarmaPassive?: boolean;
   isExhaust?: boolean;
+  /** 回合結束不棄置 */
+  isRetain?: boolean;
 }
 
 /** 檔名與 id 分離：邏輯 id 穩定，素材檔可獨立命名 */

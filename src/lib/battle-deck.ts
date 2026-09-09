@@ -36,6 +36,8 @@ export interface CardTemplate {
   /** 小型技能圖標；缺省可不顯示 */
   icon?: string;
   isExhaust?: boolean;
+  /** 回合結束不棄置（保留） */
+  isRetain?: boolean;
   sword?: boolean;
   effects: CardEffect[];
 }
@@ -127,6 +129,7 @@ function karmaToCardTemplate(
     art: k.art,
     icon: k.icon,
     isExhaust: k.isExhaust,
+    isRetain: k.isRetain,
     effects: [{ kind: "karma" }],
   };
 }
@@ -160,6 +163,7 @@ export function createCard(templateId: CardTemplateId): Card {
     name: template.name,
     cost: template.cost,
     isExhaust: template.isExhaust,
+    isRetain: template.isRetain,
   };
 }
 
@@ -251,15 +255,32 @@ export function discardCardFromHand(
   };
 }
 
+/** 是否帶【保留】：實例標記或模板標記 */
+export function cardIsRetain(card: Card): boolean {
+  if (card.isRetain) return true;
+  const template = getCardTemplate(card);
+  return Boolean(template?.isRetain);
+}
+
 export function discardHand(deck: BattleDeckState): BattleDeckState {
   if (deck.hand.length === 0) return deck;
+
+  const kept: Card[] = [];
+  const dumped: Card[] = [];
+  for (const c of deck.hand) {
+    const cleared = { ...c, costModifier: undefined };
+    if (cardIsRetain(c)) kept.push(cleared);
+    else dumped.push(cleared);
+  }
+
+  if (dumped.length === 0) {
+    return { ...deck, hand: kept };
+  }
+
   return {
     ...deck,
-    hand: [],
-    discardPile: [
-      ...deck.discardPile,
-      ...deck.hand.map((c) => ({ ...c, costModifier: undefined })),
-    ],
+    hand: kept,
+    discardPile: [...deck.discardPile, ...dumped],
   };
 }
 

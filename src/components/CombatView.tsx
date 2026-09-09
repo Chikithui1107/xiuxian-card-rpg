@@ -14,11 +14,15 @@ import { CardHand } from "@/components/CardHand";
 import { CombatPlayerBar } from "@/components/CombatPlayerBar";
 import {
   CardAnimationLayer,
+  END_TURN_ABSORB_MS,
+  END_TURN_FLY_MS,
+  END_TURN_GATHER_MS,
   snapshotFlyingFace,
   type PileFlight,
 } from "@/components/CardAnimationLayer";
 import {
   CARD_TEMPLATES,
+  cardIsRetain,
   type CardTemplateId,
 } from "@/lib/battle-deck";
 import type { Card } from "@/types/battle";
@@ -260,6 +264,66 @@ export function CombatView({
       return changed ? next : prev;
     });
   }, []);
+
+  const spawnEndTurnDiscardFlight = useCallback(
+    (cards: Card[]) => {
+      if (cards.length === 0) return;
+      const pile =
+        rectFromEl(discardPileRef.current) ?? fallbackPileRect("discard");
+      const items = cards.map((card) => {
+        const from =
+          rectCacheRef.current.get(card.instanceId) ??
+          rectFromEl(
+            document.querySelector(
+              `[data-hand-instance-id="${card.instanceId}"]`
+            )
+          ) ??
+          new DOMRect(
+            typeof window !== "undefined" ? window.innerWidth / 2 - 40 : 160,
+            typeof window !== "undefined" ? window.innerHeight - 200 : 400,
+            80,
+            126
+          );
+        return {
+          face: snapshotFlyingFace(card, facePreview),
+          from: {
+            left: from.left,
+            top: from.top,
+            width: from.width,
+            height: from.height,
+          },
+        };
+      });
+      pileSeq.current += 1;
+      const flight: PileFlight = {
+        id: `endturn-${pileSeq.current}`,
+        kind: "endTurnDiscard",
+        items,
+        to: {
+          left: pile.left,
+          top: pile.top,
+          width: pile.width,
+          height: pile.height,
+        },
+        gatherMs: END_TURN_GATHER_MS,
+        flyMs: END_TURN_FLY_MS,
+        absorbMs: END_TURN_ABSORB_MS,
+      };
+      setPileFlights((prev) => [...prev, flight]);
+    },
+    [facePreview]
+  );
+
+  const handleEndTurn = useCallback(() => {
+    const toDiscard = hand.filter((c) => !cardIsRetain(c));
+    for (const c of toDiscard) {
+      skipDiscardIdsRef.current.add(c.instanceId);
+    }
+    if (toDiscard.length > 0) {
+      spawnEndTurnDiscardFlight(toDiscard);
+    }
+    onEndTurn();
+  }, [hand, onEndTurn, spawnEndTurnDiscardFlight]);
 
   const spawnDiscardFlights = useCallback(
     (cards: { card: Card; from: DOMRect | null }[]) => {
@@ -585,7 +649,7 @@ export function CombatView({
           deckCount={deckCount}
           onPlayCard={handlePlayCard}
           onDenyPlay={handleDenyPlay}
-          onEndTurn={onEndTurn}
+          onEndTurn={handleEndTurn}
           lastDamage={lastDamage}
           disabled={!isPlaying || enemy.currentHp <= 0}
           denyShake={denyShake}

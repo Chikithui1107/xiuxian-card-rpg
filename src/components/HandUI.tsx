@@ -11,6 +11,7 @@ import {
 import { createPortal } from "react-dom";
 import {
   CARD_TEMPLATES,
+  cardIsRetain,
   getCardTemplate,
   type CardTemplateId,
 } from "@/lib/battle-deck";
@@ -498,6 +499,7 @@ function HandCard({
       canAfford={canAfford}
       isExhaust={card.isExhaust}
       pulledByKarma={card.pulledByKarma}
+      isRetain={cardIsRetain(card)}
       showSelectHint={opts.showSelectHint}
       showReady={opts.showReady}
       preview={facePreview}

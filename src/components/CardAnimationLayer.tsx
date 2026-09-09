@@ -18,47 +18,71 @@ import { getEffectiveCost } from "@/types/battle";
 import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
 import { aspectClassName, aspectFromTemplateId } from "@/components/CardFace";
 
-export type PileFlightKind = "draw" | "discard";
+export type PileFlightKind = "draw" | "discard" | "endTurnDiscard";
 
-/** 建立動畫當下凍結的卡面快照，避免之後 state 更新把飛牌洗成空白 */
 export interface FlyingCardFaceSnapshot {
   name: string;
   type: string;
   cost: number;
   description: string;
-  /** 預先拼好的短效果行，飛牌用輕量 DOM 顯示 */
   blurbLines: string[];
   icon: string | null;
   templateId: string;
   isExhaust: boolean;
+  isRetain: boolean;
   pulledByKarma: boolean;
 }
 
-export interface PileFlight {
+export interface RectBox {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
+/** 單張抽／棄飛牌 */
+export interface SinglePileFlight {
   id: string;
-  kind: PileFlightKind;
+  kind: "draw" | "discard";
   handInstanceId?: string;
   card: Card;
   face: FlyingCardFaceSnapshot;
-  from: { left: number; top: number; width: number; height: number };
-  to: { left: number; top: number; width: number; height: number };
+  from: RectBox;
+  to: RectBox;
   delayMs: number;
   durationMs: number;
   spinDeg?: number;
 }
 
+/** 回合結束：收攏成疊 → 一次飛向棄牌堆 */
+export interface EndTurnPileFlight {
+  id: string;
+  kind: "endTurnDiscard";
+  items: { face: FlyingCardFaceSnapshot; from: RectBox }[];
+  to: RectBox;
+  gatherMs: number;
+  flyMs: number;
+  absorbMs: number;
+}
+
+export type PileFlight = SinglePileFlight | EndTurnPileFlight;
+
 interface CardAnimationLayerProps {
   flights: PileFlight[];
   onFlightDone: (id: string) => void;
   onDiscardAbsorb?: (flightId: string) => void;
-  facePreview?: CardFacePreviewState;
 }
 
-/** 飛牌固定尺寸：比整張手牌小，動畫更跟手、較少重繪 */
 const DRAW_FLY_W = 92;
 const DRAW_FLY_H = 144;
 const DISCARD_FLY_W = 100;
 const DISCARD_FLY_H = 156;
+const STACK_W = 96;
+const STACK_H = 150;
+
+export const END_TURN_GATHER_MS = 120;
+export const END_TURN_FLY_MS = 220;
+export const END_TURN_ABSORB_MS = 80;
 
 export function snapshotFlyingFace(
   card: Card,
@@ -84,22 +108,18 @@ export function snapshotFlyingFace(
     icon: template?.icon ?? template?.art ?? null,
     templateId: card.id,
     isExhaust: Boolean(card.isExhaust ?? template?.isExhaust),
+    isRetain: Boolean(card.isRetain ?? template?.isRetain),
     pulledByKarma: Boolean(card.pulledByKarma),
   };
 }
 
-function centerBox(
-  box: { left: number; top: number; width: number; height: number },
-  w: number,
-  h: number
-) {
+function centerBox(box: RectBox, w: number, h: number) {
   return {
     left: box.left + box.width / 2 - w / 2,
     top: box.top + box.height / 2 - h / 2,
   };
 }
 
-/** 純視覺飛牌：無 drag／hover／token 狀態，避免動畫途中卡頓 */
 const FlyingCardVisual = memo(function FlyingCardVisual({
   face,
 }: {
@@ -139,7 +159,10 @@ const FlyingCardVisual = memo(function FlyingCardVisual({
           </p>
         ))}
       </div>
-      <footer className={`pile-fly-face__type ${typeAccent}`}>{face.type}</footer>
+      <footer className={`pile-fly-face__type ${typeAccent}`}>
+        {face.type}
+        {face.isRetain ? " · 保留" : ""}
+      </footer>
     </div>
   );
 });
@@ -149,7 +172,7 @@ const FlyingPileCard = memo(function FlyingPileCard({
   onDone,
   onDiscardAbsorb,
 }: {
-  flight: PileFlight;
+  flight: SinglePileFlight;
   onDone: () => void;
   onDiscardAbsorb?: () => void;
 }) {
@@ -219,6 +242,143 @@ const FlyingPileCard = memo(function FlyingPileCard({
   );
 });
 
+const EndTurnGatherFlight = memo(function EndTurnGatherFlight({
+  flight,
+  onDone,
+  onDiscardAbsorb,
+}: {
+  flight: EndTurnPileFlight;
+  onDone: () => void;
+  onDiscardAbsorb?: () => void;
+}) {
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+  const absorbRef = useRef(onDiscardAbsorb);
+  absorbRef.current = onDiscardAbsorb;
+  const [phase, setPhase] = useState<"gather" | "fly">("gather");
+
+  const n = flight.items.length;
+  const centerX =
+    n > 0
+      ? flight.items.reduce(
+          (s, it) => s + it.from.left + it.from.width / 2,
+          0
+        ) / n
+      : flight.to.left;
+  const centerY =
+    n > 0
+      ? flight.items.reduce(
+          (s, it) => s + it.from.top + it.from.height / 2,
+          0
+        ) / n
+      : flight.to.top;
+
+  const gatherLeft = centerX - STACK_W / 2;
+  const gatherTop = centerY - STACK_H / 2;
+  const pile = centerBox(flight.to, STACK_W, STACK_H);
+  const flyDx = pile.left - gatherLeft;
+  const flyDy = pile.top - gatherTop;
+
+  const totalMs = flight.gatherMs + flight.flyMs + flight.absorbMs;
+  const topFace = flight.items[flight.items.length - 1]?.face;
+  const typeStyle =
+    CARD_TYPE_COLORS[topFace?.type ?? ""] ??
+    "ink-card-type-basic bg-[#1a1814]";
+  const aspect = aspectClassName(
+    aspectFromTemplateId(topFace?.templateId)
+  );
+
+  useEffect(() => {
+    const toFly = window.setTimeout(() => setPhase("fly"), flight.gatherMs);
+    const absorbAt = flight.gatherMs + flight.flyMs * 0.75;
+    const absorbTimer = window.setTimeout(() => {
+      absorbRef.current?.();
+    }, absorbAt);
+    const doneTimer = window.setTimeout(() => {
+      onDoneRef.current();
+    }, totalMs + 12);
+    return () => {
+      window.clearTimeout(toFly);
+      window.clearTimeout(absorbTimer);
+      window.clearTimeout(doneTimer);
+    };
+  }, [flight.gatherMs, flight.flyMs, flight.absorbMs, totalMs, flight.id]);
+
+  if (phase === "gather") {
+    return (
+      <>
+        {flight.items.map((item, i) => {
+          const start = centerBox(item.from, STACK_W, STACK_H);
+          const dx = gatherLeft - start.left;
+          const dy = gatherTop - start.top;
+          const itemType =
+            CARD_TYPE_COLORS[item.face.type] ??
+            "ink-card-type-basic bg-[#1a1814]";
+          const itemAspect = aspectClassName(
+            aspectFromTemplateId(item.face.templateId)
+          );
+          return (
+            <div
+              key={`${flight.id}-g-${i}`}
+              className="pile-fly-card pile-fly-endturn-gather pointer-events-none"
+              style={
+                {
+                  left: start.left,
+                  top: start.top,
+                  width: STACK_W,
+                  height: STACK_H,
+                  zIndex: 91 + i,
+                  ["--pile-dx" as string]: `${dx}px`,
+                  ["--pile-dy" as string]: `${dy}px`,
+                  ["--pile-spin" as string]: `${(i % 2 === 0 ? -1 : 1) * (4 + (i % 3))}deg`,
+                  animationDuration: `${flight.gatherMs}ms`,
+                } as CSSProperties
+              }
+            >
+              <div
+                className={`pile-fly-card__visual ink-card h-full w-full overflow-hidden ${itemType} ${itemAspect}`}
+              >
+                <FlyingCardVisual face={item.face} />
+              </div>
+            </div>
+          );
+        })}
+      </>
+    );
+  }
+
+  return (
+    <div
+      className="pile-fly-card pile-fly-endturn-stack pointer-events-none"
+      style={
+        {
+          left: gatherLeft,
+          top: gatherTop,
+          width: STACK_W,
+          height: STACK_H,
+          ["--pile-dx" as string]: `${flyDx}px`,
+          ["--pile-dy" as string]: `${flyDy}px`,
+          animationDuration: `${flight.flyMs + flight.absorbMs}ms`,
+        } as CSSProperties
+      }
+    >
+      <div className="pile-fly-stack" aria-hidden>
+        <span className="pile-fly-stack__sheet pile-fly-stack__sheet--3" />
+        <span className="pile-fly-stack__sheet pile-fly-stack__sheet--2" />
+        <div
+          className={`pile-fly-stack__top ink-card overflow-hidden ${typeStyle} ${aspect}`}
+        >
+          {topFace ? <FlyingCardVisual face={topFace} /> : null}
+        </div>
+        {n > 1 && (
+          <span className="pile-fly-stack__badge tabular-nums">{n}</span>
+        )}
+      </div>
+      <span className="pile-fly-ink" aria-hidden />
+    </div>
+  );
+});
+
 export function CardAnimationLayer({
   flights,
   onFlightDone,
@@ -230,18 +390,27 @@ export function CardAnimationLayer({
 
   return createPortal(
     <div className="card-anim-layer" aria-hidden>
-      {flights.map((flight) => (
-        <FlyingPileCard
-          key={flight.id}
-          flight={flight}
-          onDone={() => onFlightDone(flight.id)}
-          onDiscardAbsorb={
-            flight.kind === "discard"
-              ? () => onDiscardAbsorb?.(flight.id)
-              : undefined
-          }
-        />
-      ))}
+      {flights.map((flight) =>
+        flight.kind === "endTurnDiscard" ? (
+          <EndTurnGatherFlight
+            key={flight.id}
+            flight={flight}
+            onDone={() => onFlightDone(flight.id)}
+            onDiscardAbsorb={() => onDiscardAbsorb?.(flight.id)}
+          />
+        ) : (
+          <FlyingPileCard
+            key={flight.id}
+            flight={flight}
+            onDone={() => onFlightDone(flight.id)}
+            onDiscardAbsorb={
+              flight.kind === "discard"
+                ? () => onDiscardAbsorb?.(flight.id)
+                : undefined
+            }
+          />
+        )
+      )}
     </div>,
     document.body
   );
