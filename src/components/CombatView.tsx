@@ -130,6 +130,54 @@ function fallbackPileRect(side: "draw" | "discard"): DOMRect {
   return new DOMRect(x, y, w, h);
 }
 
+/** 抽牌終點是否彼此分開（避免全飛向同一中央） */
+function targetsAreSpread(rects: (DOMRect | null)[]): boolean {
+  const valid = rects.filter((r): r is DOMRect => Boolean(r));
+  if (valid.length <= 1) return valid.length === 1;
+  let minL = Infinity;
+  let maxL = -Infinity;
+  for (const r of valid) {
+    const cx = r.left + r.width / 2;
+    minL = Math.min(minL, cx);
+    maxL = Math.max(maxL, cx);
+  }
+  // 多張牌中心距至少應有明顯間距
+  return maxL - minL >= Math.max(24, (valid.length - 1) * 18);
+}
+
+/** DOM 量測失敗或疊在一起時，依最終手牌數推扇形終點 */
+function fallbackFanTargetRect(
+  index: number,
+  total: number,
+  trackRect: DOMRect | undefined,
+  pile: DOMRect
+): DOMRect {
+  const cardW = 104;
+  const cardH = 164;
+  const centerX = trackRect
+    ? trackRect.left + trackRect.width / 2
+    : typeof window !== "undefined"
+      ? window.innerWidth / 2
+      : pile.left + 160;
+  const bottom = trackRect
+    ? trackRect.bottom - 8
+    : typeof window !== "undefined"
+      ? window.innerHeight - 120
+      : pile.top - 40;
+  const avail = trackRect
+    ? Math.max(cardW * 0.7, trackRect.width - 28)
+    : 320;
+  const maxStepRatio =
+    total <= 1 ? 1 : total <= 3 ? 0.9 : total <= 5 ? 0.78 : total <= 7 ? 0.52 : 0.38;
+  const maxStep = cardW * maxStepRatio;
+  const fitStep = total <= 1 ? 0 : (avail - cardW) / (total - 1);
+  const step = Math.max(0, Math.min(maxStep, fitStep));
+  const relativeIndex = index - (total - 1) / 2;
+  const x = centerX + relativeIndex * step - cardW / 2;
+  const y = bottom - cardH;
+  return new DOMRect(x, y, cardW, cardH);
+}
+
 export function CombatView({
   hero,
   heroStats,
@@ -483,46 +531,13 @@ export function CombatView({
   const spawnDrawFlights = useCallback(
     (cards: Card[]) => {
       if (cards.length === 0) return;
-      const pile =
-        rectFromEl(drawPileRef.current) ?? fallbackPileRect("draw");
       const ids = cards.map((c) => c.instanceId);
 
-      const nextFlights: PileFlight[] = cards.map((card, i) => {
-        const slot = rectFromEl(
-          document.querySelector(
-            `[data-hand-instance-id="${card.instanceId}"]`
-          )
-        );
-        const target =
-          slot ??
-          new DOMRect(
-            typeof window !== "undefined" ? window.innerWidth / 2 - 40 : 160,
-            typeof window !== "undefined" ? window.innerHeight - 220 : 380,
-            80,
-            126
-          );
-        pileSeq.current += 1;
-        return {
-          id: `draw-${pileSeq.current}-${card.instanceId}`,
-          kind: "draw" as const,
-          handInstanceId: card.instanceId,
-          card: { ...card },
-          face: snapshotFlyingFace(card, facePreview),
-          from: {
-            left: pile.left,
-            top: pile.top,
-            width: pile.width,
-            height: pile.height,
-          },
-          to: {
-            left: target.left,
-            top: target.top,
-            width: target.width,
-            height: target.height,
-          },
-          delayMs: i * DRAW_STAGGER_MS,
-          durationMs: DRAW_DURATION_MS,
-        };
+      // 1) 先佔位隱藏：參與最終扇形 layout，但先不顯示
+      setHiddenCardIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.add(id));
+        return next;
       });
 
       const prevBatch = drawBatchRef.current;
@@ -534,12 +549,60 @@ export function CombatView({
         drawBatchWaiterRef.current.armed = false;
       }
 
-      setHiddenCardIds((prev) => {
-        const next = new Set(prev);
-        ids.forEach((id) => next.add(id));
-        return next;
+      // 2) 等 React layout + 隱藏樣式生效後，再讀每張卡自己的 slot rect
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const pile =
+            rectFromEl(drawPileRef.current) ?? fallbackPileRect("draw");
+          const track = document.querySelector(".hand-fan-track");
+          const trackRect = track?.getBoundingClientRect();
+
+          const measured = cards.map((card) => {
+            const el = document.querySelector(
+              `[data-hand-instance-id="${card.instanceId}"]`
+            );
+            return el ? el.getBoundingClientRect() : null;
+          });
+
+          // 若量到的終點幾乎重疊（常見於 availWidth=0 殘留），用扇形公式重算
+          const spreadOk = targetsAreSpread(measured);
+          const nextFlights: PileFlight[] = cards.map((card, i) => {
+            let target = measured[i];
+            if (!spreadOk || !target) {
+              target = fallbackFanTargetRect(
+                i,
+                cards.length,
+                trackRect,
+                pile
+              );
+            }
+            pileSeq.current += 1;
+            return {
+              id: `draw-${pileSeq.current}-${card.instanceId}`,
+              kind: "draw" as const,
+              handInstanceId: card.instanceId,
+              card: { ...card },
+              face: snapshotFlyingFace(card, facePreview),
+              from: {
+                left: pile.left,
+                top: pile.top,
+                width: pile.width,
+                height: pile.height,
+              },
+              to: {
+                left: target.left,
+                top: target.top,
+                width: target.width,
+                height: target.height,
+              },
+              delayMs: i * DRAW_STAGGER_MS,
+              durationMs: DRAW_DURATION_MS,
+            };
+          });
+
+          setPileFlights((prev) => [...prev, ...nextFlights]);
+        });
       });
-      setPileFlights((prev) => [...prev, ...nextFlights]);
     },
     [facePreview]
   );

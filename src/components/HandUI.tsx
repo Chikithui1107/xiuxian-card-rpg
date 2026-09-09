@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -68,6 +69,10 @@ function readCssPx(varName: string, fallbackRem: number): number {
   return raw.includes("rem") ? n * 16 : n;
 }
 
+function cardWidthFloor(): number {
+  return readCssPx("--game-card-width", 8.15) * 0.7;
+}
+
 /**
  * 動態扇形：優先壓縮 spacing / 角度，卡牌 scale 只微調。
  * 保證首尾落在 availableWidth（已扣安全邊距）內。
@@ -79,7 +84,8 @@ function computeHandMetrics(
   const cardWidth = readCssPx("--game-card-width", 8.15);
   const cardHeight = readCssPx("--game-card-height", 12.85);
   const n = Math.max(handCount, 0);
-  const avail = Math.max(availableWidth, cardWidth * 0.7);
+  // 防呆：avail 過小時仍給出最小可扇開寬度，避免 step=0 全疊中央
+  const avail = Math.max(availableWidth, cardWidth * Math.min(n, 3) * 0.55);
 
   let scale = 1;
   if (n >= 8) scale = 0.89;
@@ -146,18 +152,22 @@ export function HandUI({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoverDetailId, setHoverDetailId] = useState<string | null>(null);
 
-  useEffect(() => {
+  // 手牌清空後 track 會卸載；必須在再次出現時重新掛 ResizeObserver。
+  // 絕不能把 availWidth 寫成 0，否則 step=0、全牌疊在中央。
+  useLayoutEffect(() => {
+    if (hand.length === 0) return;
     const el = trackRef.current;
     if (!el) return;
     const measure = () => {
       const w = el.clientWidth;
-      setAvailWidth(Math.max(0, w - SAFE_MARGIN_PX * 2));
+      if (w < 48) return;
+      setAvailWidth(Math.max(cardWidthFloor(), w - SAFE_MARGIN_PX * 2));
     };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [hand.length]);
 
   useEffect(() => {
     if (selectedId && !hand.some((c) => c.instanceId === selectedId)) {
