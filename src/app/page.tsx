@@ -1141,27 +1141,24 @@ export default function GamePage() {
     pendingDiscard,
   ]);
 
-  /** 棄牌動畫結束後補抽，與棄牌視覺分開 */
+  /** 棄牌動畫結束後補抽；保持鎖定直到抽牌動畫結束 */
   const completeEndTurnDraw = useCallback(() => {
     if (victoryStartedRef.current || phase === "defeat") {
       playLockRef.current = false;
       return;
     }
 
-    setDeckState((prev) => {
-      const drawn = drawCards(prev, COMBAT_HAND_SIZE);
-      return drawn;
-    });
+    setDeckState((prev) => drawCards(prev, COMBAT_HAND_SIZE));
     playCardDrawSfx(COMBAT_HAND_SIZE);
 
     if (character.combatPath === "karma") {
       setKarmaState((prev) => beginKarmaPlayerTurn(prev));
     }
-
-    queueMicrotask(() => {
-      playLockRef.current = false;
-    });
   }, [phase, character.combatPath]);
+
+  const finishEndTurnSequence = useCallback(() => {
+    playLockRef.current = false;
+  }, []);
 
   useEffect(() => {
     if (phase !== "defeat") return;
@@ -1360,6 +1357,7 @@ export default function GamePage() {
             onPlayCard={playCard}
             onEndTurn={endTurn}
             onEndTurnDraw={completeEndTurnDraw}
+            onEndTurnSequenceDone={finishEndTurnSequence}
             karmaMarks={karmaState.karmaMarks}
             block={karmaState.block}
             karmaMode={character.combatPath === "karma"}

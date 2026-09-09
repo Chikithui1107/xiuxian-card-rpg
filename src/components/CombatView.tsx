@@ -15,8 +15,10 @@ import { CombatPlayerBar } from "@/components/CombatPlayerBar";
 import {
   CardAnimationLayer,
   END_TURN_ABSORB_MS,
+  END_TURN_BEAT_MS,
   END_TURN_FLY_MS,
   END_TURN_GATHER_MS,
+  delayMs,
   snapshotFlyingFace,
   type PileFlight,
 } from "@/components/CardAnimationLayer";
@@ -88,8 +90,10 @@ interface CombatViewProps {
   onPlayCard: (card: Card) => boolean;
   /** 棄牌＋敵方回合；回傳 true 表示之後還要抽牌 */
   onEndTurn: () => boolean;
-  /** 棄牌動畫結束後抽新手牌 */
+  /** 棄牌動畫結束後抽新手牌（勿在棄牌期間呼叫） */
   onEndTurnDraw: () => void;
+  /** 抽牌動畫全部完成後解鎖 */
+  onEndTurnSequenceDone: () => void;
   karmaMarks?: number;
   block?: number;
   karmaMode?: boolean;
@@ -154,6 +158,7 @@ export function CombatView({
   onPlayCard,
   onEndTurn,
   onEndTurnDraw,
+  onEndTurnSequenceDone,
   karmaMarks = 0,
   block = 0,
   karmaMode = false,
@@ -181,16 +186,20 @@ export function CombatView({
   const prevHandRef = useRef<Card[]>([]);
   const rectCacheRef = useRef<Map<string, DOMRect>>(new Map());
   const skipDiscardIdsRef = useRef<Set<string>>(new Set());
-  /** 棄牌動畫播完後再抽牌 */
-  const pendingEndTurnDrawRef = useRef(false);
-  const endTurnDrawSafetyRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null
-  );
+  /** endTurnDiscard flight id → Promise resolve */
+  const endTurnDiscardWaitersRef = useRef<Map<string, () => void>>(new Map());
+  /** 等待下一輪抽牌批次飛完 */
+  const drawBatchWaiterRef = useRef<{
+    resolve: () => void;
+    armed: boolean;
+  } | null>(null);
+  const turnSeqBusyRef = useRef(false);
   /** 本輪抽牌批次：全部飛完再一次顯示，避免逐張 reveal 重繪扇形 */
   const drawBatchRef = useRef<{
     remaining: number;
     ids: string[];
   } | null>(null);
+  const [inputLocked, setInputLocked] = useState(false);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [pileFlights, setPileFlights] = useState<PileFlight[]>([]);
   const [hiddenCardIds, setHiddenCardIds] = useState<Set<string>>(
@@ -209,9 +218,6 @@ export function CombatView({
     return () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
       if (discardPulseTimer.current) clearTimeout(discardPulseTimer.current);
-      if (endTurnDrawSafetyRef.current) {
-        clearTimeout(endTurnDrawSafetyRef.current);
-      }
     };
   }, []);
 
@@ -235,16 +241,6 @@ export function CombatView({
       window.removeEventListener("scroll", lock);
     };
   }, []);
-
-  const flushEndTurnDraw = useCallback(() => {
-    if (!pendingEndTurnDrawRef.current) return;
-    pendingEndTurnDrawRef.current = false;
-    if (endTurnDrawSafetyRef.current) {
-      clearTimeout(endTurnDrawSafetyRef.current);
-      endTurnDrawSafetyRef.current = null;
-    }
-    onEndTurnDraw();
-  }, [onEndTurnDraw]);
 
   const showToast = useCallback((msg: string) => {
     setFeelToast(msg);
@@ -287,9 +283,33 @@ export function CombatView({
     });
   }, []);
 
-  const spawnEndTurnDiscardFlight = useCallback(
-    (cards: Card[]) => {
-      if (cards.length === 0) return;
+  const resolveDrawBatchWaiter = useCallback(() => {
+    const waiter = drawBatchWaiterRef.current;
+    if (!waiter) return;
+    drawBatchWaiterRef.current = null;
+    waiter.armed = false;
+    waiter.resolve();
+  }, []);
+
+  const waitForNextDrawBatch = useCallback((): Promise<void> => {
+    return new Promise((resolve) => {
+      drawBatchWaiterRef.current = { resolve, armed: true };
+      // 若兩幀內沒有抽牌飛出（手牌已滿等），直接結束等待
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const w = drawBatchWaiterRef.current;
+          if (w?.armed && !drawBatchRef.current) {
+            resolveDrawBatchWaiter();
+          }
+        });
+      });
+    });
+  }, [resolveDrawBatchWaiter]);
+
+  /** 回傳 Promise：整疊進棄牌堆後才 resolve */
+  const playEndTurnDiscardAnimation = useCallback(
+    (cards: Card[]): Promise<void> => {
+      if (cards.length === 0) return Promise.resolve();
       const pile =
         rectFromEl(discardPileRef.current) ?? fallbackPileRect("discard");
       const items = cards.map((card) => {
@@ -317,8 +337,9 @@ export function CombatView({
         };
       });
       pileSeq.current += 1;
+      const id = `endturn-${pileSeq.current}`;
       const flight: PileFlight = {
-        id: `endturn-${pileSeq.current}`,
+        id,
         kind: "endTurnDiscard",
         items,
         to: {
@@ -331,45 +352,77 @@ export function CombatView({
         flyMs: END_TURN_FLY_MS,
         absorbMs: END_TURN_ABSORB_MS,
       };
-      setPileFlights((prev) => [...prev, flight]);
+
+      return new Promise<void>((resolve) => {
+        endTurnDiscardWaitersRef.current.set(id, resolve);
+        setPileFlights((prev) => [...prev, flight]);
+      });
     },
     [facePreview]
   );
 
+  const finishTurnSequence = useCallback(() => {
+    setInputLocked(false);
+    turnSeqBusyRef.current = false;
+    onEndTurnSequenceDone();
+  }, [onEndTurnSequenceDone]);
+
   const handleEndTurn = useCallback(() => {
-    const toDiscard = hand.filter((c) => !cardIsRetain(c));
-    for (const c of toDiscard) {
-      skipDiscardIdsRef.current.add(c.instanceId);
-    }
+    if (turnSeqBusyRef.current || inputLocked) return;
+    turnSeqBusyRef.current = true;
+    setInputLocked(true);
 
-    if (toDiscard.length > 0) {
-      spawnEndTurnDiscardFlight(toDiscard);
-    }
+    void (async () => {
+      try {
+        const toDiscard = hand.filter((c) => !cardIsRetain(c));
+        for (const c of toDiscard) {
+          skipDiscardIdsRef.current.add(c.instanceId);
+        }
 
-    const shouldDraw = onEndTurn();
-    if (!shouldDraw) return;
+        // 動畫期間先隱藏舊牌，但暫不改 deck；避免新牌提前出現
+        if (toDiscard.length > 0) {
+          setHiddenCardIds((prev) => {
+            const next = new Set(prev);
+            toDiscard.forEach((c) => next.add(c.instanceId));
+            return next;
+          });
+          await playEndTurnDiscardAnimation(toDiscard);
+        }
 
-    if (toDiscard.length === 0) {
-      // 無棄牌動畫時稍頓再抽，節奏仍可分辨
-      window.setTimeout(() => onEndTurnDraw(), 80);
-      return;
-    }
+        // 棄牌動畫完整結束後，才結算棄牌／敵方回合 → 手牌清空
+        const shouldDraw = onEndTurn();
+        setHiddenCardIds((prev) => {
+          if (prev.size === 0) return prev;
+          const next = new Set(prev);
+          toDiscard.forEach((c) => next.delete(c.instanceId));
+          return next;
+        });
 
-    pendingEndTurnDrawRef.current = true;
-    if (endTurnDrawSafetyRef.current) {
-      clearTimeout(endTurnDrawSafetyRef.current);
-    }
-    const safetyMs =
-      END_TURN_GATHER_MS + END_TURN_FLY_MS + END_TURN_ABSORB_MS + 120;
-    endTurnDrawSafetyRef.current = setTimeout(() => {
-      flushEndTurnDraw();
-    }, safetyMs);
+        if (!shouldDraw) {
+          finishTurnSequence();
+          return;
+        }
+
+        // 短暫停頓，讓玩家感知「上回合結束了」再抽牌
+        await delayMs(END_TURN_BEAT_MS);
+
+        // 再開新回合抽牌；等抽牌飛完才解鎖
+        const drawWait = waitForNextDrawBatch();
+        onEndTurnDraw();
+        await drawWait;
+        finishTurnSequence();
+      } catch {
+        finishTurnSequence();
+      }
+    })();
   }, [
     hand,
+    inputLocked,
     onEndTurn,
     onEndTurnDraw,
-    spawnEndTurnDiscardFlight,
-    flushEndTurnDraw,
+    playEndTurnDiscardAnimation,
+    waitForNextDrawBatch,
+    finishTurnSequence,
   ]);
 
   const spawnDiscardFlights = useCallback(
@@ -477,6 +530,9 @@ export function CombatView({
         remaining: (prevBatch?.remaining ?? 0) + cards.length,
         ids: [...(prevBatch?.ids ?? []), ...ids],
       };
+      if (drawBatchWaiterRef.current) {
+        drawBatchWaiterRef.current.armed = false;
+      }
 
       setHiddenCardIds((prev) => {
         const next = new Set(prev);
@@ -633,7 +689,9 @@ export function CombatView({
       setPileFlights((prev) => {
         const flight = prev.find((f) => f.id === id);
         if (flight?.kind === "endTurnDiscard") {
-          queueMicrotask(() => flushEndTurnDraw());
+          const resolve = endTurnDiscardWaitersRef.current.get(id);
+          endTurnDiscardWaitersRef.current.delete(id);
+          queueMicrotask(() => resolve?.());
         } else if (flight?.kind === "draw") {
           const batch = drawBatchRef.current;
           if (batch) {
@@ -641,7 +699,10 @@ export function CombatView({
             if (batch.remaining <= 0) {
               const ids = batch.ids;
               drawBatchRef.current = null;
-              queueMicrotask(() => revealHandCards(ids));
+              queueMicrotask(() => {
+                revealHandCards(ids);
+                resolveDrawBatchWaiter();
+              });
             }
           } else if (flight.handInstanceId) {
             queueMicrotask(() => revealHandCard(flight.handInstanceId!));
@@ -650,7 +711,7 @@ export function CombatView({
         return prev.filter((f) => f.id !== id);
       });
     },
-    [revealHandCard, revealHandCards, flushEndTurnDraw]
+    [revealHandCard, revealHandCards, resolveDrawBatchWaiter]
   );
 
   const onDiscardAbsorb = useCallback((_flightId: string) => {
@@ -699,7 +760,7 @@ export function CombatView({
           onDenyPlay={handleDenyPlay}
           onEndTurn={handleEndTurn}
           lastDamage={lastDamage}
-          disabled={!isPlaying || enemy.currentHp <= 0}
+          disabled={!isPlaying || enemy.currentHp <= 0 || inputLocked}
           denyShake={denyShake}
           feelToast={externalFeelToast ?? feelToast}
           facePreview={facePreview}

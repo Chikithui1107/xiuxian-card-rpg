@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import {
   CARD_TEMPLATES,
@@ -83,6 +83,14 @@ const STACK_H = 150;
 export const END_TURN_GATHER_MS = 120;
 export const END_TURN_FLY_MS = 220;
 export const END_TURN_ABSORB_MS = 80;
+/** 棄牌結束 → 抽牌開始之間的呼吸停頓 */
+export const END_TURN_BEAT_MS = 80;
+
+export function delayMs(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
+}
 
 export function snapshotFlyingFace(
   card: Card,
@@ -255,6 +263,7 @@ const EndTurnGatherFlight = memo(function EndTurnGatherFlight({
   onDoneRef.current = onDone;
   const absorbRef = useRef(onDiscardAbsorb);
   absorbRef.current = onDiscardAbsorb;
+  const doneSentRef = useRef(false);
   const [phase, setPhase] = useState<"gather" | "fly">("gather");
 
   const n = flight.items.length;
@@ -279,7 +288,6 @@ const EndTurnGatherFlight = memo(function EndTurnGatherFlight({
   const flyDx = pile.left - gatherLeft;
   const flyDy = pile.top - gatherTop;
 
-  const totalMs = flight.gatherMs + flight.flyMs + flight.absorbMs;
   const topFace = flight.items[flight.items.length - 1]?.face;
   const typeStyle =
     CARD_TYPE_COLORS[topFace?.type ?? ""] ??
@@ -288,21 +296,21 @@ const EndTurnGatherFlight = memo(function EndTurnGatherFlight({
     aspectFromTemplateId(topFace?.templateId)
   );
 
+  const finish = useCallback(() => {
+    if (doneSentRef.current) return;
+    doneSentRef.current = true;
+    absorbRef.current?.();
+    onDoneRef.current();
+  }, []);
+
+  // 保險：動畫事件遺失時仍能結束 Promise（用本段實際 duration，非猜的 300）
   useEffect(() => {
-    const toFly = window.setTimeout(() => setPhase("fly"), flight.gatherMs);
-    const absorbAt = flight.gatherMs + flight.flyMs * 0.75;
-    const absorbTimer = window.setTimeout(() => {
-      absorbRef.current?.();
-    }, absorbAt);
-    const doneTimer = window.setTimeout(() => {
-      onDoneRef.current();
-    }, totalMs + 12);
-    return () => {
-      window.clearTimeout(toFly);
-      window.clearTimeout(absorbTimer);
-      window.clearTimeout(doneTimer);
-    };
-  }, [flight.gatherMs, flight.flyMs, flight.absorbMs, totalMs, flight.id]);
+    const fallback = window.setTimeout(
+      () => finish(),
+      flight.gatherMs + flight.flyMs + flight.absorbMs + 80
+    );
+    return () => window.clearTimeout(fallback);
+  }, [flight.gatherMs, flight.flyMs, flight.absorbMs, flight.id, finish]);
 
   if (phase === "gather") {
     return (
@@ -317,6 +325,7 @@ const EndTurnGatherFlight = memo(function EndTurnGatherFlight({
           const itemAspect = aspectClassName(
             aspectFromTemplateId(item.face.templateId)
           );
+          const isLead = i === flight.items.length - 1;
           return (
             <div
               key={`${flight.id}-g-${i}`}
@@ -333,6 +342,14 @@ const EndTurnGatherFlight = memo(function EndTurnGatherFlight({
                   ["--pile-spin" as string]: `${(i % 2 === 0 ? -1 : 1) * (4 + (i % 3))}deg`,
                   animationDuration: `${flight.gatherMs}ms`,
                 } as CSSProperties
+              }
+              onAnimationEnd={
+                isLead
+                  ? (e) => {
+                      if (e.target !== e.currentTarget) return;
+                      setPhase("fly");
+                    }
+                  : undefined
               }
             >
               <div
@@ -361,6 +378,10 @@ const EndTurnGatherFlight = memo(function EndTurnGatherFlight({
           animationDuration: `${flight.flyMs + flight.absorbMs}ms`,
         } as CSSProperties
       }
+      onAnimationEnd={(e) => {
+        if (e.target !== e.currentTarget) return;
+        finish();
+      }}
     >
       <div className="pile-fly-stack" aria-hidden>
         <span className="pile-fly-stack__sheet pile-fly-stack__sheet--3" />
