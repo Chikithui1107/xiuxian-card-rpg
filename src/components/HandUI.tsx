@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -36,36 +37,95 @@ interface HandUIProps {
 /** 上滑多少像素算出牌 */
 const PLAY_SWIPE_Y = -52;
 const TAP_SLOP = 8;
+const SAFE_MARGIN_PX = 14;
 
-/** 靜止時扇形角度；hover／選取時歸零方便閱讀 */
-function fanAngle(index: number, total: number) {
-  if (total <= 1) return 0;
-  const spread = Math.min(10, 3 * (total - 1));
-  const start = -spread / 2;
-  return start + (spread / (total - 1)) * index;
+interface HandLayoutMetrics {
+  cardWidth: number;
+  cardHeight: number;
+  scale: number;
+  step: number;
+  spreadDeg: number;
+  trackHeight: number;
 }
 
-function fanLift(index: number, total: number) {
-  if (total <= 1) return 0;
-  const mid = (total - 1) / 2;
-  return Math.abs(index - mid) * 2.5;
+interface CardFanPose {
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
 }
 
-/** 重疊適中：卡名必露；詳情用獨立面板，不放大手牌 */
-function overlapPx(total: number) {
-  const raw =
-    typeof window !== "undefined"
-      ? getComputedStyle(document.documentElement).getPropertyValue(
-          "--game-card-width"
-        )
-      : "7.35rem";
-  const w = raw.includes("rem")
-    ? (parseFloat(raw) || 7.35) * 16
-    : parseFloat(raw) || 118;
-  if (total <= 3) return Math.round(w * 0.18);
-  if (total === 4) return Math.round(w * 0.22);
-  if (total === 5) return Math.round(w * 0.26);
-  return Math.round(w * 0.3);
+function readCssPx(varName: string, fallbackRem: number): number {
+  if (typeof window === "undefined") return fallbackRem * 16;
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(
+    varName
+  );
+  const n = parseFloat(raw);
+  if (!Number.isFinite(n)) return fallbackRem * 16;
+  return raw.includes("rem") ? n * 16 : n;
+}
+
+/**
+ * 動態扇形：優先壓縮 spacing / 角度，卡牌 scale 只微調。
+ * 保證首尾落在 availableWidth（已扣安全邊距）內。
+ */
+function computeHandMetrics(
+  handCount: number,
+  availableWidth: number
+): HandLayoutMetrics {
+  const cardWidth = readCssPx("--game-card-width", 8.15);
+  const cardHeight = readCssPx("--game-card-height", 12.85);
+  const n = Math.max(handCount, 0);
+  const avail = Math.max(availableWidth, cardWidth * 0.7);
+
+  let scale = 1;
+  if (n >= 8) scale = 0.89;
+  else if (n >= 6) scale = 0.94;
+
+  let scaledW = cardWidth * scale;
+  // 若單張都比可用寬還寬，略再縮（仍不低于 ~0.88）
+  if (scaledW > avail) {
+    scale = Math.max(0.88, avail / cardWidth);
+    scaledW = cardWidth * scale;
+  }
+
+  const maxStepRatio =
+    n <= 1 ? 1 : n <= 3 ? 0.9 : n <= 5 ? 0.78 : n <= 7 ? 0.52 : 0.38;
+  const maxStep = scaledW * maxStepRatio;
+  const fitStep = n <= 1 ? 0 : (avail - scaledW) / (n - 1);
+  const step = Math.max(0, Math.min(maxStep, fitStep));
+
+  const spreadDeg =
+    n <= 1
+      ? 0
+      : n <= 5
+        ? Math.min(11, 2.6 * (n - 1))
+        : n <= 7
+          ? Math.min(7.5, 1.35 * (n - 1))
+          : Math.min(4.5, 0.5 * (n - 1));
+
+  const arcLift = n <= 5 ? 2.4 : n <= 7 ? 1.5 : 1;
+  const maxArc = Math.abs((n - 1) / 2) * arcLift;
+  const trackHeight = cardHeight * scale + maxArc + 14;
+
+  return { cardWidth, cardHeight, scale, step, spreadDeg, trackHeight };
+}
+
+function poseForIndex(
+  index: number,
+  total: number,
+  metrics: HandLayoutMetrics
+): CardFanPose {
+  if (total <= 0) return { x: 0, y: 0, rotation: 0, scale: 1 };
+  const relativeIndex = index - (total - 1) / 2;
+  const t = total <= 1 ? 0 : index / (total - 1) - 0.5;
+  const arcLift = total <= 5 ? 2.4 : total <= 7 ? 1.5 : 1;
+  return {
+    x: relativeIndex * metrics.step,
+    y: Math.abs(relativeIndex) * arcLift,
+    rotation: t * 2 * metrics.spreadDeg,
+    scale: metrics.scale,
+  };
 }
 
 export function HandUI({
@@ -77,14 +137,34 @@ export function HandUI({
   onDenyPlay,
   facePreview,
 }: HandUIProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [availWidth, setAvailWidth] = useState(360);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [hoverDetailId, setHoverDetailId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const measure = () => {
+      const w = el.clientWidth;
+      setAvailWidth(Math.max(0, w - SAFE_MARGIN_PX * 2));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (selectedId && !hand.some((c) => c.instanceId === selectedId)) {
       setSelectedId(null);
     }
   }, [hand, selectedId]);
+
+  const metrics = useMemo(
+    () => computeHandMetrics(hand.length, availWidth),
+    [hand.length, availWidth]
+  );
 
   const detailCard =
     hand.find((c) => c.instanceId === (hoverDetailId ?? selectedId)) ?? null;
@@ -95,10 +175,9 @@ export function HandUI({
 
   return (
     <div
-      className={`hand-fan relative w-full overflow-visible px-0.5 pb-1 pt-1 ${
+      className={`hand-fan relative w-full max-w-full overflow-x-clip overflow-y-visible px-0 pb-1 pt-1 ${
         denyShake ? "animate-deny-shake" : ""
       }`}
-      style={{ minHeight: "calc(0.5rem + var(--game-card-height))" }}
     >
       <CardDetailPanel
         open={Boolean(detailCard && detailTemplate)}
@@ -108,32 +187,40 @@ export function HandUI({
         detail={detailKarma?.detail ?? detailTemplate?.description ?? ""}
       />
       {hand.length === 0 ? (
-        <p className="flex min-h-[var(--game-card-height)] items-center justify-center text-xs text-stone-500">
+        <p
+          className="flex items-center justify-center text-xs text-stone-500"
+          style={{ minHeight: "var(--game-card-height)" }}
+        >
           手牌已空
         </p>
       ) : (
-        <div className="flex max-w-full justify-center overflow-visible">
-          <div className="relative flex items-end justify-center">
-            {hand.map((card, index) => (
-              <HandCard
-                key={card.instanceId}
-                card={card}
-                index={index}
-                total={hand.length}
-                energy={energy}
-                locked={disabled}
-                selected={selectedId === card.instanceId}
-                hovered={hoverDetailId === card.instanceId}
-                facePreview={facePreview}
-                onSelect={(id) =>
-                  setSelectedId((prev) => (prev === id ? null : id))
-                }
-                onHoverDetail={setHoverDetailId}
-                onPlayCard={onPlayCard}
-                onDenyPlay={onDenyPlay}
-              />
-            ))}
-          </div>
+        <div
+          ref={trackRef}
+          className="hand-fan-track relative mx-auto w-full"
+          style={{ height: metrics.trackHeight }}
+        >
+          {hand.map((card, index) => (
+            <HandCard
+              key={card.instanceId}
+              card={card}
+              index={index}
+              total={hand.length}
+              energy={energy}
+              locked={disabled}
+              selected={selectedId === card.instanceId}
+              hovered={hoverDetailId === card.instanceId}
+              pose={poseForIndex(index, hand.length, metrics)}
+              cardWidth={metrics.cardWidth}
+              cardHeight={metrics.cardHeight}
+              facePreview={facePreview}
+              onSelect={(id) =>
+                setSelectedId((prev) => (prev === id ? null : id))
+              }
+              onHoverDetail={setHoverDetailId}
+              onPlayCard={onPlayCard}
+              onDenyPlay={onDenyPlay}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -148,6 +235,9 @@ function HandCard({
   locked,
   selected,
   hovered,
+  pose,
+  cardWidth,
+  cardHeight,
   facePreview,
   onSelect,
   onHoverDetail,
@@ -161,6 +251,9 @@ function HandCard({
   locked: boolean;
   selected: boolean;
   hovered: boolean;
+  pose: CardFanPose;
+  cardWidth: number;
+  cardHeight: number;
   facePreview?: CardFacePreviewState;
   onSelect: (id: string) => void;
   onHoverDetail: (id: string | null) => void;
@@ -213,15 +306,11 @@ function HandCard({
     CARD_TYPE_COLORS[template?.type ?? ""] ??
     "ink-card-type-basic bg-[#1a1814]";
 
-  const angle = fanAngle(index, total);
-  const baseLift = fanLift(index, total);
-  const marginLeft = index === 0 ? 0 : -overlapPx(total);
-
-  /* 點選／hover 略抬高並置頂；詳情用獨立面板，不放大整張手牌、不改 hand 尺寸 */
+  /* 點選／hover 略抬高並置頂；詳情用獨立面板，不改整排 reflow */
   const raised = (selected || hovered) && !dragging;
   const restTransform = raised
-    ? `translateY(${baseLift - 10}px) scale(1.03) rotate(0deg)`
-    : `translateY(${baseLift}px) scale(1) rotate(${angle}deg)`;
+    ? `translateX(${pose.x}px) translateY(${pose.y - 10}px) scale(${Math.min(1.03, pose.scale + 0.04)}) rotate(0deg)`
+    : `translateX(${pose.x}px) translateY(${pose.y}px) scale(${pose.scale}) rotate(${pose.rotation}deg)`;
   const stackZ = dragging ? 90 : raised ? 80 + index : 10 + index;
 
   const clearGhostStyles = useCallback(() => {
@@ -287,7 +376,6 @@ function HandCard({
     if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
-    // 用槽位量尺寸，避免扇形 rotate／hover 影響抓取點
     const measureEl = slotRef.current ?? ghostRef.current;
     if (!measureEl) return;
     const rect = measureEl.getBoundingClientRect();
@@ -328,7 +416,6 @@ function HandCard({
         dragPosRef.current = { x, y };
         setDragging(true);
         setDragBox({ x, y, w: drag.width, h: drag.height });
-        // 下一幀強制寫座標，避免 React commit 前幽靈還在錯誤位置
         requestAnimationFrame(() => placeDragPortal(x, y));
       }
 
@@ -411,7 +498,6 @@ function HandCard({
     />
   );
 
-  /* 拖曳幽靈：不用 ink-card（避免被 CSS 藏掉），純 fixed + translate3d 跟手 */
   const dragPortal =
     dragging &&
     dragBox &&
@@ -444,10 +530,12 @@ function HandCard({
           boxShadow: "0 16px 40px rgba(0,0,0,0.75)",
         }}
       >
-        <div className={`h-full w-full ${typeStyle}`}>{renderCardFace({
-          showSelectHint: false,
-          showReady: readyHint,
-        })}</div>
+        <div className={`h-full w-full ${typeStyle}`}>
+          {renderCardFace({
+            showSelectHint: false,
+            showReady: readyHint,
+          })}
+        </div>
       </div>,
       document.body
     );
@@ -455,10 +543,18 @@ function HandCard({
   return (
     <div
       ref={slotRef}
-      className="hand-card-slot relative shrink-0"
+      className="hand-card-slot"
       style={{
+        position: "absolute",
+        left: "50%",
+        bottom: 0,
+        width: cardWidth,
+        height: cardHeight,
+        marginLeft: -cardWidth / 2,
         zIndex: stackZ,
-        marginLeft: index === 0 ? undefined : marginLeft,
+        transform: restTransform,
+        transformOrigin: "bottom center",
+        transition: dragging ? undefined : "transform 200ms ease-out",
       }}
       onMouseEnter={() => {
         if (fineHoverRef.current && !dragging) {
@@ -473,6 +569,7 @@ function HandCard({
         tabIndex={0}
         aria-pressed={selected}
         aria-disabled={locked || !canAfford}
+        aria-label={`${card.name}（${index + 1}/${total}）`}
         onPointerDown={(e) => {
           onHoverDetail(null);
           onPointerDown(e);
@@ -497,15 +594,11 @@ function HandCard({
             : !canAfford
               ? "cursor-grab opacity-55"
               : "cursor-grab active:cursor-grabbing"
-        } ${typeStyle} ${
-          dragging ? "" : "transition-transform duration-200 ease-out"
-        } ${raised ? "ink-card-selected" : ""} ${
+        } ${typeStyle} ${raised ? "ink-card-selected" : ""} ${
           card.pulledByKarma && !dragging ? "ink-card-pulled" : ""
         }`}
         style={{
           touchAction: "none",
-          transform: restTransform,
-          zIndex: raised ? 80 + index : undefined,
           opacity: dragging ? 0.28 : undefined,
         }}
       >

@@ -1851,6 +1851,21 @@ html.combat-scroll-lock {
 .hand-card-slot {
   width: var(--game-card-width);
   height: var(--game-card-height);
+  flex-shrink: 0;
+}
+
+.hand-fan {
+  max-width: 100%;
+}
+
+.hand-fan-track {
+  max-width: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.hand-fan-track .hand-card-slot {
+  pointer-events: auto;
 }
 
 .ink-card {

@@ -62,6 +62,13 @@ export function CardHand({
       <div className="flex shrink-0 items-start justify-between gap-2 px-0.5">
         <div className="min-w-0 flex-1">{playerBar}</div>
         <p className="shrink-0 pt-1 text-[9px] tracking-wide text-stone-500">
+          {hand.length >= 7 && (
+            <>
+              <span className="text-stone-600">手牌</span>{" "}
+              <span className="tabular-nums text-[#c9a84c]">{hand.length}</span>
+              <span className="mx-1 text-stone-700">·</span>
+            </>
+          )}
           <span className="text-stone-600">抽</span>{" "}
           <span className="tabular-nums text-[#9ab8aa]">{drawPileCount}</span>
           <span className="mx-1 text-stone-700">·</span>
