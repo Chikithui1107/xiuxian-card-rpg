@@ -1034,7 +1034,7 @@ export default function GamePage() {
     [pendingDiscard, deckState]
   );
 
-  const endTurn = useCallback(() => {
+  const endTurn = useCallback((): boolean => {
     if (
       playLockRef.current ||
       victoryStartedRef.current ||
@@ -1043,8 +1043,10 @@ export default function GamePage() {
       enemy.currentHp <= 0 ||
       pendingDiscard
     ) {
-      return;
+      return false;
     }
+
+    playLockRef.current = true;
 
     let newDeck = discardHand(deckState);
     let karma = karmaState;
@@ -1102,12 +1104,17 @@ export default function GamePage() {
     const newPlayerHp = Math.max(0, playerHp - totalDmg);
     setPlayerHp(newPlayerHp);
 
+    // 先只更新棄牌後牌組；抽牌等棄牌動畫結束再進行
+    setDeckState(newDeck);
+    if (character.combatPath === "karma") {
+      setKarmaState(karma);
+    }
+
     if (newPlayerHp <= 0) {
-      setDeckState(newDeck);
-      if (character.combatPath === "karma") setKarmaState(karma);
       playGameOverSfx();
       setPhase("defeat");
-      return;
+      playLockRef.current = false;
+      return false;
     }
 
     if (enemy.passive === "regen") {
@@ -1120,14 +1127,8 @@ export default function GamePage() {
     }
 
     setEnemy((prev) => advanceEnemyIntent(prev));
-    newDeck = drawCards(newDeck, COMBAT_HAND_SIZE);
-    setDeckState(newDeck);
     setLastDamage(null);
-    playCardDrawSfx(COMBAT_HAND_SIZE);
-
-    if (character.combatPath === "karma") {
-      setKarmaState(beginKarmaPlayerTurn(karma));
-    }
+    return true;
   }, [
     phase,
     battlePhase,
@@ -1139,6 +1140,28 @@ export default function GamePage() {
     karmaState,
     pendingDiscard,
   ]);
+
+  /** 棄牌動畫結束後補抽，與棄牌視覺分開 */
+  const completeEndTurnDraw = useCallback(() => {
+    if (victoryStartedRef.current || phase === "defeat") {
+      playLockRef.current = false;
+      return;
+    }
+
+    setDeckState((prev) => {
+      const drawn = drawCards(prev, COMBAT_HAND_SIZE);
+      return drawn;
+    });
+    playCardDrawSfx(COMBAT_HAND_SIZE);
+
+    if (character.combatPath === "karma") {
+      setKarmaState((prev) => beginKarmaPlayerTurn(prev));
+    }
+
+    queueMicrotask(() => {
+      playLockRef.current = false;
+    });
+  }, [phase, character.combatPath]);
 
   useEffect(() => {
     if (phase !== "defeat") return;
@@ -1336,6 +1359,7 @@ export default function GamePage() {
             totalDamage={totalDamage}
             onPlayCard={playCard}
             onEndTurn={endTurn}
+            onEndTurnDraw={completeEndTurnDraw}
             karmaMarks={karmaState.karmaMarks}
             block={karmaState.block}
             karmaMode={character.combatPath === "karma"}

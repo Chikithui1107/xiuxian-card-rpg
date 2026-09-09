@@ -86,7 +86,10 @@ interface CombatViewProps {
   lastPassiveHeal?: number | null;
   totalDamage: number;
   onPlayCard: (card: Card) => boolean;
-  onEndTurn: () => void;
+  /** 棄牌＋敵方回合；回傳 true 表示之後還要抽牌 */
+  onEndTurn: () => boolean;
+  /** 棄牌動畫結束後抽新手牌 */
+  onEndTurnDraw: () => void;
   karmaMarks?: number;
   block?: number;
   karmaMode?: boolean;
@@ -150,6 +153,7 @@ export function CombatView({
   totalDamage: _totalDamage,
   onPlayCard,
   onEndTurn,
+  onEndTurnDraw,
   karmaMarks = 0,
   block = 0,
   karmaMode = false,
@@ -177,6 +181,11 @@ export function CombatView({
   const prevHandRef = useRef<Card[]>([]);
   const rectCacheRef = useRef<Map<string, DOMRect>>(new Map());
   const skipDiscardIdsRef = useRef<Set<string>>(new Set());
+  /** 棄牌動畫播完後再抽牌 */
+  const pendingEndTurnDrawRef = useRef(false);
+  const endTurnDrawSafetyRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
   /** 本輪抽牌批次：全部飛完再一次顯示，避免逐張 reveal 重繪扇形 */
   const drawBatchRef = useRef<{
     remaining: number;
@@ -200,6 +209,9 @@ export function CombatView({
     return () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
       if (discardPulseTimer.current) clearTimeout(discardPulseTimer.current);
+      if (endTurnDrawSafetyRef.current) {
+        clearTimeout(endTurnDrawSafetyRef.current);
+      }
     };
   }, []);
 
@@ -223,6 +235,16 @@ export function CombatView({
       window.removeEventListener("scroll", lock);
     };
   }, []);
+
+  const flushEndTurnDraw = useCallback(() => {
+    if (!pendingEndTurnDrawRef.current) return;
+    pendingEndTurnDrawRef.current = false;
+    if (endTurnDrawSafetyRef.current) {
+      clearTimeout(endTurnDrawSafetyRef.current);
+      endTurnDrawSafetyRef.current = null;
+    }
+    onEndTurnDraw();
+  }, [onEndTurnDraw]);
 
   const showToast = useCallback((msg: string) => {
     setFeelToast(msg);
@@ -319,11 +341,36 @@ export function CombatView({
     for (const c of toDiscard) {
       skipDiscardIdsRef.current.add(c.instanceId);
     }
+
     if (toDiscard.length > 0) {
       spawnEndTurnDiscardFlight(toDiscard);
     }
-    onEndTurn();
-  }, [hand, onEndTurn, spawnEndTurnDiscardFlight]);
+
+    const shouldDraw = onEndTurn();
+    if (!shouldDraw) return;
+
+    if (toDiscard.length === 0) {
+      // 無棄牌動畫時稍頓再抽，節奏仍可分辨
+      window.setTimeout(() => onEndTurnDraw(), 80);
+      return;
+    }
+
+    pendingEndTurnDrawRef.current = true;
+    if (endTurnDrawSafetyRef.current) {
+      clearTimeout(endTurnDrawSafetyRef.current);
+    }
+    const safetyMs =
+      END_TURN_GATHER_MS + END_TURN_FLY_MS + END_TURN_ABSORB_MS + 120;
+    endTurnDrawSafetyRef.current = setTimeout(() => {
+      flushEndTurnDraw();
+    }, safetyMs);
+  }, [
+    hand,
+    onEndTurn,
+    onEndTurnDraw,
+    spawnEndTurnDiscardFlight,
+    flushEndTurnDraw,
+  ]);
 
   const spawnDiscardFlights = useCallback(
     (cards: { card: Card; from: DOMRect | null }[]) => {
@@ -585,14 +632,15 @@ export function CombatView({
     (id: string) => {
       setPileFlights((prev) => {
         const flight = prev.find((f) => f.id === id);
-        if (flight?.kind === "draw") {
+        if (flight?.kind === "endTurnDiscard") {
+          queueMicrotask(() => flushEndTurnDraw());
+        } else if (flight?.kind === "draw") {
           const batch = drawBatchRef.current;
           if (batch) {
             batch.remaining -= 1;
             if (batch.remaining <= 0) {
               const ids = batch.ids;
               drawBatchRef.current = null;
-              // 批次結束後再一次接手，減少扇形重繪次數
               queueMicrotask(() => revealHandCards(ids));
             }
           } else if (flight.handInstanceId) {
@@ -602,7 +650,7 @@ export function CombatView({
         return prev.filter((f) => f.id !== id);
       });
     },
-    [revealHandCard, revealHandCards]
+    [revealHandCard, revealHandCards, flushEndTurnDraw]
   );
 
   const onDiscardAbsorb = useCallback((_flightId: string) => {
