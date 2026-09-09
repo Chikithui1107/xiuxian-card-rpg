@@ -561,7 +561,8 @@ function HandCard({
         zIndex: stackZ,
         transform: restTransform,
         transformOrigin: "bottom center",
-        transition: dragging ? undefined : "transform 200ms ease-out",
+        transition:
+          dragging || visuallyHidden ? undefined : "transform 200ms ease-out",
         visibility: visuallyHidden ? "hidden" : undefined,
         pointerEvents: visuallyHidden ? "none" : undefined,
       }}

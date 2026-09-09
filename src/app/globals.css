@@ -713,6 +713,9 @@ body {
   overflow: visible;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.58);
   will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  contain: layout style;
   transform-origin: center center;
 }
 
@@ -722,6 +725,94 @@ body {
   border-radius: 0.35rem;
   overflow: hidden;
   box-sizing: border-box;
+  /* 飛牌自有尺寸，壓過 .ink-card 的 --game-card-* 固定寬高 */
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.pile-fly-face {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.35rem 0.4rem 0.3rem;
+  box-sizing: border-box;
+}
+
+.pile-fly-face__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+
+.pile-fly-face__name {
+  min-width: 0;
+  flex: 1;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.2;
+  color: #f0e6d3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pile-fly-face__cost {
+  flex-shrink: 0;
+  min-width: 1.1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(154, 184, 170, 0.45);
+  padding: 0 0.28rem;
+  font-size: 9px;
+  line-height: 1.35;
+  text-align: center;
+  color: #9ab8aa;
+}
+
+.pile-fly-face__icon {
+  width: 86%;
+  margin: 0 auto;
+  aspect-ratio: 5 / 3;
+  overflow: hidden;
+  border-radius: 0.2rem;
+  border: 1px dashed rgba(160, 140, 100, 0.28);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.pile-fly-face__icon--empty {
+  border-style: dashed;
+}
+
+.pile-fly-face__icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pile-fly-face__desc {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.pile-fly-face__line {
+  margin: 0;
+  font-size: 8px;
+  line-height: 1.25;
+  color: rgba(210, 200, 185, 0.88);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.pile-fly-face__type {
+  margin-top: auto;
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 /* 棄牌收進時極淡水墨散開 */
@@ -766,19 +857,10 @@ body {
 
 @keyframes pile-draw-fly {
   0% {
-    transform: translate3d(0, 0, 0) scale(0.65);
+    transform: translate3d(0, 0, 0) scale(0.72);
     opacity: 1;
   }
-  42% {
-    transform: translate3d(
-        calc(var(--pile-dx) * 0.52),
-        calc(var(--pile-dy) * 0.48),
-        0
-      )
-      scale(0.8);
-    opacity: 1;
-  }
-  82% {
+  78% {
     transform: translate3d(var(--pile-dx), var(--pile-dy), 0) scale(1.02);
     opacity: 1;
   }
@@ -829,7 +911,7 @@ body {
 
 .pile-fly-draw {
   animation-name: pile-draw-fly;
-  animation-timing-function: cubic-bezier(0.22, 0.72, 0.18, 1);
+  animation-timing-function: cubic-bezier(0.2, 0.78, 0.18, 1);
   animation-fill-mode: both;
 }
 

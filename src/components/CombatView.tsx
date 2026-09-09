@@ -51,8 +51,8 @@ import type { CardFacePreviewState } from "@/lib/card-face-display";
 
 const COMBAT_BG = publicAsset("/backgrounds/combat-moon-path.jpg");
 
-const DRAW_DURATION_MS = 360;
-const DRAW_STAGGER_MS = 70;
+const DRAW_DURATION_MS = 280;
+const DRAW_STAGGER_MS = 48;
 const DISCARD_DURATION_MS = 470;
 const DISCARD_STAGGER_MS = 42;
 
@@ -173,6 +173,11 @@ export function CombatView({
   const prevHandRef = useRef<Card[]>([]);
   const rectCacheRef = useRef<Map<string, DOMRect>>(new Map());
   const skipDiscardIdsRef = useRef<Set<string>>(new Set());
+  /** 本輪抽牌批次：全部飛完再一次顯示，避免逐張 reveal 重繪扇形 */
+  const drawBatchRef = useRef<{
+    remaining: number;
+    ids: string[];
+  } | null>(null);
   const [flights, setFlights] = useState<Flight[]>([]);
   const [pileFlights, setPileFlights] = useState<PileFlight[]>([]);
   const [hiddenCardIds, setHiddenCardIds] = useState<Set<string>>(
@@ -244,6 +249,18 @@ export function CombatView({
     });
   }, []);
 
+  const revealHandCards = useCallback((instanceIds: string[]) => {
+    if (instanceIds.length === 0) return;
+    setHiddenCardIds((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const id of instanceIds) {
+        if (next.delete(id)) changed = true;
+      }
+      return changed ? next : prev;
+    });
+  }, []);
+
   const spawnDiscardFlights = useCallback(
     (cards: { card: Card; from: DOMRect | null }[]) => {
       if (cards.length === 0) return;
@@ -276,7 +293,7 @@ export function CombatView({
           kind: "discard" as const,
           handInstanceId: card.instanceId,
           card: { ...card },
-          face: snapshotFlyingFace(card),
+          face: snapshotFlyingFace(card, facePreview),
           from: {
             left: source.left,
             top: source.top,
@@ -296,7 +313,7 @@ export function CombatView({
       });
       setPileFlights((prev) => [...prev, ...nextFlights]);
     },
-    []
+    [facePreview]
   );
 
   const spawnDrawFlights = useCallback(
@@ -326,7 +343,7 @@ export function CombatView({
           kind: "draw" as const,
           handInstanceId: card.instanceId,
           card: { ...card },
-          face: snapshotFlyingFace(card),
+          face: snapshotFlyingFace(card, facePreview),
           from: {
             left: pile.left,
             top: pile.top,
@@ -344,22 +361,20 @@ export function CombatView({
         };
       });
 
+      const prevBatch = drawBatchRef.current;
+      drawBatchRef.current = {
+        remaining: (prevBatch?.remaining ?? 0) + cards.length,
+        ids: [...(prevBatch?.ids ?? []), ...ids],
+      };
+
       setHiddenCardIds((prev) => {
         const next = new Set(prev);
         ids.forEach((id) => next.add(id));
         return next;
       });
       setPileFlights((prev) => [...prev, ...nextFlights]);
-
-      nextFlights.forEach((flight, i) => {
-        const instanceId = flight.handInstanceId;
-        if (!instanceId) return;
-        window.setTimeout(() => {
-          revealHandCard(instanceId);
-        }, i * DRAW_STAGGER_MS + DRAW_DURATION_MS);
-      });
     },
-    [revealHandCard]
+    [facePreview]
   );
 
   useLayoutEffect(() => {
@@ -506,13 +521,24 @@ export function CombatView({
     (id: string) => {
       setPileFlights((prev) => {
         const flight = prev.find((f) => f.id === id);
-        if (flight?.kind === "draw" && flight.handInstanceId) {
-          revealHandCard(flight.handInstanceId);
+        if (flight?.kind === "draw") {
+          const batch = drawBatchRef.current;
+          if (batch) {
+            batch.remaining -= 1;
+            if (batch.remaining <= 0) {
+              const ids = batch.ids;
+              drawBatchRef.current = null;
+              // 批次結束後再一次接手，減少扇形重繪次數
+              queueMicrotask(() => revealHandCards(ids));
+            }
+          } else if (flight.handInstanceId) {
+            queueMicrotask(() => revealHandCard(flight.handInstanceId!));
+          }
         }
         return prev.filter((f) => f.id !== id);
       });
     },
-    [revealHandCard]
+    [revealHandCard, revealHandCards]
   );
 
   const onDiscardAbsorb = useCallback((_flightId: string) => {
@@ -594,7 +620,6 @@ export function CombatView({
         flights={pileFlights}
         onFlightDone={onPileFlightDone}
         onDiscardAbsorb={onDiscardAbsorb}
-        facePreview={facePreview}
       />
       {flights.map((flight) => {
         const typeStyle =
