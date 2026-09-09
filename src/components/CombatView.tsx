@@ -14,6 +14,7 @@ import { CardHand } from "@/components/CardHand";
 import { CombatPlayerBar } from "@/components/CombatPlayerBar";
 import {
   CardAnimationLayer,
+  snapshotFlyingFace,
   type PileFlight,
 } from "@/components/CardAnimationLayer";
 import {
@@ -21,7 +22,6 @@ import {
   type CardTemplateId,
 } from "@/lib/battle-deck";
 import type { Card } from "@/types/battle";
-import { getEffectiveCost } from "@/types/battle";
 import type { Hero, HeroStats } from "@/lib/stats";
 import type { CombatBuffs } from "@/lib/battle-resolve";
 import type {
@@ -51,10 +51,10 @@ import type { CardFacePreviewState } from "@/lib/card-face-display";
 
 const COMBAT_BG = publicAsset("/backgrounds/combat-moon-path.jpg");
 
-const DRAW_DURATION_MS = 340;
+const DRAW_DURATION_MS = 360;
 const DRAW_STAGGER_MS = 70;
-const DISCARD_DURATION_MS = 260;
-const DISCARD_STAGGER_MS = 32;
+const DISCARD_DURATION_MS = 470;
+const DISCARD_STAGGER_MS = 42;
 
 interface CombatViewProps {
   hero: Hero;
@@ -178,6 +178,8 @@ export function CombatView({
   const [hiddenCardIds, setHiddenCardIds] = useState<Set<string>>(
     () => new Set()
   );
+  const [discardPilePulse, setDiscardPilePulse] = useState(false);
+  const discardPulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [bursts, setBursts] = useState<PlayBurst[]>([]);
   const [screenFlash, setScreenFlash] = useState(false);
   const [hitFlash, setHitFlash] = useState(false);
@@ -188,6 +190,7 @@ export function CombatView({
   useEffect(() => {
     return () => {
       if (toastTimer.current) clearTimeout(toastTimer.current);
+      if (discardPulseTimer.current) clearTimeout(discardPulseTimer.current);
     };
   }, []);
 
@@ -261,21 +264,19 @@ export function CombatView({
             72,
             112
           );
-        const template = CARD_TEMPLATES[card.id as CardTemplateId];
         const stagger =
           cards.length <= 1
             ? 0
             : Math.min(
                 DISCARD_STAGGER_MS,
-                Math.max(25, Math.floor(180 / (cards.length - 1)))
+                Math.max(35, Math.floor(220 / (cards.length - 1)))
               );
         return {
           id: `discard-${pileSeq.current}-${card.instanceId}`,
           kind: "discard" as const,
           handInstanceId: card.instanceId,
-          name: card.name,
-          cost: getEffectiveCost(card),
-          type: template?.type ?? "",
+          card: { ...card },
+          face: snapshotFlyingFace(card),
           from: {
             left: source.left,
             top: source.top,
@@ -290,7 +291,7 @@ export function CombatView({
           },
           delayMs: i * stagger,
           durationMs: DISCARD_DURATION_MS,
-          spinDeg: i % 2 === 0 ? 11 : -10,
+          spinDeg: i % 2 === 0 ? 16 : -14,
         };
       });
       setPileFlights((prev) => [...prev, ...nextFlights]);
@@ -320,14 +321,12 @@ export function CombatView({
             126
           );
         pileSeq.current += 1;
-        const template = CARD_TEMPLATES[card.id as CardTemplateId];
         return {
           id: `draw-${pileSeq.current}-${card.instanceId}`,
           kind: "draw" as const,
           handInstanceId: card.instanceId,
-          name: card.name,
-          cost: getEffectiveCost(card),
-          type: template?.type ?? "",
+          card: { ...card },
+          face: snapshotFlyingFace(card),
           from: {
             left: pile.left,
             top: pile.top,
@@ -516,6 +515,14 @@ export function CombatView({
     [revealHandCard]
   );
 
+  const onDiscardAbsorb = useCallback((_flightId: string) => {
+    setDiscardPilePulse(true);
+    if (discardPulseTimer.current) clearTimeout(discardPulseTimer.current);
+    discardPulseTimer.current = setTimeout(() => {
+      setDiscardPilePulse(false);
+    }, 280);
+  }, []);
+
   return (
     <div className="combat-shell" onPointerDown={unlockCombatAudio}>
       <div className="combat-shell-bg" aria-hidden>
@@ -561,6 +568,7 @@ export function CombatView({
           hiddenCardIds={hiddenCardIds}
           drawPileRef={drawPileRef}
           discardPileRef={discardPileRef}
+          discardPilePulse={discardPilePulse}
           playerBar={
             <CombatPlayerBar
               hero={hero}
@@ -585,6 +593,8 @@ export function CombatView({
       <CardAnimationLayer
         flights={pileFlights}
         onFlightDone={onPileFlightDone}
+        onDiscardAbsorb={onDiscardAbsorb}
+        facePreview={facePreview}
       />
       {flights.map((flight) => {
         const typeStyle =
