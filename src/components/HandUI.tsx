@@ -32,6 +32,8 @@ interface HandUIProps {
   onPlayCard: (card: Card, origin: DOMRect) => void;
   onDenyPlay?: (reason: "energy" | "locked") => void;
   facePreview?: CardFacePreviewState;
+  /** 飛入動畫期間隱藏真實卡面，仍佔位以便量測目標座標 */
+  hiddenCardIds?: ReadonlySet<string>;
 }
 
 /** 上滑多少像素算出牌 */
@@ -136,6 +138,7 @@ export function HandUI({
   onPlayCard,
   onDenyPlay,
   facePreview,
+  hiddenCardIds,
 }: HandUIProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [availWidth, setAvailWidth] = useState(360);
@@ -213,6 +216,7 @@ export function HandUI({
               cardWidth={metrics.cardWidth}
               cardHeight={metrics.cardHeight}
               facePreview={facePreview}
+              visuallyHidden={hiddenCardIds?.has(card.instanceId) ?? false}
               onSelect={(id) =>
                 setSelectedId((prev) => (prev === id ? null : id))
               }
@@ -239,6 +243,7 @@ function HandCard({
   cardWidth,
   cardHeight,
   facePreview,
+  visuallyHidden,
   onSelect,
   onHoverDetail,
   onPlayCard,
@@ -255,6 +260,7 @@ function HandCard({
   cardWidth: number;
   cardHeight: number;
   facePreview?: CardFacePreviewState;
+  visuallyHidden: boolean;
   onSelect: (id: string) => void;
   onHoverDetail: (id: string | null) => void;
   onPlayCard: (card: Card, origin: DOMRect) => void;
@@ -544,6 +550,7 @@ function HandCard({
     <div
       ref={slotRef}
       className="hand-card-slot"
+      data-hand-instance-id={card.instanceId}
       style={{
         position: "absolute",
         left: "50%",
@@ -555,9 +562,11 @@ function HandCard({
         transform: restTransform,
         transformOrigin: "bottom center",
         transition: dragging ? undefined : "transform 200ms ease-out",
+        visibility: visuallyHidden ? "hidden" : undefined,
+        pointerEvents: visuallyHidden ? "none" : undefined,
       }}
       onMouseEnter={() => {
-        if (fineHoverRef.current && !dragging) {
+        if (fineHoverRef.current && !dragging && !visuallyHidden) {
           onHoverDetail(card.instanceId);
         }
       }}
@@ -566,16 +575,18 @@ function HandCard({
       <div
         ref={ghostRef}
         role="button"
-        tabIndex={0}
+        tabIndex={visuallyHidden ? -1 : 0}
         aria-pressed={selected}
-        aria-disabled={locked || !canAfford}
+        aria-disabled={locked || !canAfford || visuallyHidden}
         aria-label={`${card.name}（${index + 1}/${total}）`}
         onPointerDown={(e) => {
+          if (visuallyHidden) return;
           onHoverDetail(null);
           onPointerDown(e);
         }}
         onPointerCancel={onPointerCancel}
         onKeyDown={(e) => {
+          if (visuallyHidden) return;
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             onSelect(card.instanceId);

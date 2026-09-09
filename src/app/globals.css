@@ -603,6 +603,169 @@ body {
   box-sizing: border-box;
 }
 
+/* —— 抽／棄牌堆錨點 —— */
+.deck-pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 3.1rem;
+  user-select: none;
+  pointer-events: none;
+}
+
+.deck-pile__stack {
+  position: relative;
+  width: 2.55rem;
+  height: 3.45rem;
+}
+
+.deck-pile__sheet {
+  position: absolute;
+  inset: 0;
+  border-radius: 0.28rem;
+  border: 1px solid rgba(160, 140, 100, 0.35);
+  background:
+    linear-gradient(145deg, rgba(36, 32, 26, 0.95) 0%, rgba(18, 16, 14, 0.98) 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.deck-pile__sheet--1 {
+  z-index: 3;
+}
+
+.deck-pile__sheet--2 {
+  z-index: 2;
+  transform: translate(1.5px, -1.5px) rotate(-2deg);
+  opacity: 0.85;
+}
+
+.deck-pile__sheet--3 {
+  z-index: 1;
+  transform: translate(3px, -3px) rotate(3deg);
+  opacity: 0.55;
+}
+
+.deck-pile--draw .deck-pile__sheet--1 {
+  border-color: rgba(154, 184, 170, 0.4);
+}
+
+.deck-pile--discard .deck-pile__sheet--1 {
+  border-color: rgba(160, 150, 140, 0.32);
+}
+
+.deck-pile__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.15;
+}
+
+.deck-pile__label {
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: rgba(168, 162, 152, 0.85);
+}
+
+.deck-pile__count {
+  font-size: 11px;
+  color: rgba(201, 168, 76, 0.92);
+}
+
+.deck-pile--draw .deck-pile__count {
+  color: rgba(154, 184, 170, 0.95);
+}
+
+.deck-pile--discard .deck-pile__count {
+  color: rgba(180, 172, 160, 0.9);
+}
+
+/* —— 抽／棄飛牌 overlay（不參與 Hand layout） —— */
+.card-anim-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.pile-fly-card {
+  position: fixed;
+  z-index: 91;
+  border-radius: 0.35rem;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  will-change: transform, opacity;
+}
+
+.pile-fly-card__face {
+  padding: 0.35rem 0.4rem;
+  box-sizing: border-box;
+}
+
+.pile-fly-card__back {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(160, 140, 100, 0.45);
+  border-radius: 0.35rem;
+  background:
+    radial-gradient(ellipse at 40% 30%, rgba(70, 58, 40, 0.45), transparent 55%),
+    linear-gradient(160deg, #221e18 0%, #12100e 55%, #1a1713 100%);
+}
+
+.pile-fly-card__back-mark {
+  font-size: 1.05rem;
+  letter-spacing: 0.12em;
+  color: rgba(201, 168, 76, 0.55);
+  text-shadow: 0 0 12px rgba(201, 168, 76, 0.15);
+}
+
+@keyframes pile-draw-fly {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.92);
+    opacity: 1;
+  }
+  62% {
+    transform: translate3d(var(--pile-dx), var(--pile-dy), 0) scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--pile-dx), var(--pile-dy), 0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pile-discard-fly {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  18% {
+    transform: translate3d(0, -10px, 0) scale(1.02) rotate(calc(var(--pile-spin) * 0.25));
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--pile-dx), var(--pile-dy), 0) scale(0.42)
+      rotate(var(--pile-spin));
+    opacity: 0;
+  }
+}
+
+.pile-fly-draw {
+  animation-name: pile-draw-fly;
+  animation-timing-function: cubic-bezier(0.22, 0.72, 0.18, 1);
+  animation-fill-mode: forwards;
+}
+
+.pile-fly-discard {
+  animation-name: pile-discard-fly;
+  animation-timing-function: cubic-bezier(0.28, 0.6, 0.25, 1);
+  animation-fill-mode: forwards;
+}
+
 /* 拖曳中：原位牌隱藏，幽靈在 body 的 drag-layer 上 */
 .ink-card-drag-source {
   visibility: hidden !important;

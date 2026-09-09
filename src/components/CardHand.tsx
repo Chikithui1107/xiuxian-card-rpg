@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode, type Ref } from "react";
 import { HandUI } from "@/components/HandUI";
+import { DeckPile } from "@/components/DeckPile";
 import type { Card } from "@/types/battle";
-import type { ReactNode } from "react";
 import type { CardFacePreviewState } from "@/lib/card-face-display";
 
 interface CardHandProps {
@@ -22,6 +22,10 @@ interface CardHandProps {
   feelToast?: string | null;
   playerBar?: ReactNode;
   facePreview?: CardFacePreviewState;
+  /** 抽／棄動畫進行中暫時隱藏真實手牌 */
+  hiddenCardIds?: ReadonlySet<string>;
+  drawPileRef?: Ref<HTMLDivElement | null>;
+  discardPileRef?: Ref<HTMLDivElement | null>;
 }
 
 const TIP_KEY = "xiuxian_swipe_tip_seen";
@@ -42,6 +46,9 @@ export function CardHand({
   feelToast = null,
   playerBar,
   facePreview,
+  hiddenCardIds,
+  drawPileRef,
+  discardPileRef,
 }: CardHandProps) {
   const [showTip, setShowTip] = useState(false);
 
@@ -61,23 +68,15 @@ export function CardHand({
     <div className="relative flex h-full min-h-0 flex-col gap-0.5">
       <div className="flex shrink-0 items-start justify-between gap-2 px-0.5">
         <div className="min-w-0 flex-1">{playerBar}</div>
-        <p className="shrink-0 pt-1 text-[9px] tracking-wide text-stone-500">
-          {hand.length >= 7 && (
-            <>
-              <span className="text-stone-600">手牌</span>{" "}
-              <span className="tabular-nums text-[#c9a84c]">{hand.length}</span>
-              <span className="mx-1 text-stone-700">·</span>
-            </>
-          )}
-          <span className="text-stone-600">抽</span>{" "}
-          <span className="tabular-nums text-[#9ab8aa]">{drawPileCount}</span>
-          <span className="mx-1 text-stone-700">·</span>
-          <span className="text-stone-600">棄</span>{" "}
-          <span className="tabular-nums text-stone-400">{discardPileCount}</span>
-        </p>
+        {hand.length >= 7 && (
+          <p className="shrink-0 pt-1 text-[9px] tracking-wide text-stone-500">
+            <span className="text-stone-600">手牌</span>{" "}
+            <span className="tabular-nums text-[#c9a84c]">{hand.length}</span>
+          </p>
+        )}
       </div>
 
-      {/* 手牌區：貼近 HUD、佔滿寬；結束回合獨立在下方，絕不壓牌 */}
+      {/* 手牌區：貼近 HUD、佔滿寬；結束回合與牌堆在下方 */}
       <div className="relative flex min-h-0 flex-1 flex-col overflow-visible">
         <div className="relative flex min-h-0 flex-1 items-start justify-center pt-0.5">
           <HandUI
@@ -88,6 +87,7 @@ export function CardHand({
             onPlayCard={onPlayCard}
             onDenyPlay={onDenyPlay}
             facePreview={facePreview}
+            hiddenCardIds={hiddenCardIds}
           />
           {(feelToast || showTip) && (
             <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 rounded-sm border border-stone-600/30 bg-stone-950/70 px-2.5 py-0.5 text-[10px] tracking-wide text-stone-300">
@@ -96,7 +96,13 @@ export function CardHand({
           )}
         </div>
 
-        <div className="flex shrink-0 items-center justify-end pb-0.5 pr-0.5 pt-1">
+        <div className="flex shrink-0 items-end justify-between gap-2 px-0.5 pb-0.5 pt-1">
+          <DeckPile
+            ref={drawPileRef}
+            label="抽牌堆"
+            count={drawPileCount}
+            variant="draw"
+          />
           <button
             type="button"
             onClick={onEndTurn}
@@ -109,6 +115,12 @@ export function CardHand({
               <span>回合</span>
             </span>
           </button>
+          <DeckPile
+            ref={discardPileRef}
+            label="棄牌堆"
+            count={discardPileCount}
+            variant="discard"
+          />
         </div>
       </div>
     </div>

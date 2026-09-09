@@ -1,14 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { EnemyPanel } from "@/components/EnemyPanel";
 import { CardHand } from "@/components/CardHand";
 import { CombatPlayerBar } from "@/components/CombatPlayerBar";
+import {
+  CardAnimationLayer,
+  type PileFlight,
+} from "@/components/CardAnimationLayer";
 import {
   CARD_TEMPLATES,
   type CardTemplateId,
 } from "@/lib/battle-deck";
 import type { Card } from "@/types/battle";
+import { getEffectiveCost } from "@/types/battle";
 import type { Hero, HeroStats } from "@/lib/stats";
 import type { CombatBuffs } from "@/lib/battle-resolve";
 import type {
@@ -18,7 +31,13 @@ import type {
   DamagePopup,
 } from "@/types/game";
 import { CARD_TYPE_COLORS } from "@/types/game";
-import { getPlayFxKind, type PlayFxKind, isDamagePlayFx, shouldScreenFlash, playFxDurationMs } from "@/lib/combat-fx";
+import {
+  getPlayFxKind,
+  type PlayFxKind,
+  isDamagePlayFx,
+  shouldScreenFlash,
+  playFxDurationMs,
+} from "@/lib/combat-fx";
 import {
   playDenySfx,
   playImpact,
@@ -31,6 +50,11 @@ import { publicAsset } from "@/lib/paths";
 import type { CardFacePreviewState } from "@/lib/card-face-display";
 
 const COMBAT_BG = publicAsset("/backgrounds/combat-moon-path.jpg");
+
+const DRAW_DURATION_MS = 340;
+const DRAW_STAGGER_MS = 70;
+const DISCARD_DURATION_MS = 260;
+const DISCARD_STAGGER_MS = 32;
 
 interface CombatViewProps {
   hero: Hero;
@@ -75,6 +99,24 @@ interface Flight {
   toX: number;
   toY: number;
   fx: PlayFxKind;
+}
+
+function rectFromEl(el: Element | null): DOMRect | null {
+  if (!el) return null;
+  return el.getBoundingClientRect();
+}
+
+function fallbackPileRect(side: "draw" | "discard"): DOMRect {
+  const w = 44;
+  const h = 62;
+  const y = typeof window !== "undefined" ? window.innerHeight - 88 : 600;
+  const x =
+    side === "draw"
+      ? 16
+      : typeof window !== "undefined"
+        ? window.innerWidth - 16 - w
+        : 320;
+  return new DOMRect(x, y, w, h);
 }
 
 export function CombatView({
@@ -123,9 +165,19 @@ export function CombatView({
 
   const enemyTargetRef = useRef<HTMLDivElement>(null);
   const playerTargetRef = useRef<HTMLDivElement>(null);
+  const drawPileRef = useRef<HTMLDivElement>(null);
+  const discardPileRef = useRef<HTMLDivElement>(null);
   const flightId = useId();
   const flightSeq = useRef(0);
+  const pileSeq = useRef(0);
+  const prevHandRef = useRef<Card[]>([]);
+  const rectCacheRef = useRef<Map<string, DOMRect>>(new Map());
+  const skipDiscardIdsRef = useRef<Set<string>>(new Set());
   const [flights, setFlights] = useState<Flight[]>([]);
+  const [pileFlights, setPileFlights] = useState<PileFlight[]>([]);
+  const [hiddenCardIds, setHiddenCardIds] = useState<Set<string>>(
+    () => new Set()
+  );
   const [bursts, setBursts] = useState<PlayBurst[]>([]);
   const [screenFlash, setScreenFlash] = useState(false);
   const [hitFlash, setHitFlash] = useState(false);
@@ -143,7 +195,6 @@ export function CombatView({
     preloadCombatSfx();
   }, []);
 
-  // 進戰鬥即鎖死頁面滾動，避免拖牌/出牌把畫面頂上去
   useEffect(() => {
     const html = document.documentElement;
     const body = document.body;
@@ -181,12 +232,197 @@ export function CombatView({
     [showToast]
   );
 
+  const revealHandCard = useCallback((instanceId: string) => {
+    setHiddenCardIds((prev) => {
+      if (!prev.has(instanceId)) return prev;
+      const next = new Set(prev);
+      next.delete(instanceId);
+      return next;
+    });
+  }, []);
+
+  const spawnDiscardFlights = useCallback(
+    (cards: { card: Card; from: DOMRect | null }[]) => {
+      if (cards.length === 0) return;
+      const pile =
+        rectFromEl(discardPileRef.current) ?? fallbackPileRect("discard");
+      const nextFlights: PileFlight[] = cards.map(({ card, from }, i) => {
+        pileSeq.current += 1;
+        const source =
+          from ??
+          rectFromEl(
+            document.querySelector(
+              `[data-hand-instance-id="${card.instanceId}"]`
+            )
+          ) ??
+          new DOMRect(
+            typeof window !== "undefined" ? window.innerWidth / 2 - 36 : 160,
+            typeof window !== "undefined" ? window.innerHeight - 200 : 400,
+            72,
+            112
+          );
+        const template = CARD_TEMPLATES[card.id as CardTemplateId];
+        const stagger =
+          cards.length <= 1
+            ? 0
+            : Math.min(
+                DISCARD_STAGGER_MS,
+                Math.max(25, Math.floor(180 / (cards.length - 1)))
+              );
+        return {
+          id: `discard-${pileSeq.current}-${card.instanceId}`,
+          kind: "discard" as const,
+          handInstanceId: card.instanceId,
+          name: card.name,
+          cost: getEffectiveCost(card),
+          type: template?.type ?? "",
+          from: {
+            left: source.left,
+            top: source.top,
+            width: source.width,
+            height: source.height,
+          },
+          to: {
+            left: pile.left,
+            top: pile.top,
+            width: pile.width,
+            height: pile.height,
+          },
+          delayMs: i * stagger,
+          durationMs: DISCARD_DURATION_MS,
+          spinDeg: i % 2 === 0 ? 11 : -10,
+        };
+      });
+      setPileFlights((prev) => [...prev, ...nextFlights]);
+    },
+    []
+  );
+
+  const spawnDrawFlights = useCallback(
+    (cards: Card[]) => {
+      if (cards.length === 0) return;
+      const pile =
+        rectFromEl(drawPileRef.current) ?? fallbackPileRect("draw");
+      const ids = cards.map((c) => c.instanceId);
+
+      const nextFlights: PileFlight[] = cards.map((card, i) => {
+        const slot = rectFromEl(
+          document.querySelector(
+            `[data-hand-instance-id="${card.instanceId}"]`
+          )
+        );
+        const target =
+          slot ??
+          new DOMRect(
+            typeof window !== "undefined" ? window.innerWidth / 2 - 40 : 160,
+            typeof window !== "undefined" ? window.innerHeight - 220 : 380,
+            80,
+            126
+          );
+        pileSeq.current += 1;
+        const template = CARD_TEMPLATES[card.id as CardTemplateId];
+        return {
+          id: `draw-${pileSeq.current}-${card.instanceId}`,
+          kind: "draw" as const,
+          handInstanceId: card.instanceId,
+          name: card.name,
+          cost: getEffectiveCost(card),
+          type: template?.type ?? "",
+          from: {
+            left: pile.left,
+            top: pile.top,
+            width: pile.width,
+            height: pile.height,
+          },
+          to: {
+            left: target.left,
+            top: target.top,
+            width: target.width,
+            height: target.height,
+          },
+          delayMs: i * DRAW_STAGGER_MS,
+          durationMs: DRAW_DURATION_MS,
+        };
+      });
+
+      setHiddenCardIds((prev) => {
+        const next = new Set(prev);
+        ids.forEach((id) => next.add(id));
+        return next;
+      });
+      setPileFlights((prev) => [...prev, ...nextFlights]);
+
+      nextFlights.forEach((flight, i) => {
+        const instanceId = flight.handInstanceId;
+        if (!instanceId) return;
+        window.setTimeout(() => {
+          revealHandCard(instanceId);
+        }, i * DRAW_STAGGER_MS + DRAW_DURATION_MS);
+      });
+    },
+    [revealHandCard]
+  );
+
+  useLayoutEffect(() => {
+    const prev = prevHandRef.current;
+    const prevIds = new Set(prev.map((c) => c.instanceId));
+    const nextIds = new Set(hand.map((c) => c.instanceId));
+    const added = hand.filter((c) => !prevIds.has(c.instanceId));
+    const removed = prev.filter((c) => !nextIds.has(c.instanceId));
+
+    const discardBatch = removed
+      .filter((c) => !skipDiscardIdsRef.current.has(c.instanceId))
+      .map((c) => ({
+        card: c,
+        from: rectCacheRef.current.get(c.instanceId) ?? null,
+      }));
+    skipDiscardIdsRef.current.clear();
+
+    if (discardBatch.length > 0) {
+      spawnDiscardFlights(discardBatch);
+    }
+
+    rectCacheRef.current.clear();
+    for (const card of hand) {
+      const el = document.querySelector(
+        `[data-hand-instance-id="${card.instanceId}"]`
+      );
+      if (el) {
+        rectCacheRef.current.set(card.instanceId, el.getBoundingClientRect());
+      }
+    }
+    prevHandRef.current = hand;
+
+    if (added.length > 0) {
+      spawnDrawFlights(added);
+    }
+  }, [hand, spawnDiscardFlights, spawnDrawFlights]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      for (const card of hand) {
+        if (hiddenCardIds.has(card.instanceId)) continue;
+        const el = document.querySelector(
+          `[data-hand-instance-id="${card.instanceId}"]`
+        );
+        if (el) {
+          rectCacheRef.current.set(card.instanceId, el.getBoundingClientRect());
+        }
+      }
+    }, 220);
+    return () => window.clearTimeout(t);
+  }, [hand, hiddenCardIds]);
+
   const handlePlayCard = useCallback(
     (card: Card, origin: DOMRect) => {
       unlockCombatAudio();
 
+      skipDiscardIdsRef.current.add(card.instanceId);
       const played = onPlayCard(card);
-      if (!played) return;
+      if (!played) {
+        skipDiscardIdsRef.current.delete(card.instanceId);
+        return;
+      }
 
       const template = CARD_TEMPLATES[card.id as CardTemplateId];
       const fx = getPlayFxKind(template);
@@ -230,8 +466,8 @@ export function CombatView({
       ]);
 
       const impactDelayMs = 280;
-      // 拂雪命中音比畫面命中點提前 0.2s，對齊刀光節奏
-      const sfxDelayMs = fx === "fuxue" ? Math.max(0, impactDelayMs - 200) : impactDelayMs;
+      const sfxDelayMs =
+        fx === "fuxue" ? Math.max(0, impactDelayMs - 200) : impactDelayMs;
 
       if (sfxDelayMs < impactDelayMs) {
         window.setTimeout(() => {
@@ -243,14 +479,20 @@ export function CombatView({
         if (sfxDelayMs >= impactDelayMs) {
           playImpact(fx);
         }
-        setBursts((prev) => [...prev, { key, kind: fx, x: impactX, y: impactY }]);
+        setBursts((prev) => [
+          ...prev,
+          { key, kind: fx, x: impactX, y: impactY },
+        ]);
         if (shouldScreenFlash(fx)) {
           setScreenFlash(true);
           window.setTimeout(() => setScreenFlash(false), 480);
         }
         if (damage) {
           setHitFlash(true);
-          window.setTimeout(() => setHitFlash(false), fx === "yijian" ? 320 : 220);
+          window.setTimeout(
+            () => setHitFlash(false),
+            fx === "yijian" ? 320 : 220
+          );
         }
         setFlights((prev) => prev.filter((f) => f.key !== key));
         window.setTimeout(() => {
@@ -259,6 +501,19 @@ export function CombatView({
       }, impactDelayMs);
     },
     [flightId, onPlayCard]
+  );
+
+  const onPileFlightDone = useCallback(
+    (id: string) => {
+      setPileFlights((prev) => {
+        const flight = prev.find((f) => f.id === id);
+        if (flight?.kind === "draw" && flight.handInstanceId) {
+          revealHandCard(flight.handInstanceId);
+        }
+        return prev.filter((f) => f.id !== id);
+      });
+    },
+    [revealHandCard]
   );
 
   return (
@@ -303,6 +558,9 @@ export function CombatView({
           denyShake={denyShake}
           feelToast={externalFeelToast ?? feelToast}
           facePreview={facePreview}
+          hiddenCardIds={hiddenCardIds}
+          drawPileRef={drawPileRef}
+          discardPileRef={discardPileRef}
           playerBar={
             <CombatPlayerBar
               hero={hero}
@@ -318,9 +576,16 @@ export function CombatView({
       </div>
 
       {screenFlash && (
-        <div className="play-screen-flash play-screen-flash--yijian" aria-hidden />
+        <div
+          className="play-screen-flash play-screen-flash--yijian"
+          aria-hidden
+        />
       )}
       <PlayBurstFx bursts={bursts} />
+      <CardAnimationLayer
+        flights={pileFlights}
+        onFlightDone={onPileFlightDone}
+      />
       {flights.map((flight) => {
         const typeStyle =
           CARD_TYPE_COLORS[flight.type] ?? "ink-card-type-basic bg-[#1a1814]";
