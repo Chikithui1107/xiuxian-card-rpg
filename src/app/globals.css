@@ -666,10 +666,12 @@ body {
 
 .combat-dock-hand {
   position: relative;
-  display: flex;
-  flex-shrink: 0;
-  align-items: flex-start;
-  justify-content: center;
+  display: block;
+  flex: 0 0 var(--hand-zone-h);
+  height: var(--hand-zone-h);
+  min-height: var(--hand-zone-h);
+  max-height: var(--hand-zone-h);
+  width: 100%;
   overflow: visible;
 }
 
@@ -2442,6 +2444,8 @@ html.combat-scroll-lock {
   /* 略縮卡高，把空間留給效果文字；不改扇形算法 */
   --game-card-width: 7.85rem;
   --game-card-height: 11.95rem;
+  /* 手牌區固定高度：不隨 handCount／出牌動畫改變，避免 bottom 錨點上移 */
+  --hand-zone-h: calc(var(--game-card-height) + 1.35rem);
 }
 
 @media (min-width: 400px) {
@@ -2458,11 +2462,23 @@ html.combat-scroll-lock {
 }
 
 .hand-fan {
+  position: absolute;
+  inset: 0;
+  width: 100%;
   max-width: 100%;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 .hand-fan-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
   max-width: 100%;
+  /* 固定佔滿 hand-zone，高度不跟 handCount 走 */
+  height: 100%;
   overflow: visible;
   pointer-events: none;
 }

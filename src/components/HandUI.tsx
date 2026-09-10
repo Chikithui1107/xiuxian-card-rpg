@@ -115,11 +115,13 @@ function computeHandMetrics(
 
   const arcLift = n <= 5 ? 2.4 : n <= 7 ? 1.5 : 1;
   const maxArc = Math.abs((n - 1) / 2) * arcLift;
+  // trackHeight 僅作參考；實際 DOM 高度由 --hand-zone-h 固定，不隨 n 改變
   const trackHeight = cardHeight * scale + maxArc + 14;
 
   return { cardWidth, cardHeight, scale, step, spreadDeg, trackHeight };
 }
 
+/** 扇形 Y：固定 baseline（slot bottom）+ 單張弧高；不准再加「整組手牌」位移 */
 function poseForIndex(
   index: number,
   total: number,
@@ -189,9 +191,8 @@ export function HandUI({
 
   return (
     <div
-      className={`hand-fan relative w-full max-w-full overflow-x-clip overflow-y-visible px-0 pb-0 pt-0 ${
-        denyShake ? "animate-deny-shake" : ""
-      }`}
+      className={`hand-fan${denyShake ? " animate-deny-shake" : ""}`}
+      data-hand-zone="true"
     >
       <CardDetailPanel
         open={Boolean(detailCard && detailTemplate)}
@@ -201,17 +202,14 @@ export function HandUI({
         detail={detailKarma?.detail ?? detailTemplate?.description ?? ""}
       />
       {hand.length === 0 ? (
-        <p
-          className="flex items-center justify-center text-xs text-stone-500"
-          style={{ minHeight: "var(--game-card-height)" }}
-        >
+        <p className="flex h-full items-center justify-center text-xs text-stone-500">
           手牌已空
         </p>
       ) : (
         <div
           ref={trackRef}
-          className="hand-fan-track relative mx-auto w-full"
-          style={{ height: metrics.trackHeight }}
+          className="hand-fan-track mx-auto"
+          data-hand-track="true"
         >
           {hand.map((card, index) => (
             <HandCard

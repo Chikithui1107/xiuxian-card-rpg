@@ -69,9 +69,35 @@ const DISCARD_STAGGER_MS = 42;
 /** 出牌飛行動畫期間凍結扇形；結束後才真正依新手牌重排 */
 const PLAY_LAYOUT_HOLD_MS = 320;
 
+function logHandLayerRects(label: string) {
+  if (typeof window === "undefined") return;
+  if (window.localStorage.getItem("handDebug") !== "1") return;
+  const pick = (el: Element | null) => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    const cs = getComputedStyle(el);
+    return {
+      top: Math.round(r.top * 10) / 10,
+      bottom: Math.round(r.bottom * 10) / 10,
+      height: Math.round(r.height * 10) / 10,
+      position: cs.position,
+      transform: cs.transform,
+    };
+  };
+  // eslint-disable-next-line no-console
+  console.log(`[handDebug:${label}]`, {
+    handZone: pick(document.querySelector("[data-hand-zone]")),
+    handTrack: pick(document.querySelector("[data-hand-track]")),
+    dockHand: pick(document.querySelector(".combat-dock-hand")),
+    dockStack: pick(document.querySelector(".combat-dock-stack")),
+    dock: pick(document.querySelector(".combat-shell-dock")),
+    shell: pick(document.querySelector(".combat-shell")),
+  });
+}
+
 /**
- * 出牌動畫期間保留「被打出牌」的佔位，避免 hand.length 瞬間變少重算扇形。
- * hold：出牌前快照；ghosts：仍佔位但隱藏的 instanceId；live：真實手牌（可含牽引新牌）。
+ * 出牌動畫期間保留「被打出牌」的佔位，避免扇形 x/rotation 瞬間重算。
+ * 垂直位置改由固定 --hand-zone-h 保證，不再依賴 trackHeight。
  */
 function mergeHandForPlayLayout(
   hold: Card[] | null,
@@ -741,6 +767,7 @@ export function CombatView({
   const handlePlayCard = useCallback(
     (card: Card, origin: DOMRect) => {
       unlockCombatAudio();
+      logHandLayerRects("before-play");
 
       // 凍結出牌前扇形：被打出牌改隱藏佔位，clone 飛出；動畫結束後才重排
       if (!playLayoutHoldRef.current) {
@@ -846,6 +873,10 @@ export function CombatView({
       }, impactDelayMs);
 
       window.setTimeout(() => {
+        logHandLayerRects("during-play-flight");
+      }, 40);
+
+      window.setTimeout(() => {
         setPlayGhostIds((prev) => {
           const next = new Set(prev);
           next.delete(card.instanceId);
@@ -855,6 +886,7 @@ export function CombatView({
           }
           return next;
         });
+        queueMicrotask(() => logHandLayerRects("after-hold-clear"));
       }, PLAY_LAYOUT_HOLD_MS);
     },
     [flightId, onPlayCard, hand]
