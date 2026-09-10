@@ -102,7 +102,7 @@ export function EnemyPanel({
           </span>
           <span className="text-stone-400">{enemy.realm}</span>
         </p>
-        <div className="mx-auto mt-0.5 flex w-[78%] items-center gap-1.5">
+        <div className="mx-auto mt-0.5 flex w-[78%] items-center gap-1">
           <div className="h-[3px] min-w-0 flex-1 overflow-hidden rounded-full bg-black/45">
             <div
               className="enemy-hp-fill h-full rounded-full transition-all duration-300"

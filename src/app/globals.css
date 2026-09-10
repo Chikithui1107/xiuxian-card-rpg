@@ -655,7 +655,8 @@ body {
     rgba(10, 12, 14, 0.72) 28%,
     rgba(8, 10, 12, 0.9) 100%
   );
-  padding: 0.15rem 0.45rem max(0.4rem, env(safe-area-inset-bottom, 0px));
+  padding: 0.15rem 0.45rem
+    max(0.7rem, calc(env(safe-area-inset-bottom, 0px) + 0.4rem));
   box-sizing: border-box;
 }
 
@@ -1273,7 +1274,7 @@ body {
   gap: 0.55rem;
   font-size: 9px;
   letter-spacing: 0.04em;
-  color: rgb(120 113 108);
+  color: #b7b0a4;
 }
 
 .combat-player-hud__karma {
@@ -2483,11 +2484,11 @@ html.combat-scroll-lock {
   --combat-hud-h: 3.15rem;
   --combat-actions-h: 4.35rem;
   /* 玩家操作區 cluster 固定間距（不隨 viewport 拉開） */
-  --player-gap-hud-hand: 0.75rem; /* ~12px */
+  --player-gap-hud-hand: 0.25rem; /* ~4px；手牌再貼 HUD */
   --player-gap-hand-actions: 1.25rem; /* ~20px */
   --combat-dock-h: calc(
     var(--combat-hud-h) + var(--player-gap-hud-hand) + var(--hand-zone-h) +
-      var(--player-gap-hand-actions) + var(--combat-actions-h) + 0.35rem +
+      var(--player-gap-hand-actions) + var(--combat-actions-h) + 0.55rem +
       env(safe-area-inset-bottom, 0px)
   );
 }
