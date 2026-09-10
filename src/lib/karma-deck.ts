@@ -49,7 +49,7 @@ export const KARMA_ART_FILES: Record<KarmaCardTemplateId, string> = {
   yinian: "yinian-yinguo.webp",
 };
 
-/** 已有素材的卡才掛 icon；其餘留空，UI 顯示佔位槽 */
+/** 已有正方形技能圖的卡；路徑見 icons/ */
 const KARMA_ICONS_READY: ReadonlySet<KarmaCardTemplateId> = new Set([
   "qiandhen",
   "zhongyin",
@@ -57,6 +57,11 @@ const KARMA_ICONS_READY: ReadonlySet<KarmaCardTemplateId> = new Set([
   "suye",
   "duanjue",
   "lunzhuan",
+  "kuguo",
+  "guosheng",
+  "shanguo",
+  "suyin",
+  "yinian",
 ]);
 
 function karmaArtPath(id: KarmaCardTemplateId): string {
@@ -64,7 +69,9 @@ function karmaArtPath(id: KarmaCardTemplateId): string {
 }
 
 function karmaIconPath(id: KarmaCardTemplateId): string | undefined {
-  return KARMA_ICONS_READY.has(id) ? karmaArtPath(id) : undefined;
+  if (!KARMA_ICONS_READY.has(id)) return undefined;
+  const base = KARMA_ART_FILES[id].replace(/\.webp$/i, "");
+  return `/cards/causality/icons/${base}.png`;
 }
 
 export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
