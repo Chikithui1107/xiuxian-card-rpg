@@ -51,6 +51,54 @@ function AspectMark({ type }: { type: string }) {
   return null;
 }
 
+/** 真元印：依因／果／雙屬換外觀 */
+export function qiSealClassName(opts: {
+  aspect: KarmaAspect | null;
+  canAfford?: boolean;
+  reduced?: boolean;
+}): string {
+  const { aspect, canAfford = true, reduced = false } = opts;
+  const parts = ["ink-qi-seal"];
+  if (aspect === "yin") parts.push("ink-qi-seal--yin");
+  else if (aspect === "yang") parts.push("ink-qi-seal--yang");
+  else if (aspect === "both") parts.push("ink-qi-seal--both");
+  else parts.push("ink-qi-seal--neutral");
+  if (!canAfford) parts.push("ink-qi-seal--deny");
+  if (reduced) parts.push("ink-qi-seal--reduced");
+  return parts.join(" ");
+}
+
+export function QiCostSeal({
+  cost,
+  aspect,
+  canAfford = true,
+  reduced = false,
+  className = "",
+}: {
+  cost: number;
+  aspect: KarmaAspect | null;
+  canAfford?: boolean;
+  reduced?: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`${qiSealClassName({ aspect, canAfford, reduced })}${
+        className ? ` ${className}` : ""
+      }`}
+      aria-label={`真元 ${cost}${reduced ? "（降費）" : ""}`}
+      title={`真元 ${cost}`}
+    >
+      <span className="ink-qi-seal__num">{cost}</span>
+      {reduced ? (
+        <span className="ink-qi-seal__drop" aria-hidden>
+          ↓
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 function tokenClassName(token: FaceToken): string {
   const kind = token.kind ?? "normal";
   const core = token.core ? " ink-face-token--core" : "";
@@ -95,6 +143,7 @@ export function CardFace({
   const karmaDisplay = templateId
     ? getKarmaCardFaceDisplay(templateId, preview)
     : null;
+  const aspect = aspectFromTemplateId(templateId);
 
   // 長文略縮字級，最低約 0.82；短文不垂直置中
   useLayoutEffect(() => {
@@ -139,16 +188,12 @@ export function CardFace({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
-            <span
-              className={`ink-card-face__cost ${
-                canAfford
-                  ? "ink-card-face__cost--ok"
-                  : "ink-card-face__cost--deny"
-              }${pulledByKarma ? " ink-card-face__cost--pulled" : ""}`}
-              aria-label={`真元 ${cost}`}
-            >
-              {cost}
-            </span>
+            <QiCostSeal
+              cost={cost}
+              aspect={aspect}
+              canAfford={canAfford}
+              reduced={pulledByKarma}
+            />
             <span className="ink-card-face__name truncate">{name}</span>
           </div>
           <p className={`text-[8px] font-semibold ${typeAccent}`}>{type}</p>
@@ -160,15 +205,12 @@ export function CardFace({
   return (
     <div className="ink-card-face relative z-[2]">
       <header className="ink-card-face__header">
-        <span
-          className={`ink-card-face__cost ${
-            canAfford ? "ink-card-face__cost--ok" : "ink-card-face__cost--deny"
-          }${pulledByKarma ? " ink-card-face__cost--pulled" : ""}`}
-          aria-label={`真元 ${cost}`}
-          title={`真元 ${cost}`}
-        >
-          {cost}
-        </span>
+        <QiCostSeal
+          cost={cost}
+          aspect={aspect}
+          canAfford={canAfford}
+          reduced={pulledByKarma}
+        />
         <span className="ink-card-face__name">{name}</span>
       </header>
 

@@ -16,7 +16,7 @@ import { publicAsset } from "@/lib/paths";
 import type { Card } from "@/types/battle";
 import { getEffectiveCost } from "@/types/battle";
 import { CARD_TYPE_ACCENT, CARD_TYPE_COLORS } from "@/types/game";
-import { aspectClassName, aspectFromTemplateId } from "@/components/CardFace";
+import { aspectClassName, aspectFromTemplateId, QiCostSeal } from "@/components/CardFace";
 
 export type PileFlightKind = "draw" | "discard" | "endTurnDiscard";
 
@@ -140,7 +140,12 @@ export const FlyingCardVisual = memo(function FlyingCardVisual({
   return (
     <div className="pile-fly-face">
       <header className="pile-fly-face__header">
-        <span className="pile-fly-face__cost">{face.cost}</span>
+        <QiCostSeal
+          cost={face.cost}
+          aspect={aspectFromTemplateId(face.templateId)}
+          reduced={face.pulledByKarma}
+          className="ink-qi-seal--fly"
+        />
         <span className="pile-fly-face__name">{face.name}</span>
       </header>
       <div

@@ -758,18 +758,6 @@ body {
   white-space: nowrap;
 }
 
-.pile-fly-face__cost {
-  flex-shrink: 0;
-  min-width: 1.1rem;
-  border-radius: 999px;
-  border: 1px solid rgba(154, 184, 170, 0.45);
-  padding: 0 0.28rem;
-  font-size: 9px;
-  line-height: 1.35;
-  text-align: center;
-  color: #9ab8aa;
-}
-
 .pile-fly-face__icon {
   width: 86%;
   margin: 0 auto;
@@ -2451,14 +2439,14 @@ html.combat-scroll-lock {
 
 .ink-card-face__header {
   display: flex;
-  flex: 0 0 1.15rem;
+  flex: 0 0 1.22rem;
   align-items: center;
   justify-content: flex-start;
   gap: 0.28rem;
-  height: 1.15rem;
+  height: 1.22rem;
   min-width: 0;
-  min-height: 1.15rem;
-  max-height: 1.15rem;
+  min-height: 1.22rem;
+  max-height: 1.22rem;
   position: relative;
   z-index: 3;
 }
@@ -2477,39 +2465,133 @@ html.combat-scroll-lock {
   white-space: nowrap;
 }
 
-/* 左上角圓形真元費用（扇形重疊時左上仍可見） */
-.ink-card-face__cost {
+/* 真元印：左上角靈印／玉印，非現代圓泡 */
+.ink-qi-seal {
+  position: relative;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 0.95rem;
-  height: 0.95rem;
-  min-width: 0.95rem;
-  border-radius: 999px;
-  font-size: 0.54rem;
-  line-height: 1;
-  font-weight: 800;
+  width: 1.14rem;
+  height: 1.14rem;
+  min-width: 1.14rem;
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 1px solid rgba(201, 168, 76, 0.72);
   font-variant-numeric: tabular-nums;
-  padding: 0;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
-}
-.ink-card-face__cost--ok {
-  background: rgba(122, 171, 154, 0.92);
-  color: #0c0a09;
-  text-shadow: none;
-}
-.ink-card-face__cost--deny {
-  background: rgba(168, 85, 85, 0.88);
-  color: #f5f5f4;
-  text-shadow: none;
-}
-.ink-card-face__cost--pulled {
-  background: rgba(158, 201, 184, 0.95);
-  color: #0c0a09;
+  line-height: 1;
   box-shadow:
-    0 0 0 1px rgba(122, 171, 154, 0.55),
-    0 0 6px rgba(122, 171, 154, 0.35);
+    inset 0 0 0 0.5px rgba(240, 230, 211, 0.12),
+    inset 0 1px 2px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.ink-qi-seal__num {
+  position: relative;
+  z-index: 1;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0;
+  font-family: "Noto Serif SC", "Noto Serif TC", "Songti TC", "STSong", "SimSun", serif;
+}
+
+.ink-qi-seal__drop {
+  position: absolute;
+  right: -0.12rem;
+  bottom: -0.22rem;
+  z-index: 2;
+  font-size: 0.42rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #7eb8b8;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+
+/* 因牌：沉墨金邊 */
+.ink-qi-seal--yin {
+  background:
+    radial-gradient(ellipse at 35% 28%, rgba(60, 52, 40, 0.9) 0%, transparent 55%),
+    linear-gradient(165deg, #1c1814 0%, #0a0908 72%, #12100e 100%);
+  border-color: rgba(201, 168, 76, 0.8);
+  color: #e8dcc4;
+}
+
+/* 果牌：月白灰底 */
+.ink-qi-seal--yang {
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.35) 0%, transparent 60%),
+    linear-gradient(165deg, #ece8e0 0%, #c9c4ba 100%);
+  border-color: rgba(120, 110, 90, 0.55);
+  color: #1a1612;
+  box-shadow:
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.35),
+    inset 0 1px 2px rgba(0, 0, 0, 0.12),
+    0 0 0 1px rgba(240, 236, 228, 0.25),
+    0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* 因果牌：陰陽對開 */
+.ink-qi-seal--both {
+  background: linear-gradient(
+    108deg,
+    #0c0a08 0% 46%,
+    #d8d2c6 54% 100%
+  );
+  border-color: rgba(201, 168, 76, 0.78);
+  color: #f2ebe0;
+  text-shadow:
+    0 0 1px #0a0a08,
+    0.5px 0 0 #0a0a08,
+    -0.5px 0 0 #0a0a08,
+    0 0.5px 0 #0a0a08,
+    0 -0.5px 0 #0a0a08;
+}
+
+/* 劍道等無因／果：中性墨金印 */
+.ink-qi-seal--neutral {
+  background:
+    radial-gradient(ellipse at 35% 28%, rgba(70, 60, 40, 0.55) 0%, transparent 55%),
+    linear-gradient(165deg, #221e18 0%, #0e0c0a 100%);
+  border-color: rgba(201, 168, 76, 0.65);
+  color: #e4d4a8;
+}
+
+/* 真元不足：印仍在，邊與字偏硃砂 */
+.ink-qi-seal--deny {
+  border-color: rgba(168, 90, 80, 0.75);
+  opacity: 0.92;
+}
+.ink-qi-seal--deny .ink-qi-seal__num {
+  color: #e8b0a4;
+}
+.ink-qi-seal--yang.ink-qi-seal--deny .ink-qi-seal__num {
+  color: #8a3030;
+}
+
+/* 牽引降費：青綠／冰藍數字，保留印底 */
+.ink-qi-seal--reduced .ink-qi-seal__num {
+  color: #8fd4d0;
+  text-shadow: 0 0 4px rgba(80, 160, 160, 0.35);
+}
+.ink-qi-seal--yang.ink-qi-seal--reduced .ink-qi-seal__num {
+  color: #1f6f6a;
+  text-shadow: none;
+}
+.ink-qi-seal--both.ink-qi-seal--reduced .ink-qi-seal__num {
+  color: #9ee0dc;
+}
+.ink-qi-seal--yang.ink-qi-seal--reduced .ink-qi-seal__drop {
+  color: #2a7a72;
+}
+
+.ink-qi-seal--fly {
+  width: 1.05rem;
+  height: 1.05rem;
+  min-width: 1.05rem;
+}
+.ink-qi-seal--fly .ink-qi-seal__num {
+  font-size: 0.55rem;
 }
 
 /* 固定高度圖標區：所有卡同一位置 */
