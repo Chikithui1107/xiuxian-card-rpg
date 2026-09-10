@@ -1151,7 +1151,7 @@ export function CombatView({
         />
       </div>
 
-      <div ref={playerTargetRef} className="combat-shell-dock">
+      <div className="combat-shell-dock">
         <CardHand
           hand={displayHand}
           energy={energy}
@@ -1169,6 +1169,7 @@ export function CombatView({
           facePreview={facePreview}
           hiddenCardIds={handHiddenIds}
           layoutFrozen={playGhostIds.size > 0}
+          playerTargetRef={playerTargetRef}
           drawPileRef={drawPileRef}
           discardPileRef={discardPileRef}
           discardPilePulse={discardPilePulse}

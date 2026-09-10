@@ -26,6 +26,8 @@ interface CardHandProps {
   hiddenCardIds?: ReadonlySet<string>;
   /** 出牌扇形凍結中 */
   layoutFrozen?: boolean;
+  /** 增益飛牌落點（玩家 HUD） */
+  playerTargetRef?: Ref<HTMLDivElement | null>;
   drawPileRef?: Ref<HTMLDivElement | null>;
   discardPileRef?: Ref<HTMLDivElement | null>;
   discardPilePulse?: boolean;
@@ -52,6 +54,7 @@ export function CardHand({
   facePreview,
   hiddenCardIds,
   layoutFrozen = false,
+  playerTargetRef,
   drawPileRef,
   discardPileRef,
   discardPilePulse = false,
@@ -73,7 +76,7 @@ export function CardHand({
 
   return (
     <div className="combat-dock-stack">
-      <div className="combat-dock-hud">
+      <div ref={playerTargetRef} className="combat-dock-hud">
         <div className="min-w-0 flex-1">{playerBar}</div>
         {hand.length >= 7 && (
           <p className="combat-dock-hand-count">
@@ -83,7 +86,7 @@ export function CardHand({
         )}
       </div>
 
-      <div className="combat-dock-hand">
+      <div className="combat-dock-hand" data-combat-hand-zone="true">
         <HandUI
           hand={hand}
           energy={energy}
