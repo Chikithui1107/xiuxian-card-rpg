@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -6,12 +6,14 @@ export const metadata: Metadata = {
   description: "水墨仙俠風格 RPG 卡牌祕境試煉",
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  // 以動態可視區為準，降低地址欄展開／收起時的跳動
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
@@ -27,7 +29,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

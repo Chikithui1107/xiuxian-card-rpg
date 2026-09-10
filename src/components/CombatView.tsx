@@ -251,6 +251,7 @@ export function CombatView({
 
   const enemyTargetRef = useRef<HTMLDivElement>(null);
   const playerTargetRef = useRef<HTMLDivElement>(null);
+  const combatShellRef = useRef<HTMLDivElement>(null);
   const drawPileRef = useRef<HTMLDivElement>(null);
   const discardPileRef = useRef<HTMLDivElement>(null);
   const flightId = useId();
@@ -868,13 +869,17 @@ export function CombatView({
         const discardRect =
           rectFromEl(discardPileRef.current) ?? fallbackPileRect("discard");
 
-        const vw =
-          typeof window !== "undefined" ? window.innerWidth : 390;
-        const vh =
-          typeof window !== "undefined" ? window.innerHeight : 700;
+        const shellRect =
+          combatShellRef.current?.getBoundingClientRect() ??
+          ({
+            left: 0,
+            top: 0,
+            width: typeof window !== "undefined" ? window.innerWidth : 390,
+            height: typeof window !== "undefined" ? window.innerHeight : 700,
+          } as DOMRect);
         const centerBox = {
-          left: vw / 2 - AUTO_PULL_FLY_W / 2,
-          top: vh * 0.36 - AUTO_PULL_FLY_H / 2,
+          left: shellRect.left + shellRect.width / 2 - AUTO_PULL_FLY_W / 2,
+          top: shellRect.top + shellRect.height * 0.34 - AUTO_PULL_FLY_H / 2,
           width: AUTO_PULL_FLY_W,
           height: AUTO_PULL_FLY_H,
         };
@@ -983,7 +988,11 @@ export function CombatView({
   }, [karmaAutoPlayCard]);
 
   return (
-    <div className="combat-shell" onPointerDown={unlockCombatAudio}>
+    <div
+      ref={combatShellRef}
+      className="combat-shell"
+      onPointerDown={unlockCombatAudio}
+    >
       <div className="combat-shell-bg" aria-hidden>
         <img src={COMBAT_BG} alt="" draggable={false} />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/15 to-[#0c1014]/78" />

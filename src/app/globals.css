@@ -178,17 +178,33 @@
   filter: drop-shadow(0 0 12px rgba(122, 171, 154, 0.45));
 }
 
+html {
+  height: 100%;
+  /* 優先動態可視高度；舊瀏覽器退回 svh／vh */
+  height: 100svh;
+  height: 100dvh;
+}
+
 body {
   color: var(--color-ghost);
   font-family: var(--font-serif);
   overflow-x: hidden;
   background-color: var(--color-ink);
+  width: 100%;
+  min-height: 100%;
+  min-height: 100svh;
+  min-height: 100dvh;
+  margin: 0;
 }
 
 /* ── Mobile portrait shell — ink wash cave ── */
 .mobile-shell {
   position: relative;
+  width: 100%;
+  min-height: 100%;
+  min-height: 100svh;
   min-height: 100dvh;
+  overflow-x: hidden;
   background:
     radial-gradient(ellipse at 50% 0%, rgba(42, 38, 32, 0.6) 0%, transparent 60%),
     radial-gradient(ellipse at 20% 90%, rgba(26, 35, 32, 0.4) 0%, transparent 50%),
@@ -196,11 +212,11 @@ body {
     linear-gradient(175deg, #0a0908 0%, #121110 45%, #0e0d0b 100%);
   display: flex;
   justify-content: center;
-  overflow-x: hidden;
+  align-items: stretch;
 }
 
 .mobile-shell-mist {
-  position: fixed;
+  position: absolute;
   inset: 0;
   pointer-events: none;
   opacity: 0.35;
@@ -212,8 +228,17 @@ body {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 28rem;
+  max-width: 430px;
+  /* 真機：鎖在可視區高度，避免 100vh 含地址欄造成底部被擋 */
+  height: 100%;
+  height: 100svh;
+  height: 100dvh;
+  min-height: 100%;
+  min-height: 100svh;
   min-height: 100dvh;
+  max-height: 100%;
+  max-height: 100svh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
   background: rgba(18, 17, 15, 0.94);
@@ -222,15 +247,25 @@ body {
   box-shadow:
     inset 0 0 80px rgba(0, 0, 0, 0.3),
     0 0 0 1px rgba(201, 168, 76, 0.04);
+  overflow: hidden;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 @media (min-width: 480px) {
   .mobile-shell {
     padding: 1rem 0;
+    align-items: center;
+    min-height: 100svh;
+    min-height: 100dvh;
   }
   .mobile-frame {
-    min-height: calc(100dvh - 2rem);
+    /* 桌面預覽殼：固定最大寬，高度跟可視區走，不當成整頁 window 定位 */
+    width: 100%;
+    max-width: 430px;
+    height: min(100dvh - 2rem, 900px);
+    min-height: min(100dvh - 2rem, 640px);
+    max-height: min(100dvh - 2rem, 900px);
     border-radius: 0.5rem;
     border: 1px solid rgba(74, 124, 111, 0.2);
     box-shadow:
@@ -301,7 +336,7 @@ body {
 
 /* 戰鬥：壓扁 Header，把垂直空間留給敵人與手牌 */
 .mobile-header-compact {
-  padding: 0.28rem 2.85rem 0.35rem;
+  padding: calc(0.28rem + env(safe-area-inset-top, 0px)) 2.85rem 0.35rem;
   background: linear-gradient(
     180deg,
     rgba(8, 10, 12, 0.36) 0%,
@@ -470,11 +505,11 @@ body {
 }
 
 .mobile-content.has-overlay-header:not(.is-immersive) {
-  padding-top: 2.55rem;
+  padding-top: calc(2.55rem + env(safe-area-inset-top, 0px));
 }
 
 .mobile-content.has-overlay-header.has-compact-header:not(.is-immersive) {
-  padding-top: 1.7rem;
+  padding-top: calc(1.55rem + env(safe-area-inset-top, 0px));
 }
 
 .mobile-content.is-immersive {
@@ -502,8 +537,10 @@ body {
   overflow: hidden !important;
   overscroll-behavior: none;
   position: relative;
+  flex: 1 1 auto;
   min-height: 0;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  height: 100%;
+  padding-bottom: 0;
 }
 
 .mobile-content.combat-lock-scroll > * {
@@ -511,10 +548,11 @@ body {
   min-height: 0;
 }
 
-/* 戰鬥殼：敵人區略收，玩家操作區上提並緊湊 */
+/* 戰鬥殼：以遊戲容器為準的 flex 比例，不用瀏覽器 vh 鎖碼頭高度 */
 .combat-shell {
-  --combat-dock-h: clamp(23.5rem, 47vh, 26.75rem);
   position: relative;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
   overflow: hidden;
@@ -539,23 +577,23 @@ body {
 }
 
 .combat-shell-top {
-  position: absolute;
-  top: 1.55rem;
-  left: 0;
-  right: 0;
+  position: relative;
   z-index: 10;
-  height: 1.15rem;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.1rem;
+  padding: 0.2rem 0.75rem 0.1rem;
 }
 
 .combat-shell-stage {
-  position: absolute;
-  top: 2.55rem;
-  left: 0;
-  right: 0;
-  bottom: var(--combat-dock-h);
+  position: relative;
   z-index: 10;
+  flex: 1 1 0;
+  min-height: 0;
   overflow: hidden;
-  padding: 0 0.5rem 0;
+  padding: 0 0.5rem;
 }
 
 /* 上拖到戰場時的輕微高亮 */
@@ -584,12 +622,9 @@ body {
 }
 
 .combat-shell-dock {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
   z-index: 30;
-  height: var(--combat-dock-h);
+  flex: 0 0 auto;
   overflow: visible;
   border-top: 1px solid rgba(138, 115, 64, 0.14);
   /* 不用 backdrop-filter：會讓內部 fixed 以 dock 為座標系（拖上消失、從底冒出） */
@@ -599,7 +634,7 @@ body {
     rgba(10, 12, 14, 0.72) 28%,
     rgba(8, 10, 12, 0.9) 100%
   );
-  padding: 0.15rem 0.45rem 0.35rem;
+  padding: 0.15rem 0.45rem max(0.4rem, env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
 }
 
@@ -1294,6 +1329,8 @@ html.combat-scroll-lock {
   overflow: hidden !important;
   overscroll-behavior: none;
   height: 100%;
+  height: 100svh;
+  height: 100dvh;
 }
 
 .bottom-nav {
@@ -1638,7 +1675,7 @@ html.combat-scroll-lock {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding-top: 16vh;
+  padding-top: clamp(2.25rem, 10%, 5.5rem);
 }
 
 .realm-info {

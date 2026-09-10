@@ -86,7 +86,7 @@ export function EnemyPanel({
 
   return (
     <div
-      className={`enemy-panel relative flex h-full min-h-0 flex-col items-center justify-start pt-[1.5vh] ${
+      className={`enemy-panel relative flex h-full min-h-0 flex-col items-center justify-start pt-1 ${
         isDefeated ? "opacity-70" : ""
       }`}
     >
@@ -135,7 +135,7 @@ export function EnemyPanel({
 
       {/* 人形基準舞台；各怪用 visualScale / visualOffsetY 個別調整 */}
       <div
-        className={`enemy-sprite-stage relative mx-auto flex h-[min(36vh,14.25rem)] w-[min(56vw,15.75rem)] max-w-[15.75rem] shrink-0 items-end justify-center ${
+        className={`enemy-sprite-stage relative mx-auto flex h-[min(72%,14.25rem)] w-[min(72%,15.75rem)] max-w-[15.75rem] shrink-0 items-end justify-center ${
           shaking ? "animate-shake" : ""
         } ${hitFlash ? "enemy-hit-flash" : ""}`}
       >
@@ -152,7 +152,7 @@ export function EnemyPanel({
           <div
             className="relative z-[1] flex h-full w-full items-end justify-center"
             style={{
-              transform: `translateY(${monster.visualOffsetY}vh) scale(${monster.visualScale})`,
+              transform: `translateY(${monster.visualOffsetY}%) scale(${monster.visualScale})`,
               transformOrigin: "bottom center",
             }}
           >
