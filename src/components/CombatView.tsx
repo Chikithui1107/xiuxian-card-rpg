@@ -1132,64 +1132,61 @@ export function CombatView({
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/15 to-[#0c1014]/78" />
       </div>
 
-      <div className="battle-stage">
-        <div className="combat-shell-top flex items-center justify-center px-3">
-          <p className="truncate text-[10px] tracking-wide text-[#c5d8cc] drop-shadow">
-            {battleLabel}
-          </p>
-        </div>
+      <div className="combat-shell-top flex items-center justify-center px-3">
+        <p className="truncate text-[10px] tracking-wide text-[#c5d8cc] drop-shadow">
+          {battleLabel}
+        </p>
+      </div>
 
-        <div ref={enemyTargetRef} className="combat-shell-stage">
-          <EnemyPanel
-            enemy={enemy}
-            damagePopups={damagePopups}
-            isShaking={isShaking}
-            hitFlash={hitFlash}
-            lastEnemyDamage={lastEnemyDamage}
-            lastDodge={lastDodge}
-            lastPassiveHeal={lastPassiveHeal}
-            karmaMarks={karmaMarks}
-          />
-        </div>
+      <div ref={enemyTargetRef} className="combat-shell-stage">
+        <EnemyPanel
+          enemy={enemy}
+          damagePopups={damagePopups}
+          isShaking={isShaking}
+          hitFlash={hitFlash}
+          lastEnemyDamage={lastEnemyDamage}
+          lastDodge={lastDodge}
+          lastPassiveHeal={lastPassiveHeal}
+          karmaMarks={karmaMarks}
+        />
+      </div>
 
-        <div className="combat-shell-dock">
-          <CardHand
-            hand={displayHand}
-            energy={energy}
-            drawPileCount={drawPileCount}
-            discardPileCount={discardPileCount}
-            exhaustPileCount={exhaustPileCount}
-            deckCount={deckCount}
-            onPlayCard={handlePlayCard}
-            onDenyPlay={handleDenyPlay}
-            onEndTurn={handleEndTurn}
-            lastDamage={lastDamage}
-            disabled={!isPlaying || enemy.currentHp <= 0 || inputLocked}
-            denyShake={denyShake}
-            feelToast={externalFeelToast ?? feelToast}
-            facePreview={facePreview}
-            hiddenCardIds={handHiddenIds}
-            layoutFrozen={playGhostIds.size > 0}
-            playerTargetRef={playerTargetRef}
-            drawPileRef={drawPileRef}
-            discardPileRef={discardPileRef}
-            discardPilePulse={discardPilePulse}
-            drawPilePulse={drawPilePulse}
-            playerBar={
-              <CombatPlayerBar
-                hero={hero}
-                stats={heroStats}
-                currentHp={playerHp}
-                energy={energy}
-                combatBuffs={combatBuffs}
-                block={block}
-                karmaMode={karmaMode}
-                yinPullUsed={yinPullUsed}
-                yangPullUsed={yangPullUsed}
-              />
-            }
-          />
-        </div>
+      <div ref={playerTargetRef} className="combat-shell-dock">
+        <CardHand
+          hand={displayHand}
+          energy={energy}
+          drawPileCount={drawPileCount}
+          discardPileCount={discardPileCount}
+          exhaustPileCount={exhaustPileCount}
+          deckCount={deckCount}
+          onPlayCard={handlePlayCard}
+          onDenyPlay={handleDenyPlay}
+          onEndTurn={handleEndTurn}
+          lastDamage={lastDamage}
+          disabled={!isPlaying || enemy.currentHp <= 0 || inputLocked}
+          denyShake={denyShake}
+          feelToast={externalFeelToast ?? feelToast}
+          facePreview={facePreview}
+          hiddenCardIds={handHiddenIds}
+          layoutFrozen={playGhostIds.size > 0}
+          drawPileRef={drawPileRef}
+          discardPileRef={discardPileRef}
+          discardPilePulse={discardPilePulse}
+          drawPilePulse={drawPilePulse}
+          playerBar={
+            <CombatPlayerBar
+              hero={hero}
+              stats={heroStats}
+              currentHp={playerHp}
+              energy={energy}
+              combatBuffs={combatBuffs}
+              block={block}
+              karmaMode={karmaMode}
+              yinPullUsed={yinPullUsed}
+              yangPullUsed={yangPullUsed}
+            />
+          }
+        />
       </div>
 
       {screenFlash && (

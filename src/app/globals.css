@@ -556,30 +556,16 @@ body {
   max-height: 100svh;
 }
 
-/*
- * 戰鬥殼 = 全 viewport 背景容器。
- * 真正 UI 在 .battle-stage：固定 390:844 設計比例，不隨超高螢幕拉散。
- * HUD + Hand + BottomControls 是 stage 底部的緊湊操作區（固定間距）。
- */
+/* 戰鬥殼：以遊戲容器為準的 flex 比例，不用瀏覽器 vh 鎖碼頭高度 */
 .combat-shell {
-  --battle-design-w: 390;
-  --battle-design-h: 844;
-  --combat-actions-h: 4.35rem;
-  --player-ops-gap: 0.35rem;
-
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  /* 舞台貼底：超高螢幕多出的高度在上方當背景延伸；
-     Hand 與底部操作永遠在同一 stage 內緊貼，不會被拉開 */
-  justify-content: flex-end;
   height: 100%;
   min-height: 0;
   overflow: hidden;
   overscroll-behavior: none;
   touch-action: manipulation;
-  container-type: size;
 }
 
 .combat-shell-bg {
@@ -598,45 +584,33 @@ body {
   transform: translateZ(0);
 }
 
-/* 固定設計畫布：以 390:844 contain 進父層；超高螢幕不拉散 UI */
-.battle-stage {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  aspect-ratio: 390 / 844;
-  width: min(100%, 430px, calc(100cqh * 390 / 844));
-  height: auto;
-  max-width: 100%;
-  max-height: 100%;
-  margin-inline: auto;
-  overflow: hidden;
-  box-sizing: border-box;
-  padding-bottom: max(0.35rem, env(safe-area-inset-bottom, 0px));
-}
-
 .combat-shell-top {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 10;
-  flex: 0 0 auto;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 1.15rem;
-  padding: 0.15rem 0.75rem 0.05rem;
+  height: var(--combat-top-h);
+  min-height: var(--combat-top-h);
+  padding: 0.2rem 0.75rem 0.1rem;
   box-sizing: border-box;
-  pointer-events: none;
 }
 
-/* 敵人區吃掉 stage 內剩餘高度；狼保持靠上，不把玩家操作區拉散 */
 .combat-shell-stage {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--combat-top-h);
+  bottom: var(--combat-dock-h);
   z-index: 10;
-  flex: 1 1 0;
+  flex: none;
   min-height: 0;
   overflow: hidden;
   padding: 0 0.5rem;
-  box-sizing: border-box;
 }
 
 /* 上拖到戰場時的輕微高亮 */
@@ -664,37 +638,37 @@ body {
   box-shadow: inset 0 0 24px rgba(122, 171, 154, 0.08);
 }
 
-/* 玩家操作區：HUD → Hand → Actions 緊湊堆疊，釘在 BattleStage 底部 */
 .combat-shell-dock {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 30;
-  flex: 0 0 auto;
+  flex: none;
+  height: var(--combat-dock-h);
   overflow: visible;
-  border: none;
-  border-top: 1px solid rgba(138, 115, 64, 0.12);
+  border-top: 1px solid rgba(138, 115, 64, 0.14);
+  /* 不用 backdrop-filter：會讓內部 fixed 以 dock 為座標系（拖上消失、從底冒出） */
   background: linear-gradient(
     180deg,
-    rgba(10, 12, 14, 0.2) 0%,
-    rgba(10, 12, 14, 0.72) 42%,
+    rgba(10, 12, 14, 0.42) 0%,
+    rgba(10, 12, 14, 0.72) 28%,
     rgba(8, 10, 12, 0.9) 100%
   );
-  padding: 0.35rem 0.45rem 0.2rem;
-  pointer-events: auto;
+  padding: 0.15rem 0.45rem max(0.4rem, env(safe-area-inset-bottom, 0px));
   box-sizing: border-box;
 }
 
-.combat-shell-dock::before {
-  display: none;
-}
-
+/* 玩家下半部 cluster：HUD → Hand → Actions，固定間距，不隨 viewport 拉開 */
 .combat-dock-stack {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--player-ops-gap);
+  gap: 0;
+  height: 100%;
   min-height: 0;
-  pointer-events: auto;
+  box-sizing: border-box;
 }
 
 .combat-dock-hud {
@@ -706,6 +680,7 @@ body {
   justify-content: space-between;
   gap: 0.5rem;
   min-height: var(--combat-hud-h);
+  margin-bottom: var(--player-gap-hud-hand);
   padding: 0 0.1rem;
   box-sizing: border-box;
   overflow: hidden;
@@ -729,6 +704,7 @@ body {
   min-height: var(--hand-zone-h);
   max-height: var(--hand-zone-h);
   width: 100%;
+  margin-bottom: var(--player-gap-hand-actions);
   overflow: visible;
 }
 
@@ -741,7 +717,7 @@ body {
   justify-content: space-between;
   gap: 0.75rem;
   height: var(--combat-actions-h);
-  padding: 0.1rem 0.2rem 0;
+  padding: 0.1rem 0.35rem 0;
   box-sizing: border-box;
 }
 
@@ -2501,10 +2477,19 @@ html.combat-scroll-lock {
   /* 略縮卡高，把空間留給效果文字；不改扇形算法 */
   --game-card-width: 7.85rem;
   --game-card-height: 11.95rem;
-  /* 手牌區固定高度：不隨 handCount／出牌動畫改變（穩定性） */
+  /* 手牌區固定高度：不隨 handCount／出牌動畫改變，避免 bottom 錨點上移 */
   --hand-zone-h: calc(var(--game-card-height) + 1.35rem);
+  --combat-top-h: 1.3rem;
   --combat-hud-h: 3.15rem;
   --combat-actions-h: 4.35rem;
+  /* 玩家操作區 cluster 固定間距（不隨 viewport 拉開） */
+  --player-gap-hud-hand: 0.75rem; /* ~12px */
+  --player-gap-hand-actions: 1.25rem; /* ~20px */
+  --combat-dock-h: calc(
+    var(--combat-hud-h) + var(--player-gap-hud-hand) + var(--hand-zone-h) +
+      var(--player-gap-hand-actions) + var(--combat-actions-h) + 0.35rem +
+      env(safe-area-inset-bottom, 0px)
+  );
 }
 
 @media (min-width: 400px) {

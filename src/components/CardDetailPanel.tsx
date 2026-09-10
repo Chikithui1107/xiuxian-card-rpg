@@ -24,8 +24,7 @@ export function CardDetailPanel({
     <div
       className="pointer-events-none fixed inset-x-0 z-[100001] flex justify-center px-3"
       style={{
-        bottom:
-          "calc(env(safe-area-inset-bottom, 0px) + var(--combat-actions-h, 4.35rem) + var(--hand-zone-h, 13rem) + 1.25rem)",
+        bottom: "calc(var(--hand-zone-h, 13rem) + 4.5rem + env(safe-area-inset-bottom, 0px))",
       }}
       aria-live="polite"
     >
