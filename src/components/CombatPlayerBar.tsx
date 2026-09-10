@@ -15,6 +15,8 @@ interface CombatPlayerBarProps {
   maxEnergy?: number;
   block?: number;
   karmaMode?: boolean;
+  yinPullUsed?: boolean;
+  yangPullUsed?: boolean;
 }
 
 export function CombatPlayerBar({
@@ -26,6 +28,8 @@ export function CombatPlayerBar({
   maxEnergy = 3,
   block = 0,
   karmaMode = false,
+  yinPullUsed = false,
+  yangPullUsed = false,
 }: CombatPlayerBarProps) {
   const hpPercent = Math.max(0, (currentHp / stats.maxHp) * 100);
   const dodgeChance = getStackDodgeChance(combatBuffs.dodge);
@@ -91,7 +95,14 @@ export function CombatPlayerBar({
                     {block}
                   </span>
                 </span>
-                <span className="text-stone-600">因果道</span>
+                <span
+                  className="tracking-wider text-stone-500"
+                  aria-label={`因果相生 因${yinPullUsed ? "已觸發" : "可觸發"} 果${yangPullUsed ? "已觸發" : "可觸發"}`}
+                >
+                  因 {yinPullUsed ? "●" : "○"}
+                  <span className="mx-1 text-stone-600">/</span>
+                  果 {yangPullUsed ? "●" : "○"}
+                </span>
               </>
             ) : (
               <>

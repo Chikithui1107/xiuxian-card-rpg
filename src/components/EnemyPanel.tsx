@@ -120,8 +120,15 @@ export function EnemyPanel({
           </p>
         )}
         {karmaMarks > 0 && (
-          <p className="mt-0.5 text-[9px] tracking-wide text-[#c48888]/90">
+          <p
+            className={`mt-0.5 text-[9px] tracking-wide ${
+              karmaMarks >= 5
+                ? "font-semibold text-[#e0a090] karma-marks-heavy"
+                : "text-[#c48888]/90"
+            }`}
+          >
             因果印記 · {karmaMarks}
+            {karmaMarks >= 5 ? " · 將滿" : ""}
           </p>
         )}
       </div>

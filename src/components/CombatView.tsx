@@ -97,6 +97,8 @@ interface CombatViewProps {
   karmaMarks?: number;
   block?: number;
   karmaMode?: boolean;
+  yinPullUsed?: boolean;
+  yangPullUsed?: boolean;
   externalFeelToast?: string | null;
   facePreview?: CardFacePreviewState;
 }
@@ -210,6 +212,8 @@ export function CombatView({
   karmaMarks = 0,
   block = 0,
   karmaMode = false,
+  yinPullUsed = false,
+  yangPullUsed = false,
   externalFeelToast = null,
   facePreview,
 }: CombatViewProps) {
@@ -840,6 +844,8 @@ export function CombatView({
               combatBuffs={combatBuffs}
               block={block}
               karmaMode={karmaMode}
+              yinPullUsed={yinPullUsed}
+              yangPullUsed={yangPullUsed}
             />
           }
         />

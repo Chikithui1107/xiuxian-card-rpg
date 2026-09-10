@@ -2250,6 +2250,21 @@ html.combat-scroll-lock {
   background: linear-gradient(90deg, #5a2020, #8b3a3a, #a85555);
 }
 
+/* 因果印記 ≥5：克制提示，不改整體美術 */
+.karma-marks-heavy {
+  text-shadow: 0 0 8px rgba(224, 160, 144, 0.45);
+  animation: karma-marks-pulse 1.8s ease-in-out infinite;
+}
+@keyframes karma-marks-pulse {
+  0%,
+  100% {
+    opacity: 0.88;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 .energy-orb {
   height: 0.55rem;
   width: 0.55rem;

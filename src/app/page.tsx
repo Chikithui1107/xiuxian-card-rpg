@@ -54,6 +54,7 @@ import {
   resolveKarmaCardPlay,
   finishAspectDiscardAndDraw,
   type KarmaCombatState,
+  type PlayedCardRecord,
 } from "@/lib/karma-combat";
 import { buildCardFacePreviewFromKarma } from "@/lib/card-face-display";
 import { AspectDiscardModal } from "@/components/AspectDiscardModal";
@@ -260,6 +261,8 @@ export default function GamePage() {
     useState<KarmaCombatState>(INITIAL_KARMA_STATE);
   const [pendingDiscard, setPendingDiscard] = useState<{
     aspect: "yin" | "yang";
+    /** 宿因重演因棄牌中斷時，尚未重演的佇列 */
+    replayRemaining?: PlayedCardRecord[];
   } | null>(null);
   const [combatFeelToast, setCombatFeelToast] = useState<string | null>(null);
 
@@ -790,8 +793,13 @@ export default function GamePage() {
         type PlayOpts = {
           free?: boolean;
           suppressPassive?: boolean;
+          /** 已從手牌／牌庫取出，打出後進棄牌（斷絕立即打出） */
           skipRemoveFromHand?: boolean;
+          /** 宿因重演幻影：不進棄牌、不佔牌組 */
+          phantom?: boolean;
         };
+
+        let replayRemaining: PlayedCardRecord[] = [];
 
         const resolveOne = (c: Card, opts: PlayOpts = {}): boolean => {
           const tpl = getCardTemplate(c);
@@ -801,7 +809,9 @@ export default function GamePage() {
           const cost = opts.free ? 0 : getEffectiveCost(c);
           if (!opts.free && en < cost) return false;
 
-          if (!opts.skipRemoveFromHand) {
+          if (opts.phantom) {
+            /* 幻影結算：不改動牌堆 */
+          } else if (!opts.skipRemoveFromHand) {
             const { deck: after, played } = playCardFromHand(deck, c.instanceId);
             if (!played) return false;
             deck = after;
@@ -843,13 +853,22 @@ export default function GamePage() {
           }
 
           if (result.replayQueue && result.replayQueue.length > 0) {
-            for (const rec of result.replayQueue) {
+            for (let i = 0; i < result.replayQueue.length; i++) {
+              if (waitDiscard) {
+                replayRemaining = result.replayQueue.slice(i);
+                break;
+              }
+              const rec = result.replayQueue[i];
               const replayCard = createCard(rec.templateId as CardTemplateId);
               resolveOne(replayCard, {
                 free: true,
                 suppressPassive: true,
-                skipRemoveFromHand: true,
+                phantom: true,
               });
+              if (waitDiscard) {
+                replayRemaining = result.replayQueue.slice(i + 1);
+                break;
+              }
             }
           }
 
@@ -880,7 +899,11 @@ export default function GamePage() {
         }
 
         if (waitDiscard) {
-          setPendingDiscard({ aspect: waitDiscard });
+          setPendingDiscard({
+            aspect: waitDiscard,
+            replayRemaining:
+              replayRemaining.length > 0 ? replayRemaining : undefined,
+          });
           if (dealt > 0) {
             const newHp = Math.max(0, enemy.currentHp - dealt);
             setEnemy((prev) => ({ ...prev, currentHp: newHp }));
@@ -1016,22 +1039,135 @@ export default function GamePage() {
     (instanceId: string) => {
       if (!pendingDiscard) return;
       const drawAspect = pendingDiscard.aspect === "yin" ? "yang" : "yin";
-      const { deck: next, cardsDrawn } = finishAspectDiscardAndDraw(
+      let { deck: next, cardsDrawn } = finishAspectDiscardAndDraw(
         deckState,
         instanceId,
         drawAspect
       );
+      let karma = karmaState;
+      let en = energy;
+      let dealt = 0;
+      let toast: string | undefined =
+        drawAspect === "yang" ? "抽取果牌" : "抽取因牌";
+      let waitDiscard: "yin" | "yang" | null = null;
+      let replayRemaining: PlayedCardRecord[] = [];
+      const queue = pendingDiscard.replayRemaining ?? [];
+
+      const resolvePhantom = (c: Card): void => {
+        const tpl = getCardTemplate(c);
+        const kt = getKarmaTemplate(c.id);
+        if (!tpl || !kt) return;
+
+        const result = resolveKarmaCardPlay({
+          template: tpl,
+          karmaTemplate: kt,
+          card: c,
+          deck: next,
+          energy: en,
+          karma,
+          freeReplay: true,
+          suppressPassive: true,
+        });
+
+        next = result.deck;
+        karma = result.karma;
+        dealt += result.damage;
+        cardsDrawn += result.cardsDrawn;
+        if (result.feelToast) toast = result.feelToast;
+
+        if (result.autoPlayCard) {
+          const auto = result.autoPlayCard;
+          next = {
+            ...next,
+            discardPile: [
+              ...next.discardPile,
+              { ...auto, costModifier: undefined },
+            ],
+          };
+          resolvePhantom(auto);
+        }
+
+        if (result.replayQueue && result.replayQueue.length > 0) {
+          for (let i = 0; i < result.replayQueue.length; i++) {
+            if (waitDiscard) {
+              replayRemaining = result.replayQueue.slice(i);
+              break;
+            }
+            const rec = result.replayQueue[i];
+            resolvePhantom(createCard(rec.templateId as CardTemplateId));
+            if (waitDiscard) {
+              replayRemaining = result.replayQueue.slice(i + 1);
+              break;
+            }
+          }
+        }
+
+        if (result.needsDiscardChoice) {
+          waitDiscard = result.needsDiscardChoice.aspect;
+        }
+      };
+
+      for (let i = 0; i < queue.length; i++) {
+        if (waitDiscard) {
+          replayRemaining = [...replayRemaining, ...queue.slice(i)];
+          break;
+        }
+        resolvePhantom(createCard(queue[i].templateId as CardTemplateId));
+        if (waitDiscard) {
+          replayRemaining = [...replayRemaining, ...queue.slice(i + 1)];
+          break;
+        }
+      }
+
       setDeckState(next);
-      setPendingDiscard(null);
+      setEnergy(en);
+      setKarmaState(karma);
+
       if (cardsDrawn > 0) {
         playCardDrawSfx(cardsDrawn);
       }
-      setCombatFeelToast(
-        drawAspect === "yang" ? "抽取果牌" : "抽取因牌"
-      );
-      window.setTimeout(() => setCombatFeelToast(null), 1400);
+      if (toast) {
+        setCombatFeelToast(toast);
+        window.setTimeout(() => setCombatFeelToast(null), 1400);
+      }
+
+      if (waitDiscard) {
+        setPendingDiscard({
+          aspect: waitDiscard,
+          replayRemaining:
+            replayRemaining.length > 0 ? replayRemaining : undefined,
+        });
+      } else {
+        setPendingDiscard(null);
+      }
+
+      if (dealt > 0) {
+        const newHp = Math.max(0, enemy.currentHp - dealt);
+        setEnemy((prev) => ({ ...prev, currentHp: newHp }));
+        setTotalDamage((prev) => prev + dealt);
+        addDamagePopup(dealt);
+        setLastDamage(dealt);
+        checkVictory(
+          newHp,
+          enemy.name,
+          selectedTier,
+          currentMapNodeId,
+          dungeonMap
+        );
+      }
     },
-    [pendingDiscard, deckState]
+    [
+      pendingDiscard,
+      deckState,
+      karmaState,
+      energy,
+      enemy,
+      addDamagePopup,
+      checkVictory,
+      selectedTier,
+      currentMapNodeId,
+      dungeonMap,
+    ]
   );
 
   const endTurn = useCallback((): boolean => {
@@ -1361,6 +1497,8 @@ export default function GamePage() {
             karmaMarks={karmaState.karmaMarks}
             block={karmaState.block}
             karmaMode={character.combatPath === "karma"}
+            yinPullUsed={karmaState.yinPullUsedThisTurn}
+            yangPullUsed={karmaState.yangPullUsedThisTurn}
             externalFeelToast={combatFeelToast}
             facePreview={cardFacePreview}
           />
