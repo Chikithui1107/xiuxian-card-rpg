@@ -5,6 +5,7 @@ import {
   useEffect,
   useId,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -65,6 +66,27 @@ const DRAW_DURATION_MS = 280;
 const DRAW_STAGGER_MS = 48;
 const DISCARD_DURATION_MS = 470;
 const DISCARD_STAGGER_MS = 42;
+/** 出牌飛行動畫期間凍結扇形；結束後才真正依新手牌重排 */
+const PLAY_LAYOUT_HOLD_MS = 320;
+
+/**
+ * 出牌動畫期間保留「被打出牌」的佔位，避免 hand.length 瞬間變少重算扇形。
+ * hold：出牌前快照；ghosts：仍佔位但隱藏的 instanceId；live：真實手牌（可含牽引新牌）。
+ */
+function mergeHandForPlayLayout(
+  hold: Card[] | null,
+  live: Card[],
+  ghosts: ReadonlySet<string>
+): Card[] {
+  if (!hold || ghosts.size === 0) return live;
+  const liveIds = new Set(live.map((c) => c.instanceId));
+  const kept = hold.filter(
+    (c) => liveIds.has(c.instanceId) || ghosts.has(c.instanceId)
+  );
+  const keptIds = new Set(kept.map((c) => c.instanceId));
+  const drawn = live.filter((c) => !keptIds.has(c.instanceId));
+  return [...kept, ...drawn];
+}
 
 /** 【因果斷絕】牽引自動打出時序（合計約 0.8s，不含出牌後起始延遲） */
 const AUTO_PULL_START_DELAY_MS = 300;
@@ -282,6 +304,12 @@ export function CombatView({
   const [hiddenCardIds, setHiddenCardIds] = useState<Set<string>>(
     () => new Set()
   );
+  /** 出牌動畫期間凍結的手牌快照（含被打出牌佔位） */
+  const [playLayoutHold, setPlayLayoutHold] = useState<Card[] | null>(null);
+  const [playGhostIds, setPlayGhostIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const playLayoutHoldRef = useRef<Card[] | null>(null);
   const [discardPilePulse, setDiscardPilePulse] = useState(false);
   const [drawPilePulse, setDrawPilePulse] = useState(false);
   /** 斷絕牽引：中央短暫亮相（兩段飛行之間） */
@@ -469,6 +497,9 @@ export function CombatView({
     if (turnSeqBusyRef.current || inputLocked) return;
     turnSeqBusyRef.current = true;
     setInputLocked(true);
+    playLayoutHoldRef.current = null;
+    setPlayLayoutHold(null);
+    setPlayGhostIds(new Set());
 
     void (async () => {
       try {
@@ -711,10 +742,30 @@ export function CombatView({
     (card: Card, origin: DOMRect) => {
       unlockCombatAudio();
 
+      // 凍結出牌前扇形：被打出牌改隱藏佔位，clone 飛出；動畫結束後才重排
+      if (!playLayoutHoldRef.current) {
+        playLayoutHoldRef.current = hand;
+      }
+      setPlayLayoutHold(playLayoutHoldRef.current);
+      setPlayGhostIds((prev) => {
+        const next = new Set(prev);
+        next.add(card.instanceId);
+        return next;
+      });
+
       skipDiscardIdsRef.current.add(card.instanceId);
       const played = onPlayCard(card);
       if (!played) {
         skipDiscardIdsRef.current.delete(card.instanceId);
+        setPlayGhostIds((prev) => {
+          const next = new Set(prev);
+          next.delete(card.instanceId);
+          if (next.size === 0) {
+            playLayoutHoldRef.current = null;
+            setPlayLayoutHold(null);
+          }
+          return next;
+        });
         return;
       }
 
@@ -793,9 +844,33 @@ export function CombatView({
           setBursts((prev) => prev.filter((b) => b.key !== key));
         }, playFxDurationMs(fx));
       }, impactDelayMs);
+
+      window.setTimeout(() => {
+        setPlayGhostIds((prev) => {
+          const next = new Set(prev);
+          next.delete(card.instanceId);
+          if (next.size === 0) {
+            playLayoutHoldRef.current = null;
+            setPlayLayoutHold(null);
+          }
+          return next;
+        });
+      }, PLAY_LAYOUT_HOLD_MS);
     },
-    [flightId, onPlayCard]
+    [flightId, onPlayCard, hand]
   );
+
+  const displayHand = useMemo(
+    () => mergeHandForPlayLayout(playLayoutHold, hand, playGhostIds),
+    [playLayoutHold, hand, playGhostIds]
+  );
+
+  const handHiddenIds = useMemo(() => {
+    if (playGhostIds.size === 0) return hiddenCardIds;
+    const merged = new Set(hiddenCardIds);
+    for (const id of playGhostIds) merged.add(id);
+    return merged;
+  }, [hiddenCardIds, playGhostIds]);
 
   const onPileFlightDone = useCallback(
     (id: string) => {
@@ -1019,7 +1094,7 @@ export function CombatView({
 
       <div ref={playerTargetRef} className="combat-shell-dock">
         <CardHand
-          hand={hand}
+          hand={displayHand}
           energy={energy}
           drawPileCount={drawPileCount}
           discardPileCount={discardPileCount}
@@ -1033,7 +1108,7 @@ export function CombatView({
           denyShake={denyShake}
           feelToast={externalFeelToast ?? feelToast}
           facePreview={facePreview}
-          hiddenCardIds={hiddenCardIds}
+          hiddenCardIds={handHiddenIds}
           drawPileRef={drawPileRef}
           discardPileRef={discardPileRef}
           discardPilePulse={discardPilePulse}

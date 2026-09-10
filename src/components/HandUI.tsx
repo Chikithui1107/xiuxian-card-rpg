@@ -574,7 +574,10 @@ function HandCard({
         transform: restTransform,
         transformOrigin: "bottom center",
         transition:
-          dragging || visuallyHidden ? undefined : "transform 200ms ease-out",
+          dragging || visuallyHidden
+            ? undefined
+            : "transform 200ms ease-out",
+        /* 佔位期間不要做 layout transition，避免隱藏牌還帶動視覺 */
         visibility: visuallyHidden ? "hidden" : undefined,
         pointerEvents: visuallyHidden ? "none" : undefined,
       }}
