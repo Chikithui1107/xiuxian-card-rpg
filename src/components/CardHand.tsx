@@ -27,6 +27,7 @@ interface CardHandProps {
   drawPileRef?: Ref<HTMLDivElement | null>;
   discardPileRef?: Ref<HTMLDivElement | null>;
   discardPilePulse?: boolean;
+  drawPilePulse?: boolean;
 }
 
 const TIP_KEY = "xiuxian_swipe_tip_seen";
@@ -51,6 +52,7 @@ export function CardHand({
   drawPileRef,
   discardPileRef,
   discardPilePulse = false,
+  drawPilePulse = false,
 }: CardHandProps) {
   const [showTip, setShowTip] = useState(false);
 
@@ -104,6 +106,7 @@ export function CardHand({
             label="抽牌堆"
             count={drawPileCount}
             variant="draw"
+            pulse={drawPilePulse}
           />
           <button
             type="button"

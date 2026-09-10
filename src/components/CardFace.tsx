@@ -138,20 +138,18 @@ export function CardFace({
           ) : null}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-1">
-            <span className="ink-card-face__name truncate">
-              {name}
-            </span>
+          <div className="flex items-center gap-1">
             <span
               className={`ink-card-face__cost ${
                 canAfford
                   ? "ink-card-face__cost--ok"
                   : "ink-card-face__cost--deny"
-              }`}
+              }${pulledByKarma ? " ink-card-face__cost--pulled" : ""}`}
               aria-label={`真元 ${cost}`}
             >
               {cost}
             </span>
+            <span className="ink-card-face__name truncate">{name}</span>
           </div>
           <p className={`text-[8px] font-semibold ${typeAccent}`}>{type}</p>
         </div>
@@ -162,16 +160,16 @@ export function CardFace({
   return (
     <div className="ink-card-face relative z-[2]">
       <header className="ink-card-face__header">
-        <span className="ink-card-face__name">{name}</span>
         <span
           className={`ink-card-face__cost ${
             canAfford ? "ink-card-face__cost--ok" : "ink-card-face__cost--deny"
-          }`}
+          }${pulledByKarma ? " ink-card-face__cost--pulled" : ""}`}
           aria-label={`真元 ${cost}`}
           title={`真元 ${cost}`}
         >
           {cost}
         </span>
+        <span className="ink-card-face__name">{name}</span>
       </header>
 
       <div className="ink-card-face__icon">

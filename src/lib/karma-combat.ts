@@ -209,6 +209,48 @@ export function drawAspectFromDeck(
   };
 }
 
+/**
+ * 從牌庫取出指定面向的一張牌，不進入手牌（供【因果斷絕】立即打出）。
+ * 不足則洗棄牌；仍無則回傳 null。
+ */
+export function extractAspectFromDeck(
+  deck: BattleDeckState,
+  aspect: "yin" | "yang"
+): { deck: BattleDeckState; card: Card | null } {
+  let drawPile = [...deck.drawPile];
+  let discardPile = [...deck.discardPile];
+
+  const refill = () => {
+    if (drawPile.length === 0 && discardPile.length > 0) {
+      drawPile = shuffle(discardPile);
+      discardPile = [];
+    }
+  };
+
+  refill();
+  let idx = drawPile.findIndex((c) => cardMatchesAspect(c, aspect));
+  if (idx === -1 && discardPile.length > 0) {
+    drawPile = shuffle([...drawPile, ...discardPile]);
+    discardPile = [];
+    idx = drawPile.findIndex((c) => cardMatchesAspect(c, aspect));
+  }
+  if (idx === -1) {
+    return { deck, card: null };
+  }
+
+  const [card] = drawPile.splice(idx, 1);
+  return {
+    deck: {
+      ...deck,
+      drawPile,
+      discardPile,
+      hand: deck.hand,
+      exhaustPile: deck.exhaustPile,
+    },
+    card,
+  };
+}
+
 /** 【因果相生】牽引：從牌庫抽對應面，費用 −1；若無則跳過 */
 export function pullKarmaCard(
   deck: BattleDeckState,
@@ -433,22 +475,22 @@ export function resolveKarmaCardPlay(ctx: KarmaPlayContext): KarmaPlayResult {
     if (kt.aspect === "yin" && !karma.yinPullUsedThisTurn) {
       karma = { ...karma, yinPullUsedThisTurn: true };
       if (karma.duanjueAutoPlayPull) {
-        const { deck: d2, pulled } = pullKarmaCard(deck, "yang");
+        const { deck: d2, card: extracted } = extractAspectFromDeck(
+          deck,
+          "yang"
+        );
         deck = d2;
         karma = { ...karma, duanjueAutoPlayPull: false };
-        if (pulled) {
-          cardsDrawn += 1;
-          // 從手牌取出改為立即打出
-          const without = {
-            ...deck,
-            hand: deck.hand.filter((c) => c.instanceId !== pulled.instanceId),
+        if (extracted) {
+          autoPlayCard = {
+            ...extracted,
+            costModifier: undefined,
+            pulledByKarma: true,
           };
-          deck = without;
-          autoPlayCard = { ...pulled, costModifier: undefined, pulledByKarma: true };
           if (kt.id === "zhongyin") {
             karma = {
               ...karma,
-              zhongyinPendingFruitInstanceId: pulled.instanceId,
+              zhongyinPendingFruitInstanceId: extracted.instanceId,
             };
           }
         }

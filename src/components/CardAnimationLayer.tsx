@@ -128,7 +128,7 @@ function centerBox(box: RectBox, w: number, h: number) {
   };
 }
 
-const FlyingCardVisual = memo(function FlyingCardVisual({
+export const FlyingCardVisual = memo(function FlyingCardVisual({
   face,
 }: {
   face: FlyingCardFaceSnapshot;
@@ -140,8 +140,8 @@ const FlyingCardVisual = memo(function FlyingCardVisual({
   return (
     <div className="pile-fly-face">
       <header className="pile-fly-face__header">
-        <span className="pile-fly-face__name">{face.name}</span>
         <span className="pile-fly-face__cost">{face.cost}</span>
+        <span className="pile-fly-face__name">{face.name}</span>
       </header>
       <div
         className={`pile-fly-face__icon${

@@ -20,7 +20,9 @@ import {
   END_TURN_GATHER_MS,
   delayMs,
   snapshotFlyingFace,
+  FlyingCardVisual,
   type PileFlight,
+  type SinglePileFlight,
 } from "@/components/CardAnimationLayer";
 import {
   CARD_TEMPLATES,
@@ -54,6 +56,8 @@ import {
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
 import { publicAsset } from "@/lib/paths";
 import type { CardFacePreviewState } from "@/lib/card-face-display";
+import { aspectClassName, aspectFromTemplateId } from "@/components/CardFace";
+import { createPortal } from "react-dom";
 
 const COMBAT_BG = publicAsset("/backgrounds/combat-moon-path.jpg");
 
@@ -61,6 +65,16 @@ const DRAW_DURATION_MS = 280;
 const DRAW_STAGGER_MS = 48;
 const DISCARD_DURATION_MS = 470;
 const DISCARD_STAGGER_MS = 42;
+
+/** 【因果斷絕】牽引自動打出時序（合計約 0.8s，不含出牌後起始延遲） */
+const AUTO_PULL_START_DELAY_MS = 300;
+const AUTO_PULL_TO_CENTER_MS = 260;
+const AUTO_PULL_HOLD_MS = 150;
+const AUTO_PULL_TO_PLAY_MS = 180;
+const AUTO_PULL_RESOLVE_BEAT_MS = 50;
+const AUTO_PULL_TO_DISCARD_MS = 200;
+const AUTO_PULL_FLY_W = 100;
+const AUTO_PULL_FLY_H = 156;
 
 interface CombatViewProps {
   hero: Hero;
@@ -99,6 +113,10 @@ interface CombatViewProps {
   karmaMode?: boolean;
   yinPullUsed?: boolean;
   yangPullUsed?: boolean;
+  /** 【因果斷絕】牽引待自動打出的果牌 */
+  karmaAutoPlayCard?: Card | null;
+  onKarmaAutoPlayResolve?: () => void;
+  onKarmaAutoPlayFinished?: () => void;
   externalFeelToast?: string | null;
   facePreview?: CardFacePreviewState;
 }
@@ -214,6 +232,9 @@ export function CombatView({
   karmaMode = false,
   yinPullUsed = false,
   yangPullUsed = false,
+  karmaAutoPlayCard = null,
+  onKarmaAutoPlayResolve,
+  onKarmaAutoPlayFinished,
   externalFeelToast = null,
   facePreview,
 }: CombatViewProps) {
@@ -240,12 +261,15 @@ export function CombatView({
   const skipDiscardIdsRef = useRef<Set<string>>(new Set());
   /** endTurnDiscard flight id → Promise resolve */
   const endTurnDiscardWaitersRef = useRef<Map<string, () => void>>(new Map());
+  /** 單張 pile flight（斷絕牽引等）→ Promise resolve */
+  const singleFlightWaitersRef = useRef<Map<string, () => void>>(new Map());
   /** 等待下一輪抽牌批次飛完 */
   const drawBatchWaiterRef = useRef<{
     resolve: () => void;
     armed: boolean;
   } | null>(null);
   const turnSeqBusyRef = useRef(false);
+  const autoPlayBusyRef = useRef(false);
   /** 本輪抽牌批次：全部飛完再一次顯示，避免逐張 reveal 重繪扇形 */
   const drawBatchRef = useRef<{
     remaining: number;
@@ -258,6 +282,12 @@ export function CombatView({
     () => new Set()
   );
   const [discardPilePulse, setDiscardPilePulse] = useState(false);
+  const [drawPilePulse, setDrawPilePulse] = useState(false);
+  /** 斷絕牽引：中央短暫亮相（兩段飛行之間） */
+  const [autoPlaySpotlight, setAutoPlaySpotlight] = useState<{
+    face: ReturnType<typeof snapshotFlyingFace>;
+    box: { left: number; top: number; width: number; height: number };
+  } | null>(null);
   const discardPulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [bursts, setBursts] = useState<PlayBurst[]>([]);
   const [screenFlash, setScreenFlash] = useState(false);
@@ -411,6 +441,21 @@ export function CombatView({
       });
     },
     [facePreview]
+  );
+
+  const playSinglePileFlight = useCallback(
+    (
+      partial: Omit<SinglePileFlight, "id"> & { id?: string }
+    ): Promise<void> => {
+      pileSeq.current += 1;
+      const id = partial.id ?? `pile-${pileSeq.current}`;
+      const flight: SinglePileFlight = { ...partial, id };
+      return new Promise<void>((resolve) => {
+        singleFlightWaitersRef.current.set(id, resolve);
+        setPileFlights((prev) => [...prev, flight]);
+      });
+    },
+    []
   );
 
   const finishTurnSequence = useCallback(() => {
@@ -759,20 +804,27 @@ export function CombatView({
           const resolve = endTurnDiscardWaitersRef.current.get(id);
           endTurnDiscardWaitersRef.current.delete(id);
           queueMicrotask(() => resolve?.());
-        } else if (flight?.kind === "draw") {
-          const batch = drawBatchRef.current;
-          if (batch) {
-            batch.remaining -= 1;
-            if (batch.remaining <= 0) {
-              const ids = batch.ids;
-              drawBatchRef.current = null;
-              queueMicrotask(() => {
-                revealHandCards(ids);
-                resolveDrawBatchWaiter();
-              });
+        } else if (flight?.kind === "draw" || flight?.kind === "discard") {
+          const resolve = singleFlightWaitersRef.current.get(id);
+          if (resolve) {
+            singleFlightWaitersRef.current.delete(id);
+            queueMicrotask(() => resolve());
+          }
+          if (flight.kind === "draw") {
+            const batch = drawBatchRef.current;
+            if (batch) {
+              batch.remaining -= 1;
+              if (batch.remaining <= 0) {
+                const ids = batch.ids;
+                drawBatchRef.current = null;
+                queueMicrotask(() => {
+                  revealHandCards(ids);
+                  resolveDrawBatchWaiter();
+                });
+              }
+            } else if (flight.handInstanceId) {
+              queueMicrotask(() => revealHandCard(flight.handInstanceId!));
             }
-          } else if (flight.handInstanceId) {
-            queueMicrotask(() => revealHandCard(flight.handInstanceId!));
           }
         }
         return prev.filter((f) => f.id !== id);
@@ -788,6 +840,147 @@ export function CombatView({
       setDiscardPilePulse(false);
     }, 280);
   }, []);
+
+  /** 【因果斷絕】：牌庫 → 中央亮相 → 出牌區 → 結算 → 棄牌堆 */
+  useEffect(() => {
+    if (!karmaAutoPlayCard || autoPlayBusyRef.current) return;
+    if (!onKarmaAutoPlayResolve || !onKarmaAutoPlayFinished) return;
+
+    autoPlayBusyRef.current = true;
+    setInputLocked(true);
+    let cancelled = false;
+    const card = karmaAutoPlayCard;
+    const previewSnap = facePreview;
+    const resolveCb = onKarmaAutoPlayResolve;
+    const finishedCb = onKarmaAutoPlayFinished;
+
+    void (async () => {
+      try {
+        await delayMs(AUTO_PULL_START_DELAY_MS);
+        if (cancelled) return;
+
+        setDrawPilePulse(true);
+        window.setTimeout(() => setDrawPilePulse(false), 220);
+
+        const face = snapshotFlyingFace(card, previewSnap);
+        const drawRect =
+          rectFromEl(drawPileRef.current) ?? fallbackPileRect("draw");
+        const discardRect =
+          rectFromEl(discardPileRef.current) ?? fallbackPileRect("discard");
+
+        const vw =
+          typeof window !== "undefined" ? window.innerWidth : 390;
+        const vh =
+          typeof window !== "undefined" ? window.innerHeight : 700;
+        const centerBox = {
+          left: vw / 2 - AUTO_PULL_FLY_W / 2,
+          top: vh * 0.36 - AUTO_PULL_FLY_H / 2,
+          width: AUTO_PULL_FLY_W,
+          height: AUTO_PULL_FLY_H,
+        };
+
+        const template = CARD_TEMPLATES[card.id as CardTemplateId];
+        const fx = getPlayFxKind(template);
+        const damageFx = isDamagePlayFx(fx);
+        const playTarget = damageFx
+          ? enemyTargetRef.current
+          : playerTargetRef.current;
+        const playRect = playTarget?.getBoundingClientRect();
+        const playBox = playRect
+          ? {
+              left:
+                playRect.left +
+                playRect.width / 2 -
+                AUTO_PULL_FLY_W / 2,
+              top:
+                playRect.top +
+                playRect.height * (damageFx ? 0.32 : 0.45) -
+                AUTO_PULL_FLY_H / 2,
+              width: AUTO_PULL_FLY_W,
+              height: AUTO_PULL_FLY_H,
+            }
+          : centerBox;
+
+        const fromDraw = {
+          left: drawRect.left,
+          top: drawRect.top,
+          width: drawRect.width,
+          height: drawRect.height,
+        };
+
+        playWhoosh(fx);
+
+        await playSinglePileFlight({
+          kind: "draw",
+          card,
+          face,
+          from: fromDraw,
+          to: centerBox,
+          delayMs: 0,
+          durationMs: AUTO_PULL_TO_CENTER_MS,
+          spinDeg: -8,
+        });
+        if (cancelled) return;
+
+        setAutoPlaySpotlight({ face, box: centerBox });
+        await delayMs(AUTO_PULL_HOLD_MS);
+        setAutoPlaySpotlight(null);
+        if (cancelled) return;
+
+        await playSinglePileFlight({
+          kind: "draw",
+          card,
+          face,
+          from: centerBox,
+          to: playBox,
+          delayMs: 0,
+          durationMs: AUTO_PULL_TO_PLAY_MS,
+          spinDeg: 6,
+        });
+        if (cancelled) return;
+
+        playImpact(fx);
+        if (damageFx) {
+          setHitFlash(true);
+          window.setTimeout(() => setHitFlash(false), 220);
+        }
+        resolveCb();
+        await delayMs(AUTO_PULL_RESOLVE_BEAT_MS);
+        if (cancelled) return;
+
+        await playSinglePileFlight({
+          kind: "discard",
+          card,
+          face,
+          from: playBox,
+          to: {
+            left: discardRect.left,
+            top: discardRect.top,
+            width: discardRect.width,
+            height: discardRect.height,
+          },
+          delayMs: 0,
+          durationMs: AUTO_PULL_TO_DISCARD_MS,
+          spinDeg: 12,
+        });
+      } finally {
+        setAutoPlaySpotlight(null);
+        autoPlayBusyRef.current = false;
+        if (!cancelled) {
+          finishedCb();
+          setInputLocked(false);
+        } else {
+          setInputLocked(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // 僅在待打出牌變更時啟動；結算中途 preview／callback 更新不可中斷動畫
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [karmaAutoPlayCard]);
 
   return (
     <div className="combat-shell" onPointerDown={unlockCombatAudio}>
@@ -835,6 +1028,7 @@ export function CombatView({
           drawPileRef={drawPileRef}
           discardPileRef={discardPileRef}
           discardPilePulse={discardPilePulse}
+          drawPilePulse={drawPilePulse}
           playerBar={
             <CombatPlayerBar
               hero={hero}
@@ -863,6 +1057,32 @@ export function CombatView({
         onFlightDone={onPileFlightDone}
         onDiscardAbsorb={onDiscardAbsorb}
       />
+      {autoPlaySpotlight &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-[85]"
+            style={{
+              left: autoPlaySpotlight.box.left,
+              top: autoPlaySpotlight.box.top,
+              width: autoPlaySpotlight.box.width,
+              height: autoPlaySpotlight.box.height,
+            }}
+            aria-hidden
+          >
+            <div
+              className={`pile-fly-card__visual ink-card h-full w-full overflow-hidden shadow-xl ${
+                CARD_TYPE_COLORS[autoPlaySpotlight.face.type] ??
+                "ink-card-type-basic bg-[#1a1814]"
+              } ${aspectClassName(
+                aspectFromTemplateId(autoPlaySpotlight.face.templateId)
+              )}`}
+            >
+              <FlyingCardVisual face={autoPlaySpotlight.face} />
+            </div>
+          </div>,
+          document.body
+        )}
       {flights.map((flight) => {
         const typeStyle =
           CARD_TYPE_COLORS[flight.type] ?? "ink-card-type-basic bg-[#1a1814]";

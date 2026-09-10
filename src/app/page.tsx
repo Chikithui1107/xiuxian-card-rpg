@@ -265,6 +265,9 @@ export default function GamePage() {
     replayRemaining?: PlayedCardRecord[];
   } | null>(null);
   const [combatFeelToast, setCombatFeelToast] = useState<string | null>(null);
+  /** 【因果斷絕】牽引後待動畫打出的果牌（不經手牌） */
+  const [karmaAutoPlayCard, setKarmaAutoPlayCard] = useState<Card | null>(null);
+  const karmaAutoPlayApplyRef = useRef<(() => void) | null>(null);
 
   const character = useMemo(
     () => getCharacter(activeCharacterId),
@@ -397,6 +400,8 @@ export default function GamePage() {
       setCombatBuffs(INITIAL_COMBAT_BUFFS);
       setKarmaState(INITIAL_KARMA_STATE);
       setPendingDiscard(null);
+      setKarmaAutoPlayCard(null);
+      karmaAutoPlayApplyRef.current = null;
       setEnergy(MAX_ENERGY);
       setLastDodge(false);
       setLastDamage(null);
@@ -457,6 +462,8 @@ export default function GamePage() {
     setCombatBuffs(INITIAL_COMBAT_BUFFS);
     setKarmaState(INITIAL_KARMA_STATE);
     setPendingDiscard(null);
+    setKarmaAutoPlayCard(null);
+    karmaAutoPlayApplyRef.current = null;
     setCombatFeelToast(null);
   }, []);
 
@@ -503,6 +510,8 @@ export default function GamePage() {
       setCombatBuffs(INITIAL_COMBAT_BUFFS);
       setKarmaState(INITIAL_KARMA_STATE);
       setPendingDiscard(null);
+      setKarmaAutoPlayCard(null);
+      karmaAutoPlayApplyRef.current = null;
       setCombatFeelToast(null);
       setLastDodge(false);
       setLastRunMessage(null);
@@ -769,7 +778,8 @@ export default function GamePage() {
         phase !== "playing" ||
         battlePhase !== "IN_BATTLE" ||
         enemy.currentHp <= 0 ||
-        pendingDiscard
+        pendingDiscard ||
+        karmaAutoPlayCard
       ) {
         return false;
       }
@@ -789,6 +799,8 @@ export default function GamePage() {
         let toast: string | undefined;
         let waitDiscard: "yin" | "yang" | null = null;
         let cardsDrawn = 0;
+        /** 物件盒：避免巢狀函式賦值讓 TS 把外層變數推成 never */
+        const deferBox: { auto: Card | null } = { auto: null };
 
         type PlayOpts = {
           free?: boolean;
@@ -834,8 +846,11 @@ export default function GamePage() {
             deck,
             energy: en,
             karma,
-            freeReplay: Boolean(opts.free),
-            suppressPassive: Boolean(opts.suppressPassive || opts.free),
+            // 僅宿因幻影不記入本回合出牌；斷絕自動打出要記入
+            freeReplay: Boolean(opts.phantom),
+            suppressPassive: Boolean(
+              opts.suppressPassive || opts.free || opts.phantom
+            ),
           });
 
           deck = result.deck;
@@ -845,16 +860,13 @@ export default function GamePage() {
           if (result.feelToast) toast = result.feelToast;
 
           if (result.autoPlayCard) {
-            resolveOne(result.autoPlayCard, {
-              free: true,
-              suppressPassive: true,
-              skipRemoveFromHand: true,
-            });
+            // 延後到動畫：不經手牌、不在此同步結算
+            deferBox.auto = result.autoPlayCard;
           }
 
           if (result.replayQueue && result.replayQueue.length > 0) {
             for (let i = 0; i < result.replayQueue.length; i++) {
-              if (waitDiscard) {
+              if (waitDiscard || deferBox.auto) {
                 replayRemaining = result.replayQueue.slice(i);
                 break;
               }
@@ -865,7 +877,7 @@ export default function GamePage() {
                 suppressPassive: true,
                 phantom: true,
               });
-              if (waitDiscard) {
+              if (waitDiscard || deferBox.auto) {
                 replayRemaining = result.replayQueue.slice(i + 1);
                 break;
               }
@@ -890,26 +902,13 @@ export default function GamePage() {
           playCardDrawSfx(cardsDrawn);
         }
 
-        setDeckState(deck);
-        setEnergy(en);
-        setKarmaState(karma);
-        if (toast) {
-          setCombatFeelToast(toast);
-          window.setTimeout(() => setCombatFeelToast(null), 1600);
-        }
-
-        if (waitDiscard) {
-          setPendingDiscard({
-            aspect: waitDiscard,
-            replayRemaining:
-              replayRemaining.length > 0 ? replayRemaining : undefined,
-          });
-          if (dealt > 0) {
-            const newHp = Math.max(0, enemy.currentHp - dealt);
+        const applyDamageAndMaybeUnlock = (dmg: number, unlock: boolean) => {
+          if (dmg > 0) {
+            const newHp = Math.max(0, enemy.currentHp - dmg);
             setEnemy((prev) => ({ ...prev, currentHp: newHp }));
-            setTotalDamage((prev) => prev + dealt);
-            addDamagePopup(dealt);
-            setLastDamage(dealt);
+            setTotalDamage((prev) => prev + dmg);
+            addDamagePopup(dmg);
+            setLastDamage(dmg);
             checkVictory(
               newHp,
               enemy.name,
@@ -920,35 +919,150 @@ export default function GamePage() {
           } else {
             setLastDamage(null);
           }
-          queueMicrotask(() => {
-            if (!victoryStartedRef.current) playLockRef.current = false;
-          });
+          if (unlock) {
+            queueMicrotask(() => {
+              if (!victoryStartedRef.current) playLockRef.current = false;
+            });
+          }
+        };
+
+        setDeckState(deck);
+        setEnergy(en);
+        setKarmaState(karma);
+        if (toast) {
+          setCombatFeelToast(toast);
+          window.setTimeout(() => setCombatFeelToast(null), 1600);
+        }
+
+        if (deferBox.auto) {
+          const autoCard = deferBox.auto;
+          const pendingReplay = replayRemaining;
+          karmaAutoPlayApplyRef.current = () => {
+            let d = deck;
+            let k = karma;
+            let e = en;
+            let autoDealt = 0;
+            let autoToast: string | undefined;
+            let autoWait: "yin" | "yang" | null = null;
+            let autoReplayLeft: PlayedCardRecord[] = [...pendingReplay];
+
+            const tpl = getCardTemplate(autoCard);
+            const kt = getKarmaTemplate(autoCard.id);
+            if (!tpl || !kt) return;
+
+            d = {
+              ...d,
+              discardPile: [
+                ...d.discardPile,
+                { ...autoCard, costModifier: undefined },
+              ],
+            };
+
+            const result = resolveKarmaCardPlay({
+              template: tpl,
+              karmaTemplate: kt,
+              card: autoCard,
+              deck: d,
+              energy: e,
+              karma: k,
+              freeReplay: false,
+              suppressPassive: true,
+            });
+            d = result.deck;
+            k = result.karma;
+            autoDealt += result.damage;
+            if (result.feelToast) autoToast = result.feelToast;
+            if (result.needsDiscardChoice) {
+              autoWait = result.needsDiscardChoice.aspect;
+            }
+
+            // 若自動打出的是宿因重演等，同步處理幻影佇列
+            const queue = [
+              ...(result.replayQueue ?? []),
+              ...autoReplayLeft,
+            ];
+            autoReplayLeft = [];
+            for (let i = 0; i < queue.length; i++) {
+              if (autoWait) {
+                autoReplayLeft = queue.slice(i);
+                break;
+              }
+              const rec = queue[i];
+              const phantom = createCard(rec.templateId as CardTemplateId);
+              const pt = getCardTemplate(phantom);
+              const pk = getKarmaTemplate(phantom.id);
+              if (!pt || !pk) continue;
+              const pr = resolveKarmaCardPlay({
+                template: pt,
+                karmaTemplate: pk,
+                card: phantom,
+                deck: d,
+                energy: e,
+                karma: k,
+                freeReplay: true,
+                suppressPassive: true,
+              });
+              d = pr.deck;
+              k = pr.karma;
+              autoDealt += pr.damage;
+              if (pr.feelToast) autoToast = pr.feelToast;
+              if (pr.needsDiscardChoice) {
+                autoWait = pr.needsDiscardChoice.aspect;
+                autoReplayLeft = queue.slice(i + 1);
+                break;
+              }
+              if (pr.replayQueue?.length) {
+                queue.splice(i + 1, 0, ...pr.replayQueue);
+              }
+            }
+
+            setDeckState(d);
+            setKarmaState(k);
+            if (autoToast) {
+              setCombatFeelToast(autoToast);
+              window.setTimeout(() => setCombatFeelToast(null), 1600);
+            }
+            if (autoWait) {
+              setPendingDiscard({
+                aspect: autoWait,
+                replayRemaining:
+                  autoReplayLeft.length > 0 ? autoReplayLeft : undefined,
+              });
+            }
+            if (autoDealt > 0) {
+              setEnemy((prev) => {
+                const newHp = Math.max(0, prev.currentHp - autoDealt);
+                checkVictory(
+                  newHp,
+                  prev.name,
+                  selectedTier,
+                  currentMapNodeId,
+                  dungeonMap
+                );
+                return { ...prev, currentHp: newHp };
+              });
+              setTotalDamage((prev) => prev + autoDealt);
+              addDamagePopup(autoDealt);
+              setLastDamage(autoDealt);
+            }
+          };
+
+          setKarmaAutoPlayCard(autoCard);
+          applyDamageAndMaybeUnlock(dealt, false);
           return true;
         }
 
-        if (dealt > 0) {
-          const newHp = Math.max(0, enemy.currentHp - dealt);
-          setEnemy((prev) => ({ ...prev, currentHp: newHp }));
-          setTotalDamage((prev) => prev + dealt);
-          addDamagePopup(dealt);
-          setLastDamage(dealt);
-          checkVictory(
-            newHp,
-            enemy.name,
-            selectedTier,
-            currentMapNodeId,
-            dungeonMap
-          );
-          queueMicrotask(() => {
-            if (!victoryStartedRef.current) playLockRef.current = false;
+        if (waitDiscard) {
+          setPendingDiscard({
+            aspect: waitDiscard,
+            replayRemaining:
+              replayRemaining.length > 0 ? replayRemaining : undefined,
           });
+          applyDamageAndMaybeUnlock(dealt, true);
           return true;
         }
 
-        setLastDamage(null);
-        queueMicrotask(() => {
-          playLockRef.current = false;
-        });
+        applyDamageAndMaybeUnlock(dealt, true);
         return true;
       }
 
@@ -1027,6 +1141,7 @@ export default function GamePage() {
       character.combatPath,
       karmaState,
       pendingDiscard,
+      karmaAutoPlayCard,
       addDamagePopup,
       checkVictory,
       selectedTier,
@@ -1177,7 +1292,8 @@ export default function GamePage() {
       phase !== "playing" ||
       battlePhase !== "IN_BATTLE" ||
       enemy.currentHp <= 0 ||
-      pendingDiscard
+      pendingDiscard ||
+      karmaAutoPlayCard
     ) {
       return false;
     }
@@ -1275,6 +1391,7 @@ export default function GamePage() {
     character.combatPath,
     karmaState,
     pendingDiscard,
+    karmaAutoPlayCard,
   ]);
 
   /** 棄牌動畫結束後補抽；保持鎖定直到抽牌動畫結束 */
@@ -1294,6 +1411,18 @@ export default function GamePage() {
 
   const finishEndTurnSequence = useCallback(() => {
     playLockRef.current = false;
+  }, []);
+
+  const handleKarmaAutoPlayResolve = useCallback(() => {
+    karmaAutoPlayApplyRef.current?.();
+    karmaAutoPlayApplyRef.current = null;
+  }, []);
+
+  const handleKarmaAutoPlayFinished = useCallback(() => {
+    setKarmaAutoPlayCard(null);
+    queueMicrotask(() => {
+      if (!victoryStartedRef.current) playLockRef.current = false;
+    });
   }, []);
 
   useEffect(() => {
@@ -1499,6 +1628,9 @@ export default function GamePage() {
             karmaMode={character.combatPath === "karma"}
             yinPullUsed={karmaState.yinPullUsedThisTurn}
             yangPullUsed={karmaState.yangPullUsedThisTurn}
+            karmaAutoPlayCard={karmaAutoPlayCard}
+            onKarmaAutoPlayResolve={handleKarmaAutoPlayResolve}
+            onKarmaAutoPlayFinished={handleKarmaAutoPlayFinished}
             externalFeelToast={combatFeelToast}
             facePreview={cardFacePreview}
           />

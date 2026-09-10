@@ -742,7 +742,7 @@ body {
 .pile-fly-face__header {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 0.25rem;
 }
 
@@ -2453,8 +2453,8 @@ html.combat-scroll-lock {
   display: flex;
   flex: 0 0 1.15rem;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.3rem;
+  justify-content: flex-start;
+  gap: 0.28rem;
   height: 1.15rem;
   min-width: 0;
   min-height: 1.15rem;
@@ -2477,17 +2477,17 @@ html.combat-scroll-lock {
   white-space: nowrap;
 }
 
-/* 右上角圓形真元費用 */
+/* 左上角圓形真元費用（扇形重疊時左上仍可見） */
 .ink-card-face__cost {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.05rem;
-  height: 1.05rem;
-  min-width: 1.05rem;
+  width: 0.95rem;
+  height: 0.95rem;
+  min-width: 0.95rem;
   border-radius: 999px;
-  font-size: 0.58rem;
+  font-size: 0.54rem;
   line-height: 1;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -2503,6 +2503,13 @@ html.combat-scroll-lock {
   background: rgba(168, 85, 85, 0.88);
   color: #f5f5f4;
   text-shadow: none;
+}
+.ink-card-face__cost--pulled {
+  background: rgba(158, 201, 184, 0.95);
+  color: #0c0a09;
+  box-shadow:
+    0 0 0 1px rgba(122, 171, 154, 0.55),
+    0 0 6px rgba(122, 171, 154, 0.35);
 }
 
 /* 固定高度圖標區：所有卡同一位置 */
