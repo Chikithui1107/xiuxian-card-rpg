@@ -25,6 +25,10 @@ import {
   getKarmaCardFaceDisplay,
   type CardFacePreviewState,
 } from "@/lib/card-face-display";
+import {
+  aspectDiscardDenyToast,
+  canPlayAspectDiscardCard,
+} from "@/lib/karma-combat";
 
 interface HandUIProps {
   hand: Card[];
@@ -32,7 +36,10 @@ interface HandUIProps {
   disabled?: boolean;
   denyShake?: boolean;
   onPlayCard: (card: Card, origin: DOMRect) => void;
-  onDenyPlay?: (reason: "energy" | "locked") => void;
+  onDenyPlay?: (
+    reason: "energy" | "locked" | "requirement",
+    detail?: string
+  ) => void;
   facePreview?: CardFacePreviewState;
   /** 飛入動畫期間隱藏真實卡面，仍佔位以便量測目標座標 */
   hiddenCardIds?: ReadonlySet<string>;
@@ -222,6 +229,8 @@ export function HandUI({
               total={hand.length}
               energy={energy}
               locked={disabled}
+              playBlocked={!canPlayAspectDiscardCard(card, hand)}
+              playBlockedReason={aspectDiscardDenyToast(card)}
               selected={selectedId === card.instanceId}
               hovered={hoverDetailId === card.instanceId}
               pose={poseForIndex(index, hand.length, metrics)}
@@ -250,6 +259,8 @@ function HandCard({
   total,
   energy,
   locked,
+  playBlocked,
+  playBlockedReason,
   selected,
   hovered,
   pose,
@@ -268,6 +279,8 @@ function HandCard({
   total: number;
   energy: number;
   locked: boolean;
+  playBlocked: boolean;
+  playBlockedReason: string | null;
   selected: boolean;
   hovered: boolean;
   pose: CardFanPose;
@@ -279,7 +292,7 @@ function HandCard({
   onSelect: (id: string) => void;
   onHoverDetail: (id: string | null) => void;
   onPlayCard: (card: Card, origin: DOMRect) => void;
-  onDenyPlay?: (reason: "energy" | "locked") => void;
+  onDenyPlay?: (reason: "energy" | "locked" | "requirement", detail?: string) => void;
 }) {
   const slotRef = useRef<HTMLDivElement>(null);
   const ghostRef = useRef<HTMLDivElement>(null);
@@ -323,6 +336,7 @@ function HandCard({
   const template = getCardTemplate(card) ?? CARD_TEMPLATES[card.id as CardTemplateId];
   const effectiveCost = getEffectiveCost(card);
   const canAfford = energy >= effectiveCost;
+  const canPlay = canAfford && !playBlocked;
   const typeStyle =
     CARD_TYPE_COLORS[template?.type ?? ""] ??
     "ink-card-type-basic bg-[#1a1814]";
@@ -382,6 +396,14 @@ function HandCard({
         finishDrag();
         return;
       }
+      if (playBlocked) {
+        onDenyPlay?.(
+          "requirement",
+          playBlockedReason ?? "條件不足"
+        );
+        finishDrag();
+        return;
+      }
       if (!canAfford) {
         onDenyPlay?.("energy");
         finishDrag();
@@ -390,7 +412,16 @@ function HandCard({
       onPlayCard(card, origin);
       finishDrag();
     },
-    [canAfford, card, finishDrag, locked, onDenyPlay, onPlayCard]
+    [
+      canAfford,
+      card,
+      finishDrag,
+      locked,
+      onDenyPlay,
+      onPlayCard,
+      playBlocked,
+      playBlockedReason,
+    ]
   );
 
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -510,7 +541,7 @@ function HandCard({
       description={description}
       icon={template?.icon ?? template?.art}
       templateId={card.id}
-      canAfford={canAfford}
+      canAfford={canPlay}
       isExhaust={card.isExhaust}
       pulledByKarma={card.pulledByKarma}
       isRetain={cardIsRetain(card)}
@@ -597,7 +628,7 @@ function HandCard({
         role="button"
         tabIndex={visuallyHidden ? -1 : 0}
         aria-pressed={selected}
-        aria-disabled={locked || !canAfford || visuallyHidden}
+        aria-disabled={locked || !canPlay || visuallyHidden}
         aria-label={`${card.name}（${index + 1}/${total}）`}
         onPointerDown={(e) => {
           if (visuallyHidden) return;
@@ -622,7 +653,7 @@ function HandCard({
         className={`ink-card absolute inset-0 origin-bottom select-none ${
           locked
             ? "cursor-not-allowed opacity-40"
-            : !canAfford
+            : !canPlay
               ? "cursor-grab opacity-55"
               : "cursor-grab active:cursor-grabbing"
         } ${typeStyle} ${raised ? "ink-card-selected" : ""} ${

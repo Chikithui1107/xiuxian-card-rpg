@@ -389,10 +389,11 @@ export function CombatView({
   }, []);
 
   const handleDenyPlay = useCallback(
-    (reason: "energy" | "locked") => {
+    (reason: "energy" | "locked" | "requirement", detail?: string) => {
       unlockCombatAudio();
       playDenySfx();
       if (reason === "energy") showToast("真元不足");
+      else if (reason === "requirement") showToast(detail ?? "條件不足");
       else showToast("尚不可出牌");
     },
     [showToast]

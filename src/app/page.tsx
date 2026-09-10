@@ -53,6 +53,8 @@ import {
   applyPlayerDamageThroughBlock,
   resolveKarmaCardPlay,
   finishAspectDiscardAndDraw,
+  canPlayAspectDiscardCard,
+  aspectDiscardDenyToast,
   type KarmaCombatState,
   type PlayedCardRecord,
 } from "@/lib/karma-combat";
@@ -820,6 +822,15 @@ export default function GamePage() {
 
           const cost = opts.free ? 0 : getEffectiveCost(c);
           if (!opts.free && en < cost) return false;
+
+          // 【捨因解果】／【果生新因】：無可棄同面牌則不可打出（不扣費、不相生）
+          if (
+            !opts.free &&
+            !opts.phantom &&
+            !canPlayAspectDiscardCard(c, deck.hand)
+          ) {
+            return false;
+          }
 
           if (opts.phantom) {
             /* 幻影結算：不改動牌堆 */

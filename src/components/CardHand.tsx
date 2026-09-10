@@ -14,7 +14,10 @@ interface CardHandProps {
   exhaustPileCount: number;
   deckCount: number;
   onPlayCard: (card: Card, origin: DOMRect) => void;
-  onDenyPlay?: (reason: "energy" | "locked") => void;
+  onDenyPlay?: (
+    reason: "energy" | "locked" | "requirement",
+    detail?: string
+  ) => void;
   onEndTurn: () => void;
   lastDamage: number | null;
   disabled: boolean;

@@ -160,6 +160,29 @@ function countAspectInHand(
   ).length;
 }
 
+/**
+ * 【捨因解果】／【果生新因】出牌閘門：
+ * 手牌中須另有至少 1 張可棄置的同面牌，否則不可打出（不扣費、不相生）。
+ */
+export function canPlayAspectDiscardCard(card: Card, hand: Card[]): boolean {
+  const kt = getKarmaTemplate(card.id);
+  if (!kt) return true;
+  if (kt.id === "sheyin") {
+    return countAspectInHand(hand, "yin", card.instanceId) >= 1;
+  }
+  if (kt.id === "guosheng") {
+    return countAspectInHand(hand, "yang", card.instanceId) >= 1;
+  }
+  return true;
+}
+
+export function aspectDiscardDenyToast(card: Card): string | null {
+  const kt = getKarmaTemplate(card.id);
+  if (kt?.id === "sheyin") return "需有其他因牌可棄";
+  if (kt?.id === "guosheng") return "需有其他果牌可棄";
+  return null;
+}
+
 /** 從抽牌堆抽出指定面向的牌（不足則洗棄牌；仍無則跳過） */
 export function drawAspectFromDeck(
   deck: BattleDeckState,
@@ -345,12 +368,9 @@ export function resolveKarmaCardPlay(ctx: KarmaPlayContext): KarmaPlayResult {
       break;
     }
     case "sheyin": {
-      const yinInHand = deck.hand.filter((c) => cardMatchesAspect(c, "yin"));
-      if (yinInHand.length === 0) {
-        feelToast = "手中無因牌可棄";
-      } else {
-        needsDiscardChoice = { aspect: "yin" };
-      }
+      // 出牌閘門已保證手中另有因牌；此處只掛起棄牌選擇。
+      // 【因果相生】在下方 cardCommitted 階段觸發，不依賴棄牌完成。
+      needsDiscardChoice = { aspect: "yin" };
       break;
     }
     case "suye": {
@@ -391,12 +411,8 @@ export function resolveKarmaCardPlay(ctx: KarmaPlayContext): KarmaPlayResult {
       break;
     }
     case "guosheng": {
-      const yangInHand = deck.hand.filter((c) => cardMatchesAspect(c, "yang"));
-      if (yangInHand.length === 0) {
-        feelToast = "手中無果牌可棄";
-      } else {
-        needsDiscardChoice = { aspect: "yang" };
-      }
+      // 出牌閘門已保證手中另有果牌；相生綁定 cardCommitted，棄牌後再抽 2 因。
+      needsDiscardChoice = { aspect: "yang" };
       break;
     }
     case "shanguo": {
@@ -448,7 +464,7 @@ export function resolveKarmaCardPlay(ctx: KarmaPlayContext): KarmaPlayResult {
     karma = { ...karma, karmaMarks: karma.karmaMarks + 1 };
   }
 
-  // 記錄出牌（重演的牌也記錄到本回合，供後續參考）
+  // 記錄出牌（cardCommitted）—— 重演幻影不記入
   if (!freeReplay) {
     karma = {
       ...karma,
@@ -463,7 +479,7 @@ export function resolveKarmaCardPlay(ctx: KarmaPlayContext): KarmaPlayResult {
     };
   }
 
-  // 【因果相生】
+  // 【因果相生】綁在 cardCommitted，不綁 effectResolved／棄牌完成
   const canPassive =
     !suppressPassive &&
     !freeReplay &&

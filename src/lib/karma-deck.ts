@@ -105,7 +105,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     aspect: "yin",
     art: karmaArtPath("sheyin"),
     icon: karmaIconPath("sheyin"),
-    description: "棄置手牌中的 1 張因牌，抽取 2 張果牌。",
+    description: "棄置手牌中另 1 張因牌，抽取 2 張果牌。手中無其他因牌時不可打出。",
   },
   suye: {
     id: "suye",
@@ -159,7 +159,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     aspect: "yang",
     art: karmaArtPath("guosheng"),
     icon: karmaIconPath("guosheng"),
-    description: "棄置手牌中的 1 張果牌，抽取 2 張因牌。",
+    description: "棄置手牌中另 1 張果牌，抽取 2 張因牌。手中無其他果牌時不可打出。",
   },
   shanguo: {
     id: "shanguo",
