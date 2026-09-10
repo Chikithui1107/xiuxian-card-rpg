@@ -541,11 +541,19 @@ body {
   min-height: 0;
   height: 100%;
   padding-bottom: 0;
+  /* 戰鬥鎖 svh：避免手機地址欄顯隱讓 dvh 變高、碼頭跟著上跳 */
+  max-height: 100svh;
 }
 
 .mobile-content.combat-lock-scroll > * {
   height: 100%;
   min-height: 0;
+}
+
+.mobile-frame:has(.combat-lock-scroll) {
+  height: 100svh;
+  min-height: 100svh;
+  max-height: 100svh;
 }
 
 /* 戰鬥殼：以遊戲容器為準的 flex 比例，不用瀏覽器 vh 鎖碼頭高度 */
@@ -577,20 +585,29 @@ body {
 }
 
 .combat-shell-top {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 10;
-  flex: 0 0 auto;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 1.1rem;
+  height: var(--combat-top-h);
+  min-height: var(--combat-top-h);
   padding: 0.2rem 0.75rem 0.1rem;
+  box-sizing: border-box;
 }
 
 .combat-shell-stage {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--combat-top-h);
+  bottom: var(--combat-dock-h);
   z-index: 10;
-  flex: 1 1 0;
+  flex: none;
   min-height: 0;
   overflow: hidden;
   padding: 0 0.5rem;
@@ -622,9 +639,13 @@ body {
 }
 
 .combat-shell-dock {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 30;
-  flex: 0 0 auto;
+  flex: none;
+  height: var(--combat-dock-h);
   overflow: visible;
   border-top: 1px solid rgba(138, 115, 64, 0.14);
   /* 不用 backdrop-filter：會讓內部 fixed 以 dock 為座標系（拖上消失、從底冒出） */
@@ -638,22 +659,28 @@ body {
   box-sizing: border-box;
 }
 
-/* 碼頭內：HUD → 手牌 → 操作層，剩餘空白沉底 */
+/* 碼頭內：HUD／手牌／操作層絕對釘死，flex 再怎麼變也不推手牌 */
 .combat-dock-stack {
-  display: flex;
+  position: relative;
+  display: block;
   height: 100%;
   min-height: 0;
-  flex-direction: column;
-  gap: 0.2rem;
 }
 
 .combat-dock-hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
   display: flex;
-  flex-shrink: 0;
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.5rem;
+  height: var(--combat-hud-h);
   padding: 0 0.1rem;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .combat-dock-hand-count {
@@ -665,9 +692,12 @@ body {
 }
 
 .combat-dock-hand {
-  position: relative;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--combat-hud-h);
+  z-index: 3;
   display: block;
-  flex: 0 0 var(--hand-zone-h);
   height: var(--hand-zone-h);
   min-height: var(--hand-zone-h);
   max-height: var(--hand-zone-h);
@@ -676,20 +706,22 @@ body {
 }
 
 .combat-dock-actions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
   display: flex;
-  flex-shrink: 0;
   align-items: flex-end;
   justify-content: space-between;
   gap: 0.75rem;
+  height: var(--combat-actions-h);
   padding: 0.15rem 0.35rem 0;
-  margin-top: 0.1rem;
+  box-sizing: border-box;
 }
 
 .combat-dock-stack::after {
-  content: "";
-  flex: 1 1 auto;
-  min-height: 0;
-  max-height: 0.85rem;
+  display: none;
 }
 
 /* —— 抽／棄牌堆錨點 —— */
@@ -2446,6 +2478,13 @@ html.combat-scroll-lock {
   --game-card-height: 11.95rem;
   /* 手牌區固定高度：不隨 handCount／出牌動畫改變，避免 bottom 錨點上移 */
   --hand-zone-h: calc(var(--game-card-height) + 1.35rem);
+  --combat-top-h: 1.3rem;
+  --combat-hud-h: 3.15rem;
+  --combat-actions-h: 4.35rem;
+  --combat-dock-h: calc(
+    var(--combat-hud-h) + var(--hand-zone-h) + var(--combat-actions-h) + 0.55rem +
+      env(safe-area-inset-bottom, 0px)
+  );
 }
 
 @media (min-width: 400px) {

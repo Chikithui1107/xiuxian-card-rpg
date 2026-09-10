@@ -24,6 +24,8 @@ interface CardHandProps {
   facePreview?: CardFacePreviewState;
   /** 抽／棄動畫進行中暫時隱藏真實手牌 */
   hiddenCardIds?: ReadonlySet<string>;
+  /** 出牌扇形凍結中 */
+  layoutFrozen?: boolean;
   drawPileRef?: Ref<HTMLDivElement | null>;
   discardPileRef?: Ref<HTMLDivElement | null>;
   discardPilePulse?: boolean;
@@ -49,6 +51,7 @@ export function CardHand({
   playerBar,
   facePreview,
   hiddenCardIds,
+  layoutFrozen = false,
   drawPileRef,
   discardPileRef,
   discardPilePulse = false,
@@ -90,6 +93,7 @@ export function CardHand({
           onDenyPlay={onDenyPlay}
           facePreview={facePreview}
           hiddenCardIds={hiddenCardIds}
+          layoutFrozen={layoutFrozen}
         />
         {(feelToast || showTip) && (
           <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 rounded-sm border border-stone-600/30 bg-stone-950/70 px-2.5 py-0.5 text-[10px] tracking-wide text-stone-300">

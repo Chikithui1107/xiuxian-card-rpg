@@ -66,8 +66,8 @@ const DRAW_DURATION_MS = 280;
 const DRAW_STAGGER_MS = 48;
 const DISCARD_DURATION_MS = 470;
 const DISCARD_STAGGER_MS = 42;
-/** 出牌飛行動畫期間凍結扇形；結束後才真正依新手牌重排 */
-const PLAY_LAYOUT_HOLD_MS = 320;
+/** 出牌飛行動畫期間凍結扇形；結束後才真正依新手牌重排（略長於 card-fly 0.34s） */
+const PLAY_LAYOUT_HOLD_MS = 360;
 
 function logHandLayerRects(label: string) {
   if (typeof window === "undefined") return;
@@ -96,8 +96,9 @@ function logHandLayerRects(label: string) {
 }
 
 /**
- * 出牌動畫期間保留「被打出牌」的佔位，避免扇形 x/rotation 瞬間重算。
- * 垂直位置改由固定 --hand-zone-h 保證，不再依賴 trackHeight。
+ * 出牌動畫期間嚴格凍結扇形：只用出牌前快照（含 ghost 佔位）。
+ * 不可把相生／抽牌新進手牌併進來——張數一變，scale／弧高會整排上跳。
+ * 新牌等 ghost 結束後再進 displayHand，並延後抽牌飛入動畫。
  */
 function mergeHandForPlayLayout(
   hold: Card[] | null,
@@ -105,13 +106,7 @@ function mergeHandForPlayLayout(
   ghosts: ReadonlySet<string>
 ): Card[] {
   if (!hold || ghosts.size === 0) return live;
-  const liveIds = new Set(live.map((c) => c.instanceId));
-  const kept = hold.filter(
-    (c) => liveIds.has(c.instanceId) || ghosts.has(c.instanceId)
-  );
-  const keptIds = new Set(kept.map((c) => c.instanceId));
-  const drawn = live.filter((c) => !keptIds.has(c.instanceId));
-  return [...kept, ...drawn];
+  return hold;
 }
 
 /** 【因果斷絕】牽引自動打出時序（合計約 0.8s，不含出牌後起始延遲） */
@@ -336,6 +331,10 @@ export function CombatView({
     () => new Set()
   );
   const playLayoutHoldRef = useRef<Card[] | null>(null);
+  const playGhostIdsRef = useRef<Set<string>>(playGhostIds);
+  playGhostIdsRef.current = playGhostIds;
+  /** 出牌凍結期間到手的新牌，等扇形解凍再飛入，避免張數突變 */
+  const pendingDrawsRef = useRef<Card[]>([]);
   const [discardPilePulse, setDiscardPilePulse] = useState(false);
   const [drawPilePulse, setDrawPilePulse] = useState(false);
   /** 斷絕牽引：中央短暫亮相（兩段飛行之間） */
@@ -526,6 +525,7 @@ export function CombatView({
     playLayoutHoldRef.current = null;
     setPlayLayoutHold(null);
     setPlayGhostIds(new Set());
+    pendingDrawsRef.current = [];
 
     void (async () => {
       try {
@@ -744,10 +744,37 @@ export function CombatView({
     }
     prevHandRef.current = hand;
 
-    if (added.length > 0) {
-      spawnDrawFlights(added);
+    if (added.length === 0) return;
+
+    // 出牌扇形凍結中：先佇列新牌，解凍後再飛入（否則 ghost+新牌張數突變會整排跳）
+    if (playGhostIdsRef.current.size > 0) {
+      const pendingIds = new Set(
+        pendingDrawsRef.current.map((c) => c.instanceId)
+      );
+      for (const card of added) {
+        if (!pendingIds.has(card.instanceId)) {
+          pendingDrawsRef.current.push(card);
+          pendingIds.add(card.instanceId);
+        }
+      }
+      return;
     }
+
+    spawnDrawFlights(added);
   }, [hand, spawnDiscardFlights, spawnDrawFlights]);
+
+  // 出牌凍結結束：把期間抽到的牌一次飛入
+  useLayoutEffect(() => {
+    if (playGhostIds.size > 0) return;
+    if (pendingDrawsRef.current.length === 0) return;
+    const pending = pendingDrawsRef.current;
+    pendingDrawsRef.current = [];
+    const liveIds = new Set(hand.map((c) => c.instanceId));
+    const stillInHand = pending.filter((c) => liveIds.has(c.instanceId));
+    if (stillInHand.length > 0) {
+      spawnDrawFlights(stillInHand);
+    }
+  }, [playGhostIds, hand, spawnDrawFlights]);
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -1141,6 +1168,7 @@ export function CombatView({
           feelToast={externalFeelToast ?? feelToast}
           facePreview={facePreview}
           hiddenCardIds={handHiddenIds}
+          layoutFrozen={playGhostIds.size > 0}
           drawPileRef={drawPileRef}
           discardPileRef={discardPileRef}
           discardPilePulse={discardPilePulse}

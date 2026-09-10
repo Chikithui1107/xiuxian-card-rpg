@@ -36,6 +36,8 @@ interface HandUIProps {
   facePreview?: CardFacePreviewState;
   /** 飛入動畫期間隱藏真實卡面，仍佔位以便量測目標座標 */
   hiddenCardIds?: ReadonlySet<string>;
+  /** 出牌凍結：關閉 transform transition，避免佔位期間被帶動 */
+  layoutFrozen?: boolean;
 }
 
 /** 上滑多少像素算出牌 */
@@ -148,6 +150,7 @@ export function HandUI({
   onDenyPlay,
   facePreview,
   hiddenCardIds,
+  layoutFrozen = false,
 }: HandUIProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [availWidth, setAvailWidth] = useState(360);
@@ -226,6 +229,7 @@ export function HandUI({
               cardHeight={metrics.cardHeight}
               facePreview={facePreview}
               visuallyHidden={hiddenCardIds?.has(card.instanceId) ?? false}
+              layoutFrozen={layoutFrozen}
               onSelect={(id) =>
                 setSelectedId((prev) => (prev === id ? null : id))
               }
@@ -253,6 +257,7 @@ function HandCard({
   cardHeight,
   facePreview,
   visuallyHidden,
+  layoutFrozen,
   onSelect,
   onHoverDetail,
   onPlayCard,
@@ -270,6 +275,7 @@ function HandCard({
   cardHeight: number;
   facePreview?: CardFacePreviewState;
   visuallyHidden: boolean;
+  layoutFrozen: boolean;
   onSelect: (id: string) => void;
   onHoverDetail: (id: string | null) => void;
   onPlayCard: (card: Card, origin: DOMRect) => void;
@@ -572,7 +578,7 @@ function HandCard({
         transform: restTransform,
         transformOrigin: "bottom center",
         transition:
-          dragging || visuallyHidden
+          dragging || visuallyHidden || layoutFrozen
             ? undefined
             : "transform 200ms ease-out",
         /* 佔位期間不要做 layout transition，避免隱藏牌還帶動視覺 */
