@@ -44,13 +44,6 @@ export function aspectFromTemplateId(templateId?: string): KarmaAspect | null {
   return getKarmaTemplate(templateId)?.aspect ?? null;
 }
 
-function AspectMark({ type }: { type: string }) {
-  if (type === "因牌") return <span aria-hidden>因</span>;
-  if (type === "果牌") return <span aria-hidden>果</span>;
-  if (type === "因／果牌") return <span aria-hidden>因／果</span>;
-  return null;
-}
-
 /** 真元印：依因／果／雙屬換外觀 */
 export function qiSealClassName(opts: {
   aspect: KarmaAspect | null;
@@ -252,7 +245,6 @@ export function CardFace({
 
       <footer className="ink-card-face__type">
         <p className={`ink-card-face__type-label ${typeAccent}`}>
-          <AspectMark type={type} />
           <span>{type}</span>
         </p>
         {pulledByKarma && (

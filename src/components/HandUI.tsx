@@ -189,7 +189,7 @@ export function HandUI({
 
   return (
     <div
-      className={`hand-fan relative w-full max-w-full overflow-x-clip overflow-y-visible px-0 pb-1 pt-1 ${
+      className={`hand-fan relative w-full max-w-full overflow-x-clip overflow-y-visible px-0 pb-0 pt-0 ${
         denyShake ? "animate-deny-shake" : ""
       }`}
     >

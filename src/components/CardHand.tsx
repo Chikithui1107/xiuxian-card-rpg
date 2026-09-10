@@ -69,65 +69,62 @@ export function CardHand({
   }, []);
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col gap-0.5">
-      <div className="flex shrink-0 items-start justify-between gap-2 px-0.5">
+    <div className="combat-dock-stack">
+      <div className="combat-dock-hud">
         <div className="min-w-0 flex-1">{playerBar}</div>
         {hand.length >= 7 && (
-          <p className="shrink-0 pt-1 text-[9px] tracking-wide text-stone-500">
+          <p className="combat-dock-hand-count">
             <span className="text-stone-600">手牌</span>{" "}
             <span className="tabular-nums text-[#c9a84c]">{hand.length}</span>
           </p>
         )}
       </div>
 
-      {/* 手牌區：貼近 HUD、佔滿寬；結束回合與牌堆在下方 */}
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-visible">
-        <div className="relative flex min-h-0 flex-1 items-start justify-center pt-0.5">
-          <HandUI
-            hand={hand}
-            energy={energy}
-            disabled={disabled}
-            denyShake={denyShake}
-            onPlayCard={onPlayCard}
-            onDenyPlay={onDenyPlay}
-            facePreview={facePreview}
-            hiddenCardIds={hiddenCardIds}
-          />
-          {(feelToast || showTip) && (
-            <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 rounded-sm border border-stone-600/30 bg-stone-950/70 px-2.5 py-0.5 text-[10px] tracking-wide text-stone-300">
-              {feelToast ?? "上拖出牌"}
-            </p>
-          )}
-        </div>
+      <div className="combat-dock-hand">
+        <HandUI
+          hand={hand}
+          energy={energy}
+          disabled={disabled}
+          denyShake={denyShake}
+          onPlayCard={onPlayCard}
+          onDenyPlay={onDenyPlay}
+          facePreview={facePreview}
+          hiddenCardIds={hiddenCardIds}
+        />
+        {(feelToast || showTip) && (
+          <p className="animate-feel-toast pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 rounded-sm border border-stone-600/30 bg-stone-950/70 px-2.5 py-0.5 text-[10px] tracking-wide text-stone-300">
+            {feelToast ?? "上拖出牌"}
+          </p>
+        )}
+      </div>
 
-        <div className="flex shrink-0 items-end justify-between gap-2 px-0.5 pb-0.5 pt-1">
-          <DeckPile
-            ref={drawPileRef}
-            label="抽牌堆"
-            count={drawPileCount}
-            variant="draw"
-            pulse={drawPilePulse}
-          />
-          <button
-            type="button"
-            onClick={onEndTurn}
-            disabled={disabled}
-            className="btn-end-turn-seal disabled:cursor-not-allowed disabled:opacity-35"
-            aria-label="結束回合"
-          >
-            <span className="btn-end-turn-seal-label">
-              <span>結束</span>
-              <span>回合</span>
-            </span>
-          </button>
-          <DeckPile
-            ref={discardPileRef}
-            label="棄牌堆"
-            count={discardPileCount}
-            variant="discard"
-            pulse={discardPilePulse}
-          />
-        </div>
+      <div className="combat-dock-actions">
+        <DeckPile
+          ref={drawPileRef}
+          label="抽牌堆"
+          count={drawPileCount}
+          variant="draw"
+          pulse={drawPilePulse}
+        />
+        <button
+          type="button"
+          onClick={onEndTurn}
+          disabled={disabled}
+          className="btn-end-turn-seal disabled:cursor-not-allowed disabled:opacity-35"
+          aria-label="結束回合"
+        >
+          <span className="btn-end-turn-seal-label">
+            <span>結束</span>
+            <span>回合</span>
+          </span>
+        </button>
+        <DeckPile
+          ref={discardPileRef}
+          label="棄牌堆"
+          count={discardPileCount}
+          variant="discard"
+          pulse={discardPilePulse}
+        />
       </div>
     </div>
   );

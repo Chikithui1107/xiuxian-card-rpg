@@ -511,9 +511,9 @@ body {
   min-height: 0;
 }
 
-/* 戰鬥殼：抬高玩家操作區，壓縮底部空黑 */
+/* 戰鬥殼：敵人區略收，玩家操作區上提並緊湊 */
 .combat-shell {
-  --combat-dock-h: clamp(27.5rem, 54vh, 31rem);
+  --combat-dock-h: clamp(23.5rem, 47vh, 26.75rem);
   position: relative;
   height: 100%;
   min-height: 0;
@@ -549,7 +549,7 @@ body {
 
 .combat-shell-stage {
   position: absolute;
-  top: 2.75rem;
+  top: 2.55rem;
   left: 0;
   right: 0;
   bottom: var(--combat-dock-h);
@@ -599,8 +599,60 @@ body {
     rgba(10, 12, 14, 0.72) 28%,
     rgba(8, 10, 12, 0.9) 100%
   );
-  padding: 0.2rem 0.45rem 0.25rem;
+  padding: 0.15rem 0.45rem 0.35rem;
   box-sizing: border-box;
+}
+
+/* 碼頭內：HUD → 手牌 → 操作層，剩餘空白沉底 */
+.combat-dock-stack {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.combat-dock-hud {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.1rem;
+}
+
+.combat-dock-hand-count {
+  flex-shrink: 0;
+  padding-top: 0.15rem;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: rgb(120 113 108);
+}
+
+.combat-dock-hand {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: visible;
+}
+
+.combat-dock-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.15rem 0.35rem 0;
+  margin-top: 0.1rem;
+}
+
+.combat-dock-stack::after {
+  content: "";
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 0.85rem;
 }
 
 /* —— 抽／棄牌堆錨點 —— */
@@ -608,16 +660,16 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
-  min-width: 3.1rem;
+  gap: 0.15rem;
+  min-width: 2.7rem;
   user-select: none;
   pointer-events: none;
 }
 
 .deck-pile__stack {
   position: relative;
-  width: 2.55rem;
-  height: 3.45rem;
+  width: 2.2rem;
+  height: 2.95rem;
 }
 
 .deck-pile__sheet {
@@ -1070,19 +1122,102 @@ body {
 }
 
 .combat-player-hud {
+  display: flex;
+  max-width: 17.5rem;
+  align-items: flex-start;
+  gap: 0.45rem;
   border: none;
   border-radius: 0;
   background: transparent;
-  padding: 0.05rem 0.05rem 0.15rem;
-  max-height: 5.75rem;
+  padding: 0;
+  max-height: none;
+}
+
+.combat-player-hud__avatar {
+  height: 1.7rem;
+  width: 1.7rem;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 9999px;
+  border: 1px solid rgba(201, 168, 76, 0.28);
+}
+
+.combat-player-hud__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.combat-player-hud__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+}
+
+.combat-player-hud__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #e4d4a8;
+}
+
+.combat-player-hud__hp-num {
+  margin-left: 0.35rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #c5d8cc;
+}
+
+.combat-player-hud__energy {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.combat-player-hud__energy-extra {
+  font-size: 9px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #7aab9a;
+}
+
+.combat-player-hud__bar {
+  margin-top: 0.2rem;
+  height: 3px;
+  max-width: 9.25rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.combat-player-hud__meta {
+  margin-top: 0.2rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: rgb(120 113 108);
+}
+
+.combat-player-hud__karma {
+  letter-spacing: 0.06em;
+  color: rgb(107 114 128);
+  font-size: 8px;
 }
 
 .btn-end-turn-seal {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3.25rem;
-  height: 3.25rem;
+  width: 2.85rem;
+  height: 2.85rem;
   border-radius: 9999px;
   border: 1px solid rgba(201, 168, 76, 0.42);
   background:
@@ -1125,10 +1260,10 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.05rem;
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
-  text-indent: 0.18em;
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
   line-height: 1.15;
 }
 
@@ -2267,15 +2402,15 @@ html.combat-scroll-lock {
 }
 
 :root {
-  /* 手機優先：手牌略放大，效果文字仍可讀 */
-  --game-card-width: 8.15rem;
-  --game-card-height: 12.85rem;
+  /* 略縮卡高，把空間留給效果文字；不改扇形算法 */
+  --game-card-width: 7.85rem;
+  --game-card-height: 11.95rem;
 }
 
 @media (min-width: 400px) {
   :root {
-    --game-card-width: 8.9rem;
-    --game-card-height: 13.75rem;
+    --game-card-width: 8.55rem;
+    --game-card-height: 12.8rem;
   }
 }
 
@@ -2594,15 +2729,15 @@ html.combat-scroll-lock {
   font-size: 0.55rem;
 }
 
-/* 固定高度圖標區：所有卡同一位置 */
+/* 圖標區約卡高 23%：短文也不放大圖 */
 .ink-card-face__icon {
   display: flex;
-  flex: 0 0 3.45rem;
+  flex: 0 0 2.75rem;
   align-items: center;
   justify-content: center;
-  height: 3.45rem;
-  min-height: 3.45rem;
-  max-height: 3.45rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  max-height: 2.75rem;
   min-width: 0;
   padding: 0;
   box-sizing: border-box;

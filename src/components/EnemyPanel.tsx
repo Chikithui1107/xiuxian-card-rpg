@@ -86,13 +86,13 @@ export function EnemyPanel({
 
   return (
     <div
-      className={`enemy-panel relative flex h-full min-h-0 flex-col items-center justify-start pt-[5vh] ${
+      className={`enemy-panel relative flex h-full min-h-0 flex-col items-center justify-start pt-[1.5vh] ${
         isDefeated ? "opacity-70" : ""
       }`}
     >
       {/* 頭頂輕量 HUD：名稱 + 境界，細血條（與立繪緊貼） */}
-      <div className="enemy-hud pointer-events-none z-20 mb-1 w-full max-w-[12rem] shrink-0 text-center">
-        <p className="flex items-baseline justify-center gap-2 text-[11px] tracking-wide">
+      <div className="enemy-hud pointer-events-none z-20 mb-0.5 w-full max-w-[10.5rem] shrink-0 text-center">
+        <p className="flex items-baseline justify-center gap-1.5 text-[11px] tracking-wide">
           <span
             className={`font-bold ${
               isDefeated ? "text-stone-500 line-through" : "text-[#f0e6d3]"
@@ -102,7 +102,7 @@ export function EnemyPanel({
           </span>
           <span className="text-stone-400">{enemy.realm}</span>
         </p>
-        <div className="mx-auto mt-1 flex w-[90%] items-center gap-1.5">
+        <div className="mx-auto mt-0.5 flex w-[78%] items-center gap-1.5">
           <div className="h-[3px] min-w-0 flex-1 overflow-hidden rounded-full bg-black/45">
             <div
               className="enemy-hp-fill h-full rounded-full transition-all duration-300"
@@ -135,7 +135,7 @@ export function EnemyPanel({
 
       {/* 人形基準舞台；各怪用 visualScale / visualOffsetY 個別調整 */}
       <div
-        className={`enemy-sprite-stage relative mx-auto flex h-[min(42vh,15.5rem)] w-[min(56vw,15.75rem)] max-w-[15.75rem] shrink-0 items-end justify-center ${
+        className={`enemy-sprite-stage relative mx-auto flex h-[min(36vh,14.25rem)] w-[min(56vw,15.75rem)] max-w-[15.75rem] shrink-0 items-end justify-center ${
           shaking ? "animate-shake" : ""
         } ${hitFlash ? "enemy-hit-flash" : ""}`}
       >
