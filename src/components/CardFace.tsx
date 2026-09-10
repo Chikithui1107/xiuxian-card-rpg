@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   resolveCardIcon,
   type CardTemplate,
@@ -89,11 +89,34 @@ export function CardFace({
   preview,
 }: CardFaceProps) {
   const [iconBroken, setIconBroken] = useState(false);
+  const descRef = useRef<HTMLDivElement>(null);
   const typeAccent = CARD_TYPE_ACCENT[type] ?? "text-[#c9a84c]";
   const iconPath = !iconBroken ? resolveCardIcon(icon) : null;
   const karmaDisplay = templateId
     ? getKarmaCardFaceDisplay(templateId, preview)
     : null;
+
+  // 長文略縮字級，最低約 0.82；短文不垂直置中
+  useLayoutEffect(() => {
+    if (compact) return;
+    const el = descRef.current;
+    if (!el) return;
+    let scale = 1;
+    el.style.setProperty("--face-desc-scale", "1");
+    // 最多縮幾步，避免無限縮小
+    for (let i = 0; i < 6; i++) {
+      if (el.scrollHeight <= el.clientHeight + 1) break;
+      scale = Math.max(0.82, scale - 0.035);
+      el.style.setProperty("--face-desc-scale", String(scale));
+      if (scale <= 0.82) break;
+    }
+  }, [
+    compact,
+    description,
+    templateId,
+    preview,
+    karmaDisplay?.coreLines?.length,
+  ]);
 
   if (compact) {
     return (
@@ -170,7 +193,7 @@ export function CardFace({
         </div>
       </div>
 
-      <div className="ink-card-face__desc">
+      <div className="ink-card-face__desc" ref={descRef}>
         {karmaDisplay ? (
           karmaDisplay.coreLines.map((line, i) => (
             <p
