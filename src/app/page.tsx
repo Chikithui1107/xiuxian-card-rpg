@@ -54,7 +54,6 @@ import {
   resolveKarmaCardPlay,
   finishAspectDiscardAndDraw,
   canPlayAspectDiscardCard,
-  aspectDiscardDenyToast,
   type KarmaCombatState,
   type PlayedCardRecord,
 } from "@/lib/karma-combat";
