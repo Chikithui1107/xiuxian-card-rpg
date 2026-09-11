@@ -13,12 +13,16 @@ export function DefeatOverlay({ onRestart, onReturnMenu }: DefeatOverlayProps) {
       <div className="defeat-overlay-veil" aria-hidden />
 
       <div className="defeat-overlay-content">
-        <img
-          className="defeat-overlay-art"
-          src={`${publicAsset("/ui/defeat-dujie.jpg")}?v=2`}
-          alt="渡劫失敗"
-          draggable={false}
-        />
+        <div className="defeat-overlay-frame">
+          <div className="defeat-overlay-frame-inner">
+            <img
+              className="defeat-overlay-art"
+              src={`${publicAsset("/ui/defeat-dujie.jpg")}?v=2`}
+              alt="渡劫失敗"
+              draggable={false}
+            />
+          </div>
+        </div>
 
         <div className="defeat-overlay-actions">
           <button
