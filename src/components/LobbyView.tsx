@@ -141,9 +141,9 @@ export function LobbyView({
             <button
               onClick={onAbandonGame}
               className="btn-abandon"
-              aria-label="退出本次修行"
+              aria-label="放棄本次修行"
             >
-              退出本次修行
+              放棄本次修行
             </button>
           </div>
         ) : (

@@ -124,7 +124,7 @@ export function PathChoiceView({
         </div>
         {choices.length === 0 && (
           <p className="mt-4 text-center text-xs text-stone-500">
-            此間無路可走，請從選單退出本次修行。
+            此間無路可走，請從選單放棄本次修行。
           </p>
         )}
       </div>

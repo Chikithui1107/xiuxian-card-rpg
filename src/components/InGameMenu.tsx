@@ -60,12 +60,12 @@ export function InGameMenu({ onQuit }: InGameMenuProps) {
               id="in-game-menu-title"
               className="mt-1 text-lg font-bold tracking-[0.28em] text-[#c9a84c]"
             >
-              {confirmQuit ? "退出本次修行" : "遊戲選單"}
+              {confirmQuit ? "放棄本次修行" : "遊戲選單"}
             </h2>
             {confirmQuit ? (
               <>
                 <p className="mt-2 text-[11px] leading-relaxed text-stone-400">
-                  確定退出本次修行？當前秘境進度將無法恢復。
+                  確定放棄本次修行？當前秘境進度將無法恢復。
                 </p>
                 <div className="mt-4 flex flex-col gap-2.5">
                   <button
@@ -82,7 +82,7 @@ export function InGameMenu({ onQuit }: InGameMenuProps) {
                     onClick={onQuit}
                     className="btn-abandon"
                   >
-                    確定退出
+                    確定放棄
                   </button>
                 </div>
               </>
@@ -102,7 +102,7 @@ export function InGameMenu({ onQuit }: InGameMenuProps) {
                   onClick={() => setConfirmQuit(true)}
                   className="btn-abandon"
                 >
-                  退出本次修行
+                  放棄本次修行
                 </button>
               </div>
             )}

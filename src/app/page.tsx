@@ -645,10 +645,10 @@ export default function GamePage() {
   }, []);
 
   const quitRun = useCallback(() => {
-    playGameOverSfx();
-    resetPermanentDeck();
-    returnToLobby("已退出秘境，本次進度已重置", true);
-  }, [returnToLobby, resetPermanentDeck]);
+    // 退出＝放棄：與氣血歸零同一套失敗結算（專屬曲 + 渡劫失敗畫面）
+    playGameOverSfx(true);
+    setPhase("defeat");
+  }, []);
 
   const dismissRunMessage = useCallback(() => {
     setLastRunMessage(null);
@@ -657,7 +657,7 @@ export default function GamePage() {
   const abandonGame = useCallback(() => {
     if (
       typeof window !== "undefined" &&
-      !window.confirm("確定退出本次秘境？當前進度將重置。")
+      !window.confirm("確定放棄本次秘境？當前進度將重置。")
     ) {
       return;
     }
@@ -708,7 +708,7 @@ export default function GamePage() {
   const returnMenuAfterDefeat = useCallback(() => {
     stopDefeatMusic();
     resetPermanentDeck();
-    returnToLobby("渡劫失敗，已返回山門。", true);
+    returnToLobby("已放棄秘境，本次進度已重置。", true);
   }, [returnToLobby, resetPermanentDeck]);
 
   const addDamagePopup = useCallback((damage: number) => {
@@ -1721,7 +1721,7 @@ export default function GamePage() {
         characters={PLAYABLE}
         activeId={character.id}
         locked={hasActiveRun || selectedTier !== null}
-        lockReason="請先結束或退出本次修行後再切換角色"
+        lockReason="請先結束或放棄本次修行後再切換角色"
         onConfirm={switchCharacter}
         onClose={() => setCharacterSelectOpen(false)}
       />
@@ -1768,7 +1768,7 @@ export default function GamePage() {
         <EventModal event={activeEvent} onChoose={handleEventChoice} />
       )}
 
-      {isInCombat && phase === "defeat" && (
+      {phase === "defeat" && (
         <DefeatOverlay
           onRestart={restartAfterDefeat}
           onReturnMenu={returnMenuAfterDefeat}
