@@ -21,6 +21,7 @@ import { EventModal } from "@/components/EventModal";
 import { InGameMenu } from "@/components/InGameMenu";
 import { VictoryAnimOverlay } from "@/components/VictoryAnimOverlay";
 import { StageClearOverlay } from "@/components/StageClearOverlay";
+import { DefeatOverlay } from "@/components/DefeatOverlay";
 import { applyEventChoice, pickStoryEvent } from "@/lib/events";
 import type { EventChoice, StoryEvent } from "@/data/events";
 import {
@@ -88,6 +89,7 @@ import {
   type CombatBuffs,
 } from "@/lib/battle-resolve";
 import { playStartCultivationSfx, playCardDrawSfx, playBattleWinSfx, playGameOverSfx } from "@/lib/combat-audio";
+import { stopDefeatMusic } from "@/lib/bgm";
 import type { BattleDeckState } from "@/types/battle";
 import type { Card } from "@/types/battle";
 import { getEffectiveCost } from "@/types/battle";
@@ -692,6 +694,22 @@ export default function GamePage() {
     },
     [resetCombatState, resetPermanentDeck]
   );
+
+  const restartAfterDefeat = useCallback(() => {
+    if (!selectedTier) {
+      stopDefeatMusic();
+      resetPermanentDeck();
+      returnToLobby("渡劫失敗，已返回山門。", true);
+      return;
+    }
+    startTierRun(selectedTier.id);
+  }, [selectedTier, startTierRun, resetPermanentDeck, returnToLobby]);
+
+  const returnMenuAfterDefeat = useCallback(() => {
+    stopDefeatMusic();
+    resetPermanentDeck();
+    returnToLobby("渡劫失敗，已返回山門。", true);
+  }, [returnToLobby, resetPermanentDeck]);
 
   const addDamagePopup = useCallback((damage: number) => {
     popupIdRef.current += 1;
@@ -1435,19 +1453,6 @@ export default function GamePage() {
     });
   }, []);
 
-  useEffect(() => {
-    if (phase !== "defeat") return;
-    const tierLabel = selectedTier?.name ?? "祕境";
-    const timer = setTimeout(() => {
-      resetPermanentDeck();
-      returnToLobby(
-        `${tierLabel} 第 ${tierFloor} 重失敗，已返回山門。`,
-        true
-      );
-    }, 1500);
-    return () => clearTimeout(timer);
-  }, [phase, tierFloor, selectedTier, returnToLobby, resetPermanentDeck]);
-
   const completeRewardNode = useCallback(
     (cardName: string | null, templateId?: CardTemplateId) => {
       if (!selectedTier || !currentMapNodeId || rewardDoneRef.current) return;
@@ -1763,20 +1768,10 @@ export default function GamePage() {
       )}
 
       {isInCombat && phase === "defeat" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm">
-          <div className="glass-panel-danger mx-4 w-full max-w-xs p-6 text-center">
-            <p className="zone-label text-[#a85555]/80">真元耗盡</p>
-            <h2 className="mt-2 text-xl font-bold tracking-widest text-[#c48888]">
-              道途殞落
-            </h2>
-            <p className="mt-2 text-xs text-stone-500">
-              {selectedTier
-                ? `【${selectedTier.name}】關卡 ${tierFloor}`
-                : "祕境試煉"}
-              · 返回山門…
-            </p>
-          </div>
-        </div>
+        <DefeatOverlay
+          onRestart={restartAfterDefeat}
+          onReturnMenu={returnMenuAfterDefeat}
+        />
       )}
     </MobileFrame>
   );

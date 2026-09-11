@@ -2401,6 +2401,112 @@ html.combat-scroll-lock {
   transform: scale(0.985);
 }
 
+/* —— 渡劫失敗結算 —— */
+.defeat-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 0.85rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  pointer-events: auto;
+}
+
+.defeat-overlay-veil {
+  position: absolute;
+  inset: 0;
+  background: rgba(6, 8, 10, 0.42);
+  backdrop-filter: grayscale(1) brightness(0.55) contrast(0.95);
+  -webkit-backdrop-filter: grayscale(1) brightness(0.55) contrast(0.95);
+}
+
+.defeat-overlay-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  max-width: 22rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  animation: defeat-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes defeat-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.defeat-overlay-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(52vh, 18rem);
+  object-fit: contain;
+  border-radius: 0.35rem;
+  box-shadow:
+    0 0 0 1px rgba(120, 130, 140, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.55);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.defeat-overlay-actions {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.defeat-btn {
+  width: 100%;
+  border-radius: 0.4rem;
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-indent: 0.28em;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.defeat-btn:active {
+  transform: scale(0.98);
+}
+
+.defeat-btn-restart {
+  border: 1px solid rgba(201, 168, 76, 0.48);
+  background:
+    linear-gradient(180deg, rgba(48, 40, 28, 0.95), rgba(22, 18, 14, 0.96));
+  color: #e8d5a3;
+  box-shadow: inset 0 0 0 1px rgba(201, 168, 76, 0.08);
+}
+
+.defeat-btn-restart:hover {
+  border-color: rgba(201, 168, 76, 0.7);
+  background:
+    linear-gradient(180deg, rgba(58, 48, 32, 0.98), rgba(28, 22, 16, 0.98));
+}
+
+.defeat-btn-menu {
+  border: 1px solid rgba(140, 150, 160, 0.35);
+  background: rgba(14, 16, 18, 0.88);
+  color: #b8c4c8;
+}
+
+.defeat-btn-menu:hover {
+  border-color: rgba(160, 170, 180, 0.5);
+  color: #d8e0e4;
+}
+
 .floor-node {
   display: flex;
   height: 1.15rem;
