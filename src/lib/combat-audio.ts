@@ -1,5 +1,5 @@
 import type { PlayFxKind } from "@/lib/combat-fx";
-import { holdBgmForSfx } from "@/lib/bgm";
+import { playDefeatMusic, stopDefeatMusic } from "@/lib/bgm";
 import { publicAsset } from "@/lib/paths";
 
 type WebkitWindow = Window & {
@@ -18,13 +18,12 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
   card_draw: ["card-draw", "card_draw"],
   reward_click: ["reward-click", "reward_click"],
   battle_win: ["battle-win", "battle_win", "level-up"],
-  game_over: ["game-over", "game_over"],
 };
 
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
 
 /** 換樣本時遞增，強制繞過 HTTP 快取 */
-const SFX_CACHE_BUST = "v7";
+const SFX_CACHE_BUST = "v8";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -141,6 +140,8 @@ export function playImpact(kind: PlayFxKind): void {
 
 /** 開始 / 繼續修行時的過渡音 */
 export function playStartCultivationSfx(): void {
+  // 若仍在播失敗曲，先停掉再開修行
+  stopDefeatMusic();
   // 換樣本後清掉舊 buffer，避免同 session 仍播舊音
   bufferCache.delete("start_cultivation");
   unlockCombatAudio();
@@ -172,26 +173,10 @@ export function playBattleWinSfx(): void {
   }, 1000);
 }
 
-/** 退出秘境或戰鬥失敗（期間壓住 BGM，避免與失敗音重疊） */
-let gameOverPlaying = false;
-
+/** 退出秘境或戰鬥失敗：播放《Shattered Jade》，期間不播其他音樂 */
 export function playGameOverSfx(): void {
-  if (gameOverPlaying) return;
-  gameOverPlaying = true;
   unlockCombatAudio();
-  void (async () => {
-    const buffer = await loadBuffer("game_over");
-    if (!buffer) {
-      gameOverPlaying = false;
-      return;
-    }
-    // 先載好再 hold，避免冷啟動時 BGM 先恢復
-    holdBgmForSfx(buffer.duration * 1000 + 400);
-    playBuffer(buffer, 1);
-    window.setTimeout(() => {
-      gameOverPlaying = false;
-    }, buffer.duration * 1000 + 400);
-  })();
+  playDefeatMusic();
 }
 
 export function preloadCombatSfx(): void {
@@ -201,5 +186,4 @@ export function preloadCombatSfx(): void {
   void loadBuffer("card_draw");
   void loadBuffer("reward_click");
   void loadBuffer("battle_win");
-  void loadBuffer("game_over");
 }

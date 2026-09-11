@@ -8,8 +8,13 @@
 | 戰鬥抽牌 | `card-draw.mp3` |
 | 戰鬥獲勝 | `battle-win.mp3` |
 | 擇劍訣入庫 | `reward-click.mp3` |
-| 退出 / 失敗 | `game-over.mp3` |
 | 拂雪流光命中 | `fuxue-slash.mp3` |
 | 踏虛掠影起手 | `tuxu-whoosh.mp3` |
 
-背景音樂在 `public/music/`（山門 `bgm.m4a`、戰鬥 `combat-bgm.m4a`）。
+背景音樂在 `public/music/`：
+
+| 用途 | 檔名 |
+|---|---|
+| 山門 | `bgm.m4a` |
+| 戰鬥 | `combat-bgm.m4a` |
+| 放棄／失敗（單獨播放） | `shattered-jade.m4a` |
