@@ -173,10 +173,13 @@ export function playBattleWinSfx(): void {
   }, 1000);
 }
 
-/** 退出秘境或戰鬥失敗：播放《Shattered Jade》，期間不播其他音樂 */
-export function playGameOverSfx(): void {
+/**
+ * 退出秘境或戰鬥失敗：單獨播放《Shattered Jade》（與 BGM 同通道，不並行）。
+ * @param lockAfter 失敗結算畫面用：曲終後仍不恢復其他音樂，直到 stopDefeatMusic
+ */
+export function playGameOverSfx(lockAfter = false): void {
   unlockCombatAudio();
-  playDefeatMusic();
+  playDefeatMusic({ lockAfter });
 }
 
 export function preloadCombatSfx(): void {

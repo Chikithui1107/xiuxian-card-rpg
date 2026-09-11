@@ -1391,7 +1391,8 @@ export default function GamePage() {
     }
 
     if (newPlayerHp <= 0) {
-      playGameOverSfx();
+      // 失敗結算：單獨播失敗曲，曲終後也不恢復戰鬥 BGM，直到選按鈕
+      playGameOverSfx(true);
       setPhase("defeat");
       playLockRef.current = false;
       return false;

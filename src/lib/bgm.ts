@@ -7,7 +7,9 @@ const TRACKS: Record<BgmScene, string> = {
   combat: publicAsset("/music/combat-bgm.m4a"),
 };
 
-const DEFEAT_URL = publicAsset("/music/shattered-jade.m4a");
+/** 換檔時遞增，避免 Pages / 瀏覽器快取舊軌 */
+const DEFEAT_CACHE_BUST = "v2";
+const DEFEAT_URL = `${publicAsset("/music/shattered-jade.m4a")}?v=${DEFEAT_CACHE_BUST}`;
 const BGM_VOLUME = 0.35;
 const DEFEAT_VOLUME = 0.45;
 
@@ -21,6 +23,15 @@ let scene: BgmScene = "lobby";
 /** 放棄／失敗專屬曲（單獨播放，不與山門／戰鬥 BGM 並行） */
 let defeatAudio: HTMLAudioElement | null = null;
 let defeatPlaying = false;
+/**
+ * 戰鬥失敗結算鎖：曲終後仍不恢復常規 BGM，
+ * 直到 stopDefeatMusic（重新開始 / 返回選單）。
+ */
+let defeatBgmLock = false;
+
+function isBgmBlocked(): boolean {
+  return sfxHold || defeatPlaying || defeatBgmLock;
+}
 
 function getPlayer(which: BgmScene): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
@@ -42,7 +53,7 @@ function syncPlayback(): void {
     el.volume = muted ? 0 : BGM_VOLUME;
 
     const shouldPlay =
-      unlocked && !muted && !sfxHold && !defeatPlaying && which === scene;
+      unlocked && !muted && !isBgmBlocked() && which === scene;
     if (shouldPlay) {
       if (el.paused) {
         void el.play().catch(() => undefined);
@@ -59,7 +70,7 @@ function syncPlayback(): void {
 
 /** 進遊戲就嘗試自動播放當前場景；成功則標記已解鎖 */
 export async function tryAutoPlayBgm(): Promise<boolean> {
-  if (muted || sfxHold || defeatPlaying) return false;
+  if (muted || isBgmBlocked()) return false;
   const el = getPlayer(scene);
   if (!el) return false;
   try {
@@ -83,7 +94,7 @@ export function setBgmScene(next: BgmScene): void {
   scene = next;
   // 預載另一軌，減少進戰切歌延遲
   void getPlayer(next === "lobby" ? "combat" : "lobby");
-  if (sfxHold || defeatPlaying) {
+  if (isBgmBlocked()) {
     syncPlayback();
     return;
   }
@@ -138,19 +149,38 @@ export function stopDefeatMusic(): void {
     defeatAudio = null;
   }
   defeatPlaying = false;
+  defeatBgmLock = false;
   syncPlayback();
 }
 
+export type PlayDefeatMusicOptions = {
+  /**
+   * true：曲終後仍鎖住山門／戰鬥 BGM（失敗結算 overlay）
+   * false：曲終後恢復當前場景 BGM（放棄回山門）
+   */
+  lockAfter?: boolean;
+};
+
 /**
  * 放棄／戰鬥失敗專屬曲《Shattered Jade》：
- * 單獨播放，期間暫停山門與戰鬥 BGM，曲終後再恢復。
+ * 與常規音樂同一套通道——單獨播放，期間不播其他音樂。
  */
-export function playDefeatMusic(): void {
+export function playDefeatMusic(options?: PlayDefeatMusicOptions): void {
   if (typeof window === "undefined") return;
   if (defeatPlaying && defeatAudio && !defeatAudio.paused) return;
 
-  stopDefeatMusic();
+  const lockAfter = Boolean(options?.lockAfter);
+
+  if (defeatAudio) {
+    defeatAudio.onended = null;
+    defeatAudio.onerror = null;
+    defeatAudio.pause();
+    defeatAudio = null;
+  }
+  defeatPlaying = false;
+
   unlocked = true;
+  defeatBgmLock = lockAfter;
   defeatPlaying = true;
   syncPlayback();
 
@@ -166,6 +196,7 @@ export function playDefeatMusic(): void {
     el.onerror = null;
     defeatAudio = null;
     defeatPlaying = false;
+    // lockAfter 時保留 defeatBgmLock，等 stopDefeatMusic 再恢復
     syncPlayback();
   };
 
