@@ -2409,7 +2409,7 @@ html.combat-scroll-lock {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem 0.85rem calc(1rem + env(safe-area-inset-bottom, 0px));
+  padding: 0.65rem 0.55rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
   pointer-events: auto;
 }
 
@@ -2426,10 +2426,10 @@ html.combat-scroll-lock {
   z-index: 1;
   display: flex;
   width: 100%;
-  max-width: 22rem;
+  max-width: min(100%, 28rem);
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 0.85rem;
   animation: defeat-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
@@ -2448,7 +2448,7 @@ html.combat-scroll-lock {
   display: block;
   width: 100%;
   height: auto;
-  max-height: min(52vh, 18rem);
+  max-height: min(72vh, 28rem);
   object-fit: contain;
   border-radius: 0.35rem;
   box-shadow:
@@ -2461,18 +2461,22 @@ html.combat-scroll-lock {
 .defeat-overlay-actions {
   display: flex;
   width: 100%;
-  flex-direction: column;
-  gap: 0.55rem;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.65rem;
 }
 
 .defeat-btn {
-  width: 100%;
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
   border-radius: 0.4rem;
-  padding: 0.85rem 1rem;
-  font-size: 0.875rem;
+  padding: 0.8rem 0.55rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  letter-spacing: 0.28em;
-  text-indent: 0.28em;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: transform 0.15s ease, border-color 0.2s ease, background 0.2s ease;
