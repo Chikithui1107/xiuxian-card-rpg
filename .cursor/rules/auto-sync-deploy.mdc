@@ -11,11 +11,17 @@ alwaysApply: true
 
 1. `git add` 相关改动并 commit（按仓库 commit 规范）
 2. `git push origin main`
-3. `npm run build`（含 `out/.nojekyll`）
-4. 把 `out/` 强制推到 `gh-pages` 分支部署 GitHub Pages
+3. 优先依赖 `.github/workflows/deploy-pages.yml`（push `main` 触发）：`npm ci` → `npm run build` → `peaceiris/actions-gh-pages`（`publish_dir: ./out`，`force_orphan: true`）
+4. 若 Actions 不可用／未触发，才手动部署：先 `rm -rf .next out && npm ci && npm run build`，校验 `out/index.html` 引用的每个 `/_next/static/**` 文件都存在于 `out/`，再把**完整** `out/` 以 orphan commit 强制推到 `gh-pages`（整目录替换，禁止只同步部分 chunk）
 5. **不要**开本地 `npm run dev`（除非用户明确要求本地预览）
 
 公开地址：`https://chikithui1107.github.io/xiuxian-card-rpg/`
+
+## 部署一致性（硬规则）
+
+- **禁止**增量 rsync／只更新部分 `_next` 文件却保留旧 `index.html`
+- `index.html` 与 `_next/static` 必须来自**同一次** `npm run build` 的完整 `out/`
+- 部署后核对：`gh-pages` 根 `index.html` 里的 `page-*.js` / CSS hash 在 `_next/static` 中真实存在
 
 ## 自动同步（默认开启）
 
