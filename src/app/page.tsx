@@ -95,6 +95,10 @@ import {
 } from "@/lib/battle-resolve";
 import { playStartCultivationSfx, playCardDrawSfx, playBattleWinSfx, playGameOverSfx } from "@/lib/combat-audio";
 import { stopDefeatMusic } from "@/lib/bgm";
+import {
+  DAMAGE_NUMBER_MS,
+  damageNumberAppearAtMs,
+} from "@/lib/combat-feedback";
 import type { BattleDeckState } from "@/types/battle";
 import type { Card } from "@/types/battle";
 import { getEffectiveCost } from "@/types/battle";
@@ -728,15 +732,17 @@ export default function GamePage() {
       value: damage,
       isCrit: false,
       isHighDamage: damage >= HIGH_DAMAGE_THRESHOLD,
-      x: 30 + Math.random() * 40,
-      y: 20 + Math.random() * 20,
+      x: 38 + Math.random() * 24,
+      y: 28 + Math.random() * 18,
     };
-    setDamagePopups((prev) => [...prev, popup]);
-    setIsShaking(true);
-    setTimeout(() => setIsShaking(false), 350);
-    setTimeout(() => {
-      setDamagePopups((prev) => prev.filter((p) => p.id !== popup.id));
-    }, 1100);
+    // 對齊出牌命中：slash → 數字；震動由 EnemyPanel 立繪層處理
+    const appearAt = damageNumberAppearAtMs();
+    window.setTimeout(() => {
+      setDamagePopups((prev) => [...prev, popup]);
+      window.setTimeout(() => {
+        setDamagePopups((prev) => prev.filter((p) => p.id !== popup.id));
+      }, DAMAGE_NUMBER_MS);
+    }, appearAt);
   }, []);
 
   const beginVictorySequence = useCallback(
@@ -1662,6 +1668,7 @@ export default function GamePage() {
             karmaMarks={karmaState.karmaMarks}
             block={karmaState.block}
             karmaMode={character.combatPath === "karma"}
+            frostSlash={character.combatPath === "sword"}
             yinPullUsed={karmaState.yinPullUsedThisTurn}
             yangPullUsed={karmaState.yangPullUsedThisTurn}
             karmaAutoPlayCard={karmaAutoPlayCard}

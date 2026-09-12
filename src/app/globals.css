@@ -21,6 +21,21 @@
   100% { opacity: 0; transform: translateY(-64px) scale(0.92); }
 }
 
+@keyframes combat-dmg-float {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  70% {
+    opacity: 0.85;
+    transform: translate(-50%, -32px) scale(1.02);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -40px) scale(0.96);
+  }
+}
+
 @keyframes crit-pop {
   0% { opacity: 0; transform: translateY(0) scale(0.4); }
   20% { opacity: 1; transform: translateY(-8px) scale(1.4); }
@@ -34,6 +49,73 @@
   40% { transform: translateX(5px); }
   60% { transform: translateX(-3px); }
   80% { transform: translateX(3px); }
+}
+
+/** 僅立繪層：左右震 2～3 下，結束回 0，不污染 unit scale */
+@keyframes enemy-sprite-hit-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  18% {
+    transform: translateX(-7px);
+  }
+  36% {
+    transform: translateX(7px);
+  }
+  54% {
+    transform: translateX(-5px);
+  }
+  72% {
+    transform: translateX(4px);
+  }
+  88% {
+    transform: translateX(-2px);
+  }
+}
+
+@keyframes enemy-frost-slash {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-42deg) scaleX(0.08);
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(-42deg) scaleX(1.05);
+  }
+}
+
+@keyframes hud-stat-pulse {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  35% {
+    transform: scale(1.15);
+    filter: brightness(1.35);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes combat-shield-aura {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.75);
+  }
+  30% {
+    opacity: 0.85;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.35);
+  }
 }
 
 @keyframes qi-breathe {
@@ -56,6 +138,69 @@
 .animate-shake { animation: shake 0.35s ease-in-out; }
 .animate-qi-breathe { animation: qi-breathe 3s ease-in-out infinite; }
 .animate-seal-pulse { animation: seal-pulse 4s ease-in-out infinite; }
+
+.combat-dmg-number {
+  font-size: 1.2rem;
+  letter-spacing: 0.02em;
+  color: #f2ebe0;
+  text-shadow:
+    0 1px 0 #2a2620,
+    0 0 10px rgba(0, 0, 0, 0.55);
+  animation: combat-dmg-float 0.52s ease-out forwards;
+  will-change: transform, opacity;
+}
+
+.enemy-sprite-hit-shake {
+  animation: enemy-sprite-hit-shake 0.18s ease-in-out;
+  will-change: transform;
+}
+
+.enemy-frost-slash {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 118px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(210, 230, 255, 0.35) 16%,
+    rgba(245, 250, 255, 0.95) 48%,
+    rgba(180, 210, 240, 0.4) 78%,
+    transparent
+  );
+  box-shadow:
+    0 0 10px rgba(200, 225, 255, 0.55),
+    0 0 18px rgba(150, 190, 230, 0.25);
+  animation: enemy-frost-slash 0.15s cubic-bezier(0.12, 0.8, 0.2, 1) forwards;
+}
+
+.hud-stat-pulse {
+  display: inline-block;
+  animation: hud-stat-pulse 0.42s ease-out;
+  transform-origin: center;
+}
+
+.combat-shield-aura {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  border: 1.5px solid rgba(190, 220, 230, 0.65);
+  background: radial-gradient(
+    circle,
+    rgba(200, 230, 235, 0.28) 0%,
+    rgba(160, 200, 210, 0.08) 55%,
+    transparent 72%
+  );
+  box-shadow: 0 0 12px rgba(170, 210, 220, 0.35);
+  animation: combat-shield-aura 0.38s ease-out forwards;
+}
 
 .enemy-sprite-stage {
   background: transparent;
@@ -89,6 +234,11 @@
 
 .enemy-sprite-float {
   animation: enemy-float 2.8s ease-in-out infinite;
+}
+
+.enemy-sprite-float-wrap {
+  animation: enemy-float 2.8s ease-in-out infinite;
+  will-change: transform;
 }
 
 @keyframes card-fly {
@@ -1215,12 +1365,17 @@ body {
 }
 
 .combat-player-hud__avatar {
+  position: relative;
   height: 1.7rem;
   width: 1.7rem;
   flex-shrink: 0;
-  overflow: hidden;
+  overflow: visible;
   border-radius: 9999px;
   border: 1px solid rgba(201, 168, 76, 0.28);
+}
+
+.combat-player-hud__avatar img {
+  border-radius: 9999px;
 }
 
 .combat-player-hud__body {

@@ -5,17 +5,29 @@ import { getMonsterConfig } from "@/data/monsters";
 import { formatNumber } from "@/lib/stats";
 import { getEnemyIntent, totalIntentDamage } from "@/lib/enemy-intent";
 import { publicAsset } from "@/lib/paths";
+import {
+  CARD_IMPACT_DELAY_MS,
+  HIT_IMPACT_OFFSET_MS,
+  HIT_SHAKE_MS,
+  HIT_SLASH_MS,
+  HP_BAR_DELAY_MS,
+  HP_BAR_TRANSITION_MS,
+  STAT_PULSE_MS,
+} from "@/lib/combat-feedback";
 import type { CombatEnemy, DamagePopup, EnemyIntent } from "@/types/game";
 
 interface EnemyPanelProps {
   enemy: CombatEnemy;
   damagePopups: DamagePopup[];
+  /** @deprecated 震動改由立繪本體處理 */
   isShaking?: boolean;
   hitFlash?: boolean;
   lastEnemyDamage?: number | null;
   lastDodge?: boolean;
   lastPassiveHeal?: number | null;
   karmaMarks?: number;
+  /** 白夜：霜白劍光；因果道先不開 */
+  frostSlash?: boolean;
 }
 
 const INTENT_ICON: Partial<Record<EnemyIntent["type"], string>> = {
@@ -63,34 +75,93 @@ function formatIntentText(intent: EnemyIntent): string {
 export function EnemyPanel({
   enemy,
   damagePopups,
-  isShaking = false,
   hitFlash = false,
   lastEnemyDamage,
   lastDodge,
   lastPassiveHeal,
   karmaMarks = 0,
+  frostSlash = false,
 }: EnemyPanelProps) {
-  const hpPercent = Math.max(0, (enemy.currentHp / enemy.maxHp) * 100);
   const isDefeated = enemy.currentHp <= 0;
   const intent = getEnemyIntent(enemy);
   const monster = getMonsterConfig(enemy);
   const displayName = monster?.name ?? enemy.name;
   const previewDamage = totalIntentDamage(intent);
 
-  const [hitShake, setHitShake] = useState(false);
+  const [displayHp, setDisplayHp] = useState(enemy.currentHp);
+  const [spriteShake, setSpriteShake] = useState(false);
+  const [slashKey, setSlashKey] = useState(0);
+  const [showSlash, setShowSlash] = useState(false);
+  const [karmaPulse, setKarmaPulse] = useState(false);
+  const [blockPulse, setBlockPulse] = useState(false);
   const [intentFloat, setIntentFloat] = useState<string | null>(null);
   const prevHpRef = useRef(enemy.currentHp);
+  const prevKarmaRef = useRef(karmaMarks);
+  const prevBlockRef = useRef(enemy.block ?? 0);
   const feedbackKeyRef = useRef(0);
+  const hitTimersRef = useRef<number[]>([]);
+
+  const clearHitTimers = () => {
+    for (const id of hitTimersRef.current) window.clearTimeout(id);
+    hitTimersRef.current = [];
+  };
+
+  // 受擊：slash → shake → HP bar（不碰 enemy-unit 的 scale／offset）
+  useEffect(() => {
+    const prev = prevHpRef.current;
+    const next = enemy.currentHp;
+    if (next >= prev) {
+      prevHpRef.current = next;
+      setDisplayHp(next);
+      return;
+    }
+
+    clearHitTimers();
+    prevHpRef.current = next;
+
+    const tSlash = window.setTimeout(() => {
+      if (frostSlash) {
+        setSlashKey((k) => k + 1);
+        setShowSlash(true);
+        const tSlashEnd = window.setTimeout(() => setShowSlash(false), HIT_SLASH_MS);
+        hitTimersRef.current.push(tSlashEnd);
+      }
+    }, CARD_IMPACT_DELAY_MS);
+
+    const tImpact = window.setTimeout(() => {
+      setSpriteShake(true);
+      const tShakeEnd = window.setTimeout(() => setSpriteShake(false), HIT_SHAKE_MS);
+      hitTimersRef.current.push(tShakeEnd);
+    }, CARD_IMPACT_DELAY_MS + HIT_IMPACT_OFFSET_MS);
+
+    const tHp = window.setTimeout(() => {
+      setDisplayHp(next);
+    }, CARD_IMPACT_DELAY_MS + HP_BAR_DELAY_MS);
+
+    hitTimersRef.current.push(tSlash, tImpact, tHp);
+    return () => clearHitTimers();
+  }, [enemy.currentHp, frostSlash]);
 
   useEffect(() => {
-    if (enemy.currentHp < prevHpRef.current) {
-      setHitShake(true);
-      const timer = setTimeout(() => setHitShake(false), 350);
-      prevHpRef.current = enemy.currentHp;
-      return () => clearTimeout(timer);
+    if (karmaMarks > prevKarmaRef.current) {
+      setKarmaPulse(true);
+      const t = window.setTimeout(() => setKarmaPulse(false), STAT_PULSE_MS);
+      prevKarmaRef.current = karmaMarks;
+      return () => window.clearTimeout(t);
     }
-    prevHpRef.current = enemy.currentHp;
-  }, [enemy.currentHp]);
+    prevKarmaRef.current = karmaMarks;
+  }, [karmaMarks]);
+
+  useEffect(() => {
+    const block = enemy.block ?? 0;
+    if (block > prevBlockRef.current) {
+      setBlockPulse(true);
+      const t = window.setTimeout(() => setBlockPulse(false), STAT_PULSE_MS);
+      prevBlockRef.current = block;
+      return () => window.clearTimeout(t);
+    }
+    prevBlockRef.current = block;
+  }, [enemy.block]);
 
   useEffect(() => {
     let label: string | null = null;
@@ -119,7 +190,7 @@ export function EnemyPanel({
     enemy.passive,
   ]);
 
-  const shaking = isShaking || hitShake;
+  const hpPercent = Math.max(0, (displayHp / enemy.maxHp) * 100);
   const isBoss =
     enemy.id === "enemy_elder" || enemy.monsterSprite === "blood_elder";
   const scale = monster?.visualScale ?? 1;
@@ -128,7 +199,11 @@ export function EnemyPanel({
   const statusLines = (
     <>
       {(enemy.block ?? 0) > 0 && (
-        <p className="mt-0.5 text-[9px] tracking-wide text-[#8a9aaa]">
+        <p
+          className={`mt-0.5 text-[9px] tracking-wide text-[#8a9aaa] ${
+            blockPulse ? "hud-stat-pulse" : ""
+          }`}
+        >
           護盾 {enemy.block}
         </p>
       )}
@@ -143,7 +218,7 @@ export function EnemyPanel({
             karmaMarks >= 5
               ? "font-semibold text-[#e0a090] karma-marks-heavy"
               : "text-[#c48888]/90"
-          }`}
+          } ${karmaPulse ? "hud-stat-pulse" : ""}`}
         >
           因果印記 · {karmaMarks}
           {karmaMarks >= 5 ? " · 將滿" : ""}
@@ -168,7 +243,6 @@ export function EnemyPanel({
         isBoss ? "pt-9" : "pt-1"
       } ${isDefeated ? "opacity-70" : ""}`}
     >
-      {/* Boss：頂部大型血條（不套用立繪 scale／offset） */}
       {isBoss && (
         <div className="enemy-boss-hud pointer-events-none absolute left-1/2 top-1 z-30 w-[min(92%,20rem)] -translate-x-1/2 text-center">
           <p className="flex items-baseline justify-center gap-1.5 text-[12px] tracking-wide">
@@ -184,12 +258,15 @@ export function EnemyPanel({
           <div className="mx-auto mt-1 flex w-full items-center gap-1.5">
             <div className="h-[7px] min-w-0 flex-1 overflow-hidden rounded-full border border-[#5a3030]/45 bg-black/55">
               <div
-                className="enemy-hp-fill h-full rounded-full transition-all duration-300"
-                style={{ width: `${hpPercent}%` }}
+                className="enemy-hp-fill h-full rounded-full"
+                style={{
+                  width: `${hpPercent}%`,
+                  transition: `width ${HP_BAR_TRANSITION_MS}ms ease-out`,
+                }}
               />
             </div>
             <span className="shrink-0 text-[10px] tabular-nums text-[#e0a8a8]">
-              {formatNumber(Math.max(0, enemy.currentHp))}/
+              {formatNumber(Math.max(0, displayHp))}/
               {formatNumber(enemy.maxHp)}
             </span>
           </div>
@@ -198,8 +275,8 @@ export function EnemyPanel({
 
       <div
         className={`enemy-sprite-stage relative mx-auto w-[min(72%,15.75rem)] max-w-[15.75rem] shrink-0 ${
-          shaking ? "animate-shake" : ""
-        } ${hitFlash ? "enemy-hit-flash" : ""}`}
+          hitFlash ? "enemy-hit-flash" : ""
+        }`}
       >
         <div
           className="pointer-events-none absolute bottom-[2%] left-1/2 h-[12%] w-[58%] -translate-x-1/2 rounded-[100%] bg-[radial-gradient(ellipse,rgba(4,8,14,0.45)_0%,rgba(4,8,14,0.12)_55%,transparent_75%)] blur-[6px]"
@@ -210,7 +287,6 @@ export function EnemyPanel({
           aria-hidden
         />
 
-        {/* 名稱／HP／Intent／立繪同一 unit：跟隨 visualScale／visualOffsetY */}
         <div
           className="enemy-unit relative z-[1] flex w-full flex-col items-center"
           style={{
@@ -236,12 +312,15 @@ export function EnemyPanel({
                 <div className="mx-auto mt-0.5 flex w-[78%] items-center gap-1">
                   <div className="h-[3px] min-w-0 flex-1 overflow-hidden rounded-full bg-black/45">
                     <div
-                      className="enemy-hp-fill h-full rounded-full transition-all duration-300"
-                      style={{ width: `${hpPercent}%` }}
+                      className="enemy-hp-fill h-full rounded-full"
+                      style={{
+                        width: `${hpPercent}%`,
+                        transition: `width ${HP_BAR_TRANSITION_MS}ms ease-out`,
+                      }}
                     />
                   </div>
                   <span className="shrink-0 text-[9px] tabular-nums text-[#e0a8a8]">
-                    {formatNumber(Math.max(0, enemy.currentHp))}/
+                    {formatNumber(Math.max(0, displayHp))}/
                     {formatNumber(enemy.maxHp)}
                   </span>
                 </div>
@@ -253,22 +332,45 @@ export function EnemyPanel({
 
           <div className="relative flex h-[min(72%,14.25rem)] w-full items-end justify-center">
             {monster ? (
-              <img
-                src={monster.image}
-                alt={displayName}
-                className={`enemy-sprite h-full w-auto max-w-full object-contain object-bottom ${
-                  isDefeated
-                    ? "scale-90 opacity-40 grayscale transition-all duration-500"
-                    : "enemy-sprite-float"
+              <div
+                className={`flex h-full w-full items-end justify-center ${
+                  isDefeated ? "" : "enemy-sprite-float-wrap"
                 }`}
-                style={{
-                  filter:
-                    "drop-shadow(0 8px 14px rgba(0,0,0,0.55)) contrast(1.08) saturate(1.02) brightness(1.04)",
-                }}
-                draggable={false}
-              />
+              >
+                <div
+                  className={`relative flex h-full max-w-full items-end justify-center ${
+                    spriteShake ? "enemy-sprite-hit-shake" : ""
+                  }`}
+                >
+                  <img
+                    src={monster.image}
+                    alt={displayName}
+                    className={`enemy-sprite h-full w-auto max-w-full object-contain object-bottom ${
+                      isDefeated
+                        ? "scale-90 opacity-40 grayscale transition-all duration-500"
+                        : ""
+                    }`}
+                    style={{
+                      filter:
+                        "drop-shadow(0 8px 14px rgba(0,0,0,0.55)) contrast(1.08) saturate(1.02) brightness(1.04)",
+                    }}
+                    draggable={false}
+                  />
+                  {showSlash && (
+                    <span
+                      key={slashKey}
+                      className="enemy-frost-slash"
+                      aria-hidden
+                    />
+                  )}
+                </div>
+              </div>
             ) : (
-              <div className="mb-2 flex h-24 w-24 items-center justify-center rounded-full border border-[#8b3a3a]/35 bg-stone-950/50">
+              <div
+                className={`mb-2 flex h-24 w-24 items-center justify-center rounded-full border border-[#8b3a3a]/35 bg-stone-950/50 ${
+                  spriteShake ? "enemy-sprite-hit-shake" : ""
+                }`}
+              >
                 <span className="text-3xl font-black text-[#c48888]">
                   {displayName.slice(0, 1)}
                 </span>
@@ -290,38 +392,25 @@ export function EnemyPanel({
           </div>
         )}
 
-        {damagePopups.map((popup) => (
-          <DamageNumber key={popup.id} popup={popup} />
-        ))}
+        <div className="pointer-events-none absolute inset-0 z-30 overflow-visible">
+          {damagePopups.map((popup) => (
+            <DamageNumber key={popup.id} popup={popup} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 function DamageNumber({ popup }: { popup: DamagePopup }) {
-  const isCrit = popup.isCrit;
-  const isHigh = popup.isHighDamage;
-
   return (
     <div
-      className={`pointer-events-none absolute z-20 font-black ${
-        isCrit ? "animate-crit-pop" : "animate-float-up"
-      }`}
+      className="combat-dmg-number pointer-events-none absolute font-black tabular-nums"
       style={{
         left: `${popup.x}%`,
         top: `${popup.y}%`,
-        fontSize: isCrit ? "1.75rem" : isHigh ? "1.45rem" : "1.15rem",
-        color: isCrit ? "#c9a84c" : isHigh ? "#c48888" : "#e8e0d4",
-        textShadow: isCrit
-          ? "1px 1px 0 #3a3530, -1px -1px 0 #3a3530"
-          : "2px 2px 0 #3a3530",
       }}
     >
-      {isCrit && (
-        <span className="block text-center text-[10px] text-[#c9a84c]">
-          暴擊
-        </span>
-      )}
       -{popup.value.toLocaleString()}
     </div>
   );

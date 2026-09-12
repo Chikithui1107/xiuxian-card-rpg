@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { Hero, HeroStats } from "@/lib/stats";
 import { formatNumber } from "@/lib/stats";
 import type { CombatBuffs } from "@/lib/battle-resolve";
 import { getStackDodgeChance } from "@/lib/battle-resolve";
 import { publicAsset } from "@/lib/paths";
+import { SHIELD_AURA_MS, STAT_PULSE_MS } from "@/lib/combat-feedback";
 
 interface CombatPlayerBarProps {
   hero: Hero;
@@ -36,11 +38,59 @@ export function CombatPlayerBar({
   const avatarSrc = hero.avatar ? publicAsset(hero.avatar) : null;
   const orbCount = Math.min(8, Math.max(maxEnergy, energy));
 
+  const [blockPulse, setBlockPulse] = useState(false);
+  const [shieldAura, setShieldAura] = useState(false);
+  const [intentPulse, setIntentPulse] = useState(false);
+  const [dodgePulse, setDodgePulse] = useState(false);
+  const prevBlock = useRef(block);
+  const prevIntent = useRef(combatBuffs.swordIntent);
+  const prevDodge = useRef(combatBuffs.dodge);
+
+  useEffect(() => {
+    if (block > prevBlock.current) {
+      setBlockPulse(true);
+      setShieldAura(true);
+      const tPulse = window.setTimeout(() => setBlockPulse(false), STAT_PULSE_MS);
+      const tAura = window.setTimeout(() => setShieldAura(false), SHIELD_AURA_MS);
+      prevBlock.current = block;
+      return () => {
+        window.clearTimeout(tPulse);
+        window.clearTimeout(tAura);
+      };
+    }
+    prevBlock.current = block;
+  }, [block]);
+
+  useEffect(() => {
+    if (combatBuffs.swordIntent > prevIntent.current) {
+      setIntentPulse(true);
+      const t = window.setTimeout(() => setIntentPulse(false), STAT_PULSE_MS);
+      prevIntent.current = combatBuffs.swordIntent;
+      return () => window.clearTimeout(t);
+    }
+    prevIntent.current = combatBuffs.swordIntent;
+  }, [combatBuffs.swordIntent]);
+
+  useEffect(() => {
+    if (combatBuffs.dodge > prevDodge.current) {
+      setDodgePulse(true);
+      const t = window.setTimeout(() => setDodgePulse(false), STAT_PULSE_MS);
+      prevDodge.current = combatBuffs.dodge;
+      return () => window.clearTimeout(t);
+    }
+    prevDodge.current = combatBuffs.dodge;
+  }, [combatBuffs.dodge]);
+
   return (
     <div className="combat-player-hud">
       {avatarSrc && (
-        <div className="combat-player-hud__avatar">
-          <img src={avatarSrc} alt="" className="h-full w-full object-cover object-center" />
+        <div className="combat-player-hud__avatar relative">
+          <img
+            src={avatarSrc}
+            alt=""
+            className="h-full w-full object-cover object-center"
+          />
+          {shieldAura && <span className="combat-shield-aura" aria-hidden />}
         </div>
       )}
 
@@ -78,7 +128,7 @@ export function CombatPlayerBar({
         <div className="combat-player-hud__meta">
           {karmaMode ? (
             <>
-              <span>
+              <span className={blockPulse ? "hud-stat-pulse" : undefined}>
                 護盾{" "}
                 <span
                   className={
@@ -101,7 +151,7 @@ export function CombatPlayerBar({
             </>
           ) : (
             <>
-              <span>
+              <span className={intentPulse ? "hud-stat-pulse" : undefined}>
                 劍意{" "}
                 <span
                   className={
@@ -113,7 +163,7 @@ export function CombatPlayerBar({
                   {combatBuffs.swordIntent}
                 </span>
               </span>
-              <span>
+              <span className={dodgePulse ? "hud-stat-pulse" : undefined}>
                 閃避{" "}
                 <span
                   className={

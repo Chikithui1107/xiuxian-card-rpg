@@ -59,6 +59,7 @@ import { publicAsset } from "@/lib/paths";
 import type { CardFacePreviewState } from "@/lib/card-face-display";
 import { aspectClassName, aspectFromTemplateId } from "@/components/CardFace";
 import { createPortal } from "react-dom";
+import { CARD_IMPACT_DELAY_MS } from "@/lib/combat-feedback";
 
 const COMBAT_BG = publicAsset("/backgrounds/combat-moon-path.jpg");
 
@@ -154,6 +155,8 @@ interface CombatViewProps {
   karmaMarks?: number;
   block?: number;
   karmaMode?: boolean;
+  /** 白夜攻擊：敵人身上霜白劍光 */
+  frostSlash?: boolean;
   yinPullUsed?: boolean;
   yangPullUsed?: boolean;
   /** 【因果斷絕】牽引待自動打出的果牌 */
@@ -273,6 +276,7 @@ export function CombatView({
   karmaMarks = 0,
   block = 0,
   karmaMode = false,
+  frostSlash = false,
   yinPullUsed = false,
   yangPullUsed = false,
   karmaAutoPlayCard = null,
@@ -865,7 +869,7 @@ export function CombatView({
         },
       ]);
 
-      const impactDelayMs = 280;
+      const impactDelayMs = CARD_IMPACT_DELAY_MS;
       const sfxDelayMs =
         fx === "fuxue" ? Math.max(0, impactDelayMs - 200) : impactDelayMs;
 
@@ -1149,6 +1153,7 @@ export function CombatView({
           lastDodge={lastDodge}
           lastPassiveHeal={lastPassiveHeal}
           karmaMarks={karmaMarks}
+          frostSlash={frostSlash}
         />
       </div>
 
