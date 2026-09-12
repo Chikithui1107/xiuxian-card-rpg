@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { getMonsterConfig } from "@/data/monsters";
 import { formatNumber } from "@/lib/stats";
-import { getEnemyIntent } from "@/lib/dungeon";
-import type { CombatEnemy, DamagePopup } from "@/types/game";
+import { getEnemyIntent, totalIntentDamage } from "@/lib/enemy-intent";
+import type { CombatEnemy, DamagePopup, EnemyIntent } from "@/types/game";
 
 interface EnemyPanelProps {
   enemy: CombatEnemy;
@@ -15,6 +15,42 @@ interface EnemyPanelProps {
   lastDodge?: boolean;
   lastPassiveHeal?: number | null;
   karmaMarks?: number;
+}
+
+function IntentGlyph({ type }: { type: EnemyIntent["type"] }) {
+  switch (type) {
+    case "attack":
+    case "multiAttack":
+      return <span aria-hidden>刃</span>;
+    case "defend":
+      return <span aria-hidden>禦</span>;
+    case "debuff":
+      return <span aria-hidden>蝕</span>;
+    case "buff":
+      return <span aria-hidden>勢</span>;
+    case "special":
+      return <span aria-hidden>？</span>;
+    default:
+      return <span aria-hidden>·</span>;
+  }
+}
+
+function formatIntentText(intent: EnemyIntent): string {
+  switch (intent.type) {
+    case "attack":
+      return `${intent.value}`;
+    case "multiAttack":
+      return `${intent.value}×${intent.hits ?? 2}`;
+    case "defend":
+      return `${intent.value}`;
+    case "debuff":
+    case "buff":
+      return intent.label;
+    case "special":
+      return intent.value > 0 ? `${intent.label} ${intent.value}` : intent.label;
+    default:
+      return intent.label;
+  }
 }
 
 export function EnemyPanel({
@@ -32,13 +68,7 @@ export function EnemyPanel({
   const intent = getEnemyIntent(enemy);
   const monster = getMonsterConfig(enemy);
   const displayName = monster?.name ?? enemy.name;
-
-  const intentDamage =
-    intent.damage > 0
-      ? enemy.attackPattern === "triple_slash"
-        ? intent.damage * 3
-        : intent.damage
-      : 0;
+  const previewDamage = totalIntentDamage(intent);
 
   const [hitShake, setHitShake] = useState(false);
   const [intentFloat, setIntentFloat] = useState<string | null>(null);
@@ -61,8 +91,8 @@ export function EnemyPanel({
       label = "閃避成功";
     } else if (lastEnemyDamage != null && lastEnemyDamage > 0) {
       const hint =
-        intentDamage > 0
-          ? `${intent.label} · ${intentDamage}傷`
+        previewDamage > 0
+          ? `${intent.label} · ${lastEnemyDamage}傷`
           : `反噬 · ${lastEnemyDamage}`;
       label = enemy.passive === "burn" ? `${hint}（灼燒）` : hint;
     } else if (lastPassiveHeal != null && lastPassiveHeal > 0) {
@@ -78,7 +108,7 @@ export function EnemyPanel({
     lastEnemyDamage,
     lastPassiveHeal,
     intent.label,
-    intentDamage,
+    previewDamage,
     enemy.passive,
   ]);
 
@@ -114,6 +144,23 @@ export function EnemyPanel({
             {formatNumber(enemy.maxHp)}
           </span>
         </div>
+
+        {!isDefeated && (
+          <div
+            className={`enemy-intent enemy-intent--${intent.type}`}
+            title={intent.label}
+          >
+            <IntentGlyph type={intent.type} />
+            <span className="enemy-intent__text">{formatIntentText(intent)}</span>
+          </div>
+        )}
+
+        {(enemy.block ?? 0) > 0 && (
+          <p className="mt-0.5 text-[9px] tracking-wide text-[#8a9aaa]">
+            護盾 {enemy.block}
+          </p>
+        )}
+
         {enemy.passiveLabel && (
           <p className="mt-0.5 text-[9px] tracking-wide text-[#a8a0c8]/80">
             {enemy.passiveLabel}

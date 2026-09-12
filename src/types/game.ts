@@ -88,6 +88,22 @@ export type AppTab = "lobby" | "combat" | "characters";
 /** @deprecated use AppTab */
 export type GameView = "lobby" | "combat";
 
+export type EnemyIntentType =
+  | "attack"
+  | "multiAttack"
+  | "defend"
+  | "debuff"
+  | "buff"
+  | "special";
+
+/** 已鎖定的下一動：顯示與結算共用 */
+export interface EnemyIntent {
+  type: EnemyIntentType;
+  value: number;
+  hits?: number;
+  label: string;
+}
+
 export interface DamagePopup {
   id: string;
   value: number;
@@ -106,7 +122,12 @@ export interface CombatEnemy extends Enemy {
   passiveLabel?: string | null;
   attackPattern?: "triple_slash" | null;
   attackPatternLabel?: string | null;
+  /** 行動循環索引 */
   intentIndex?: number;
+  /** 已鎖定的下一動（顯示＝結算） */
+  pendingIntent?: EnemyIntent;
+  /** 敵人護盾（防禦 intent） */
+  block?: number;
   /** 僅特定遭遇（如「遭遇野狼」）顯示立繪 */
   monsterSprite?: string;
 }

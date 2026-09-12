@@ -62,7 +62,6 @@ import { buildCardFacePreviewFromKarma } from "@/lib/card-face-display";
 import { AspectDiscardModal } from "@/components/AspectDiscardModal";
 import {
   advanceEnemyIntent,
-  applyBurnPassive,
   applyRegenPassive,
   getAllDungeonTiers,
   getCompletionSpiritReward,
@@ -73,6 +72,12 @@ import {
   getFloorSpiritReward,
   getMapNodeSpiritReward,
 } from "@/lib/dungeon";
+import {
+  applyDamageToEnemy,
+  clearEnemyBlock,
+  lockEnemyIntent,
+} from "@/lib/enemy-intent";
+import { ENEMY_SPRITE_ID } from "@/data/monsters";
 import {
   completeMapNode,
   countCompletedNodes,
@@ -218,10 +223,15 @@ export default function GamePage() {
   const [playerHp, setPlayerHp] = useState(60);
   const [lastRunMessage, setLastRunMessage] = useState<string | null>(null);
 
-  const [enemy, setEnemy] = useState<CombatEnemy>(() => ({
-    ...ENEMY_LIST[0],
-    currentHp: ENEMY_LIST[0].maxHp,
-  }));
+  const [enemy, setEnemy] = useState<CombatEnemy>(() =>
+    lockEnemyIntent({
+      ...ENEMY_LIST[0],
+      currentHp: ENEMY_LIST[0].maxHp,
+      intentIndex: 0,
+      block: 0,
+      monsterSprite: ENEMY_SPRITE_ID[ENEMY_LIST[0].id],
+    })
+  );
   const [deckState, setDeckState] = useState<BattleDeckState>(EMPTY_DECK);
   const popupIdRef = useRef(0);
   const [energy, setEnergy] = useState(MAX_ENERGY);
@@ -932,18 +942,23 @@ export default function GamePage() {
 
         const applyDamageAndMaybeUnlock = (dmg: number, unlock: boolean) => {
           if (dmg > 0) {
-            const newHp = Math.max(0, enemy.currentHp - dmg);
-            setEnemy((prev) => ({ ...prev, currentHp: newHp }));
+            let appliedHp = 0;
+            setEnemy((prev) => {
+              const next = applyDamageToEnemy(prev, dmg);
+              appliedHp = prev.currentHp - next.currentHp;
+              checkVictory(
+                next.currentHp,
+                prev.name,
+                selectedTier,
+                currentMapNodeId,
+                dungeonMap
+              );
+              return next;
+            });
             setTotalDamage((prev) => prev + dmg);
             addDamagePopup(dmg);
             setLastDamage(dmg);
-            checkVictory(
-              newHp,
-              enemy.name,
-              selectedTier,
-              currentMapNodeId,
-              dungeonMap
-            );
+            void appliedHp;
           } else {
             setLastDamage(null);
           }
@@ -1059,15 +1074,15 @@ export default function GamePage() {
             }
             if (autoDealt > 0) {
               setEnemy((prev) => {
-                const newHp = Math.max(0, prev.currentHp - autoDealt);
+                const next = applyDamageToEnemy(prev, autoDealt);
                 checkVictory(
-                  newHp,
+                  next.currentHp,
                   prev.name,
                   selectedTier,
                   currentMapNodeId,
                   dungeonMap
                 );
-                return { ...prev, currentHp: newHp };
+                return next;
               });
               setTotalDamage((prev) => prev + autoDealt);
               addDamagePopup(autoDealt);
@@ -1130,19 +1145,21 @@ export default function GamePage() {
       }
 
       if (damage > 0) {
-        const newHp = Math.max(0, enemy.currentHp - damage);
-        setEnemy((prev) => ({ ...prev, currentHp: newHp }));
+        setEnemy((prev) => {
+          const next = applyDamageToEnemy(prev, damage);
+          checkVictory(
+            next.currentHp,
+            prev.name,
+            selectedTier,
+            currentMapNodeId,
+            dungeonMap
+          );
+          return next;
+        });
         setTotalDamage((prev) => prev + damage);
         addDamagePopup(damage);
         setLastDamage(damage);
         setDeckState(newDeck);
-        checkVictory(
-          newHp,
-          enemy.name,
-          selectedTier,
-          currentMapNodeId,
-          dungeonMap
-        );
         queueMicrotask(() => {
           if (!victoryStartedRef.current) {
             playLockRef.current = false;
@@ -1285,18 +1302,20 @@ export default function GamePage() {
       }
 
       if (dealt > 0) {
-        const newHp = Math.max(0, enemy.currentHp - dealt);
-        setEnemy((prev) => ({ ...prev, currentHp: newHp }));
+        setEnemy((prev) => {
+          const next = applyDamageToEnemy(prev, dealt);
+          checkVictory(
+            next.currentHp,
+            prev.name,
+            selectedTier,
+            currentMapNodeId,
+            dungeonMap
+          );
+          return next;
+        });
         setTotalDamage((prev) => prev + dealt);
         addDamagePopup(dealt);
         setLastDamage(dealt);
-        checkVictory(
-          newHp,
-          enemy.name,
-          selectedTier,
-          currentMapNodeId,
-          dungeonMap
-        );
       }
     },
     [
@@ -1344,29 +1363,27 @@ export default function GamePage() {
     setLastPassiveHeal(null);
 
     const intent = getEnemyIntent(enemy);
+    const isAttack =
+      intent.type === "attack" || intent.type === "multiAttack";
     const hitCount =
-      enemy.attackPattern === "triple_slash" && intent.damage > 0 ? 3 : 1;
+      intent.type === "multiAttack" ? Math.max(1, intent.hits ?? 1) : 1;
 
     let totalDmg = 0;
     let anyDodge = false;
 
     if (
       character.combatPath === "sword" &&
-      intent.damage > 0 &&
+      isAttack &&
       combatBuffs.dodge > 0
     ) {
       anyDodge = rollStackDodge(combatBuffs.dodge);
       setCombatBuffs((prev) => ({ ...prev, dodge: 0 }));
     }
 
-    if (!anyDodge) {
-      for (let hit = 0; hit < hitCount; hit++) {
-        let dmg: number = intent.damage;
-        if (dmg > 0 && enemy.passive === "burn") {
-          dmg = applyBurnPassive(dmg);
-        }
-        totalDmg += dmg;
-      }
+    if (isAttack && !anyDodge) {
+      // pendingIntent 已鎖定數值（含灼燒），不可再重算
+      totalDmg =
+        intent.type === "multiAttack" ? intent.value * hitCount : intent.value;
     }
 
     if (character.combatPath === "karma" && totalDmg > 0) {
@@ -1398,16 +1415,19 @@ export default function GamePage() {
       return false;
     }
 
-    if (enemy.passive === "regen") {
-      setEnemy((prev) => {
-        const healed = applyRegenPassive(prev);
-        const healAmount = healed.currentHp - prev.currentHp;
+    setEnemy((prev) => {
+      let next = clearEnemyBlock(prev);
+      if (intent.type === "defend" && intent.value > 0) {
+        next = { ...next, block: (next.block ?? 0) + intent.value };
+      }
+      if (next.passive === "regen") {
+        const healed = applyRegenPassive(next);
+        const healAmount = healed.currentHp - next.currentHp;
         if (healAmount > 0) setLastPassiveHeal(healAmount);
-        return healed;
-      });
-    }
-
-    setEnemy((prev) => advanceEnemyIntent(prev));
+        next = healed;
+      }
+      return advanceEnemyIntent(next);
+    });
     setLastDamage(null);
     return true;
   }, [

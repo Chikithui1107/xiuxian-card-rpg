@@ -1,7 +1,14 @@
 import dungeonsData from "@/data/dungeons.json";
 import { ENEMY_SPRITE_ID } from "@/data/monsters";
+import { lockEnemyIntent } from "@/lib/enemy-intent";
 import type { CombatEnemy, DungeonTier, Enemy } from "@/types/game";
 import type { MapNode, NodeType } from "@/types/map";
+
+export {
+  advanceEnemyIntent,
+  getEnemyIntent,
+  lockEnemyIntent,
+} from "@/lib/enemy-intent";
 
 const tiers = dungeonsData as DungeonTier[];
 
@@ -17,36 +24,6 @@ const NODE_BASE_ATTACK: Record<"combat" | "elite" | "boss", number> = {
   elite: 11,
   boss: 13,
 };
-
-export const ENEMY_INTENT_CYCLE = [
-  { id: "attack", label: "斬擊", damage: 7, description: "造成 7 點傷害" },
-  { id: "charge", label: "蓄勢", damage: 0, description: "積蓄劍勢，下回合重擊" },
-  { id: "heavy", label: "重擊", damage: 12, description: "造成 12 點重擊傷害" },
-] as const;
-
-export function getEnemyIntent(enemy: CombatEnemy) {
-  const index = enemy.intentIndex ?? 0;
-  const base = ENEMY_INTENT_CYCLE[index % ENEMY_INTENT_CYCLE.length];
-  if (base.damage <= 0) {
-    return { ...base };
-  }
-  // 依節點攻擊力縮放（基準為普通戰 7）
-  const scale = Math.max(0.5, enemy.attackDamage / NODE_BASE_ATTACK.combat);
-  const damage = Math.max(1, Math.floor(base.damage * scale));
-  return {
-    ...base,
-    damage,
-    description:
-      base.id === "heavy" ? `造成 ${damage} 點重擊傷害` : `造成 ${damage} 點傷害`,
-  };
-}
-
-export function advanceEnemyIntent(enemy: CombatEnemy): CombatEnemy {
-  return {
-    ...enemy,
-    intentIndex: ((enemy.intentIndex ?? 0) + 1) % ENEMY_INTENT_CYCLE.length,
-  };
-}
 
 export function getAllDungeonTiers(): DungeonTier[] {
   return tiers;
@@ -101,7 +78,7 @@ export function createScaledEnemy(
     base.attackDamage * tier.attackMultiplier * floorScale
   );
 
-  return {
+  return finalizeCombatEnemy({
     ...base,
     maxHp,
     attackDamage,
@@ -111,7 +88,14 @@ export function createScaledEnemy(
     totalFloors: tier.floors,
     passive: tier.enemyPassive,
     passiveLabel: tier.passiveDescription,
-  };
+    intentIndex: 0,
+    block: 0,
+    monsterSprite: ENEMY_SPRITE_ID[base.id],
+  });
+}
+
+function finalizeCombatEnemy(enemy: CombatEnemy): CombatEnemy {
+  return lockEnemyIntent({ ...enemy, block: enemy.block ?? 0 });
 }
 
 export function getEnemyForTierFloor(
@@ -146,7 +130,7 @@ export function getEnemyForMapNode(
     NODE_BASE_ATTACK[node.type] * tier.attackMultiplier
   );
 
-  return {
+  return finalizeCombatEnemy({
     ...template,
     maxHp,
     attackDamage,
@@ -160,10 +144,11 @@ export function getEnemyForMapNode(
     attackPatternLabel:
       node.type === "elite" ? "三連斬（單次攻擊判定閃避）" : null,
     intentIndex: 0,
+    block: 0,
     monsterSprite:
       (isWolfEncounter(node) ? "demon_wolf" : undefined) ??
       ENEMY_SPRITE_ID[template.id],
-  };
+  });
 }
 
 /** 地圖節點靈石獎勵 */

@@ -2581,6 +2581,54 @@ html.combat-scroll-lock {
   background: linear-gradient(90deg, #5a2020, #8b3a3a, #a85555);
 }
 
+/* 敵人下一動預告：名稱／血條旁小型標籤 */
+.enemy-intent {
+  margin: 0.35rem auto 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  min-width: 2.6rem;
+  padding: 0.12rem 0.45rem;
+  border: 1px solid rgba(138, 115, 64, 0.28);
+  border-radius: 0.2rem;
+  background: rgba(12, 12, 14, 0.72);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  color: #c8c0b4;
+}
+
+.enemy-intent--attack,
+.enemy-intent--multiAttack {
+  border-color: rgba(140, 80, 80, 0.35);
+  color: #c48888;
+}
+
+.enemy-intent--defend {
+  border-color: rgba(90, 120, 130, 0.4);
+  color: #8a9aaa;
+}
+
+.enemy-intent--debuff {
+  border-color: rgba(100, 80, 120, 0.4);
+  color: #9a8aaa;
+}
+
+.enemy-intent--buff {
+  border-color: rgba(138, 115, 64, 0.4);
+  color: #c9a84c;
+}
+
+.enemy-intent--special {
+  border-color: rgba(120, 120, 120, 0.35);
+  color: #a8a29e;
+}
+
+.enemy-intent__text {
+  font-weight: 600;
+}
+
 /* 因果印記 ≥5：克制提示，不改整體美術 */
 .karma-marks-heavy {
   text-shadow: 0 0 8px rgba(224, 160, 144, 0.45);
