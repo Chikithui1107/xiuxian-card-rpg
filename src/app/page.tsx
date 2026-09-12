@@ -85,7 +85,6 @@ import { ENEMY_SPRITE_ID } from "@/data/monsters";
 import {
   completeMapNode,
   countCompletedNodes,
-  countTotalNodes,
   getAvailableNodes,
   getMapNode,
   isBossCleared,
@@ -1264,11 +1263,11 @@ export default function GamePage() {
       setPhase("playing");
       resetPermanentDeck();
       setRunSpirit(100);
-      setPlayerHp(character.maxHp);
+      setPlayerHp(heroStats.maxHp);
       setEnemy(createNeutralEnemy());
       resetCombatState();
     },
-    [resetCombatState, resetPermanentDeck, character.maxHp, maxCalamityLevel]
+    [resetCombatState, resetPermanentDeck, heroStats.maxHp, maxCalamityLevel]
   );
 
   const restartAfterDefeat = useCallback(() => {
@@ -2386,7 +2385,7 @@ export default function GamePage() {
               maxHp={heroStats.maxHp}
               runSpirit={runSpirit}
               completedCount={countCompletedNodes(dungeonMap)}
-              totalCount={countTotalNodes(dungeonMap)}
+              totalCount={selectedTier.floors}
               mapMessage={mapMessage}
               currentNodeId={
                 getAvailableNodes(dungeonMap)[0]?.id ?? currentMapNodeId
