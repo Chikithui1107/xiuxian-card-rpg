@@ -65,7 +65,6 @@ import {
   advanceEnemyIntent,
   applyRegenPassive,
   getAllDungeonTiers,
-  getCompletionSpiritReward,
   getDungeonChapterMeta,
   getDungeonTier,
   getEnemyForMapNode,
@@ -152,7 +151,10 @@ interface ActiveRunSaveV1 {
   dungeonMap: MapNode[][];
   permanentDeck: CardTemplateId[];
   playerHp: number;
+  /** 永久靈石（與 CharacterProgress 同步） */
   spiritStones: number;
+  /** 本局靈砂；舊存檔缺欄位時視為 0 */
+  runSpirit: number;
   mapMessage: string | null;
   savedAt: number;
 }
@@ -316,6 +318,19 @@ function readStoredRun(): ActiveRunSaveV1 | null {
       clearActiveRunSave();
       return null;
     }
+    // 舊 v1 可無 runSpirit：fallback 0，不整檔作廢
+    let runSpirit = 0;
+    if (parsed.runSpirit !== undefined) {
+      if (
+        typeof parsed.runSpirit !== "number" ||
+        !Number.isFinite(parsed.runSpirit) ||
+        parsed.runSpirit < 0
+      ) {
+        clearActiveRunSave();
+        return null;
+      }
+      runSpirit = Math.floor(parsed.runSpirit);
+    }
     if (
       parsed.mapMessage != null &&
       typeof parsed.mapMessage !== "string"
@@ -331,6 +346,7 @@ function readStoredRun(): ActiveRunSaveV1 | null {
       permanentDeck: parsed.permanentDeck as CardTemplateId[],
       playerHp: parsed.playerHp,
       spiritStones: parsed.spiritStones,
+      runSpirit,
       mapMessage: parsed.mapMessage ?? null,
       savedAt: typeof parsed.savedAt === "number" ? parsed.savedAt : Date.now(),
     };
@@ -366,6 +382,8 @@ export default function GamePage() {
   const [tierFloor, setTierFloor] = useState(1);
   const [totalClears, setTotalClears] = useState(0);
   const [spiritStones, setSpiritStones] = useState(1280);
+  /** 本局靈砂：僅存於 Active Run，結束／戰敗／放棄清零 */
+  const [runSpirit, setRunSpirit] = useState(0);
   const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>(
     []
   );
@@ -396,6 +414,8 @@ export default function GamePage() {
   const [stageClearMessage, setStageClearMessage] = useState<string | null>(
     null
   );
+  /** 通關時預先算好的「餘砂→靈石」轉換量 */
+  const [pendingClearConvert, setPendingClearConvert] = useState(0);
   const [damagePopups, setDamagePopups] = useState<DamagePopup[]>([]);
   const [impactFeedback, setImpactFeedback] =
     useState<CombatImpactFeedback | null>(null);
@@ -515,6 +535,7 @@ export default function GamePage() {
         setPermanentDeck(progress.permanentDeck);
         setPlayerHp(progress.playerHp);
         setSpiritStones(progress.spiritStones);
+        setRunSpirit(Math.max(0, Math.floor(savedRun.runSpirit)));
         setTotalClears(progress.totalClears);
         setInventory(createInitialInventory(startingInventoryData));
         setSelectedTier(tier);
@@ -556,6 +577,7 @@ export default function GamePage() {
     setPermanentDeck(progress.permanentDeck);
     setPlayerHp(progress.playerHp);
     setSpiritStones(progress.spiritStones);
+    setRunSpirit(0);
     setTotalClears(progress.totalClears);
     setInventory(createInitialInventory(startingInventoryData));
     setReady(true);
@@ -602,6 +624,7 @@ export default function GamePage() {
       permanentDeck,
       playerHp,
       spiritStones,
+      runSpirit,
       mapMessage,
       savedAt: Date.now(),
     });
@@ -612,6 +635,7 @@ export default function GamePage() {
     permanentDeck,
     playerHp,
     spiritStones,
+    runSpirit,
     mapMessage,
     combatScreen,
     isInCombat,
@@ -746,6 +770,7 @@ export default function GamePage() {
     setPhase("playing");
     setBattlePhase("IN_BATTLE");
     setStageClearMessage(null);
+    setPendingClearConvert(0);
     setDamagePopups([]);
     pendingPlayerHitRef.current = null;
     setImpactFeedback(null);
@@ -789,6 +814,7 @@ export default function GamePage() {
       setActiveRestNodeId(null);
       setActiveShopNodeId(null);
       setShopOfferIds([]);
+      setRunSpirit(0);
       resetCombatState();
       if (message) setLastRunMessage(message);
       if (healPlayer) setPlayerHp(heroStats.maxHp);
@@ -927,26 +953,26 @@ export default function GamePage() {
   const handleRestSpirit = useCallback(() => {
     if (!activeRestNodeId || restChoiceLockRef.current) return;
     restChoiceLockRef.current = true;
-    setSpiritStones((s) => s + 80);
+    setRunSpirit((s) => s + 80);
     const nodeId = activeRestNodeId;
     setActiveRestNodeId(null);
-    finishMapNode(nodeId, "吐納聚靈，獲得 80 靈石");
+    finishMapNode(nodeId, "吐納聚靈，獲得 80 靈砂");
   }, [activeRestNodeId, finishMapNode]);
 
   const handleShopBuy = useCallback(
     (templateId: CardTemplateId) => {
       if (!activeShopNodeId || shopChoiceLockRef.current) return;
-      if (spiritStones < SHOP_PRICE) return;
+      if (runSpirit < SHOP_PRICE) return;
       shopChoiceLockRef.current = true;
-      setSpiritStones((s) => s - SHOP_PRICE);
+      setRunSpirit((s) => s - SHOP_PRICE);
       setPermanentDeck((prev) => [...prev, templateId]);
       const cardName = CARD_TEMPLATES[templateId]?.name ?? "法訣";
       const nodeId = activeShopNodeId;
       setActiveShopNodeId(null);
       setShopOfferIds([]);
-      finishMapNode(nodeId, `購得「${cardName}」，耗費 ${SHOP_PRICE} 靈石`);
+      finishMapNode(nodeId, `購得「${cardName}」，耗費 ${SHOP_PRICE} 靈砂`);
     },
-    [activeShopNodeId, spiritStones, finishMapNode]
+    [activeShopNodeId, runSpirit, finishMapNode]
   );
 
   const handleShopLeave = useCallback(() => {
@@ -970,7 +996,7 @@ export default function GamePage() {
       });
       setPlayerHp(nextHp);
       if (spiritDelta !== 0) {
-        setSpiritStones((s) => s + spiritDelta);
+        setRunSpirit((s) => s + spiritDelta);
       }
       setActiveEvent(null);
       setActiveEventNodeId(null);
@@ -1002,6 +1028,7 @@ export default function GamePage() {
   const quitRun = useCallback(() => {
     // 退出＝放棄：立即清檢查點，避免刷新後從死亡前繼續
     clearActiveRunSave();
+    setRunSpirit(0);
     playGameOverSfx(true);
     setPhase("defeat");
   }, []);
@@ -1042,10 +1069,14 @@ export default function GamePage() {
       setMapMessage(null);
       setActiveEvent(null);
       setActiveEventNodeId(null);
+      setActiveRestNodeId(null);
+      setActiveShopNodeId(null);
+      setShopOfferIds([]);
       setIsInCombat(false);
       setCombatScreen("path");
       setActiveTab("combat");
       resetPermanentDeck();
+      setRunSpirit(100);
       setPlayerHp(character.maxHp);
       resetCombatState();
     },
@@ -1055,6 +1086,7 @@ export default function GamePage() {
   const restartAfterDefeat = useCallback(() => {
     stopDefeatMusic();
     clearActiveRunSave();
+    setRunSpirit(0);
     if (!selectedTier) {
       resetPermanentDeck();
       returnToLobby("渡劫失敗，已返回山門。", true);
@@ -1066,6 +1098,7 @@ export default function GamePage() {
   const returnMenuAfterDefeat = useCallback(() => {
     stopDefeatMusic();
     clearActiveRunSave();
+    setRunSpirit(0);
     resetPermanentDeck();
     returnToLobby("已放棄秘境，本次進度已重置。", true);
   }, [returnToLobby, resetPermanentDeck]);
@@ -1846,6 +1879,7 @@ export default function GamePage() {
 
       if (displayHp <= 0) {
         clearActiveRunSave();
+        setRunSpirit(0);
         playGameOverSfx(true);
         setPhase("defeat");
         playLockRef.current = false;
@@ -1929,7 +1963,8 @@ export default function GamePage() {
         setPermanentDeck((prev) => [...prev, templateId]);
       }
 
-      setSpiritStones((s) => s + pendingFloorReward);
+      const nextRunSpirit = runSpirit + pendingFloorReward;
+      setRunSpirit(nextRunSpirit);
 
       const updatedMap = completeMapNode(dungeonMap, currentMapNodeId);
       setDungeonMap(updatedMap);
@@ -1938,11 +1973,12 @@ export default function GamePage() {
         pendingTierComplete || isBossCleared(updatedMap);
 
       if (tierComplete) {
-        const completionBonus = getCompletionSpiritReward(selectedTier);
-        const cardPart = cardName ? `獲得「${cardName}」、` : "已放棄劍訣獎勵，";
+        const convert = Math.floor(nextRunSpirit * 0.5);
+        const cardPart = cardName ? `獲得「${cardName}」、` : "已放棄法訣獎勵，";
         stageClearDoneRef.current = false;
+        setPendingClearConvert(convert);
         setStageClearMessage(
-          `通關【${selectedTier.name}】！斬殺魔首，${cardPart}${pendingFloorReward + completionBonus} 靈石，解鎖成就「${selectedTier.achievementName}」。`
+          `通關【${selectedTier.name}】！斬殺魔首，${cardPart}餘下靈砂化為靈石 +${convert}，解鎖成就「${selectedTier.achievementName}」。`
         );
         setBattlePhase("STAGE_CLEAR");
         return;
@@ -1951,7 +1987,7 @@ export default function GamePage() {
       returnToPath(
         cardName
           ? `擊敗敵人，獲得「${cardName}」。請擇下一途繼續。`
-          : "擊敗敵人，已放棄劍訣獎勵。請擇下一途繼續。"
+          : "擊敗敵人，已放棄法訣獎勵。請擇下一途繼續。"
       );
     },
     [
@@ -1960,6 +1996,7 @@ export default function GamePage() {
       dungeonMap,
       pendingFloorReward,
       pendingTierComplete,
+      runSpirit,
       returnToPath,
     ]
   );
@@ -1981,8 +2018,11 @@ export default function GamePage() {
     }
     stageClearDoneRef.current = true;
 
-    const completionBonus = getCompletionSpiritReward(selectedTier);
-    setSpiritStones((s) => s + completionBonus);
+    if (pendingClearConvert > 0) {
+      setSpiritStones((s) => s + pendingClearConvert);
+    }
+    setRunSpirit(0);
+    setPendingClearConvert(0);
     setTotalClears((c) => c + 1);
     setUnlockedAchievements((prev) => {
       if (prev.includes(selectedTier.achievementId)) return prev;
@@ -1992,7 +2032,13 @@ export default function GamePage() {
     clearActiveRunSave();
     resetPermanentDeck();
     returnToLobby(stageClearMessage, true);
-  }, [selectedTier, stageClearMessage, returnToLobby, resetPermanentDeck]);
+  }, [
+    selectedTier,
+    stageClearMessage,
+    pendingClearConvert,
+    returnToLobby,
+    resetPermanentDeck,
+  ]);
 
   const deckInfo = useMemo(
     () => ({
@@ -2059,6 +2105,7 @@ export default function GamePage() {
               tierName={selectedTier.name}
               playerHp={playerHp}
               maxHp={heroStats.maxHp}
+              runSpirit={runSpirit}
               completedCount={countCompletedNodes(dungeonMap)}
               totalCount={countTotalNodes(dungeonMap)}
               mapMessage={mapMessage}
@@ -2257,7 +2304,7 @@ export default function GamePage() {
       {activeShopNodeId && (
         <ShopModal
           offerIds={shopOfferIds}
-          spiritStones={spiritStones}
+          runSpirit={runSpirit}
           onBuy={handleShopBuy}
           onLeave={handleShopLeave}
         />

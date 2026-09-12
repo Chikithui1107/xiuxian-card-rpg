@@ -9,18 +9,18 @@ const SHOP_PRICE = 200;
 
 interface ShopModalProps {
   offerIds: CardTemplateId[];
-  spiritStones: number;
+  runSpirit: number;
   onBuy: (templateId: CardTemplateId) => void;
   onLeave: () => void;
 }
 
 export function ShopModal({
   offerIds,
-  spiritStones,
+  runSpirit,
   onBuy,
   onLeave,
 }: ShopModalProps) {
-  const canAfford = spiritStones >= SHOP_PRICE;
+  const canAfford = runSpirit >= SHOP_PRICE;
 
   const handleBuy = (templateId: CardTemplateId) => {
     if (!canAfford) return;
@@ -36,10 +36,10 @@ export function ShopModal({
           雲遊坊市
         </h2>
         <p className="mt-2 text-[12px] tracking-wide text-stone-400">
-          靈石可換法訣，取捨亦是修行。
+          靈砂可換法訣，取捨亦是修行。
         </p>
         <p className="mt-2 text-[11px] text-[#c9a84c]/90">
-          現有靈石 {spiritStones}
+          現有靈砂 {runSpirit}
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export function ShopModal({
               <p className="text-[11px] tracking-wide text-[#e8e0d4]">
                 {card.name}
               </p>
-              <p className="text-[10px] text-[#c9a84c]">200 靈石</p>
+              <p className="text-[10px] text-[#c9a84c]">200 靈砂</p>
               <button
                 type="button"
                 disabled={!canAfford}
@@ -73,7 +73,7 @@ export function ShopModal({
                     : "cursor-not-allowed border-stone-700/40 bg-stone-950/40 text-stone-500"
                 }`}
               >
-                {canAfford ? "購得" : "靈石不足"}
+                {canAfford ? "購得" : "靈砂不足"}
               </button>
             </div>
           );

@@ -32,7 +32,7 @@ export const STORY_EVENTS: StoryEvent[] = [
         id: "touch",
         label: "伸手觸摸",
         resultText:
-          "符文反噬經脈，你氣血微損，卻在碑下發現散落靈石。",
+          "符文反噬經脈，你氣血微損，卻在碑下發現散落靈砂。",
         effects: [
           { kind: "lose_hp_percent", percent: 0.08 },
           { kind: "spirit_stones", amount: 40 },
@@ -55,7 +55,7 @@ export const STORY_EVENTS: StoryEvent[] = [
       {
         id: "take_scroll",
         label: "取走殘簡",
-        resultText: "殘簡化作靈光散入儲物袋，你得了些許靈石。",
+        resultText: "殘簡化作靈光散入儲物袋，你得了些許靈砂。",
         effects: [{ kind: "spirit_stones", amount: 70 }],
       },
       {
@@ -75,7 +75,7 @@ export const STORY_EVENTS: StoryEvent[] = [
       {
         id: "embrace",
         label: "張開雙臂承接",
-        resultText: "靈氣沖刷經脈，氣血大漲，亦有餘潤化為靈石。",
+        resultText: "靈氣沖刷經脈，氣血大漲，亦有餘潤化為靈砂。",
         effects: [
           { kind: "heal_percent", percent: 0.25 },
           { kind: "spirit_stones", amount: 30 },
@@ -97,7 +97,7 @@ export const STORY_EVENTS: StoryEvent[] = [
       {
         id: "listen",
         label: "坐下聽舊事",
-        resultText: "散修饋贈薄禮，你收下靈石致謝。",
+        resultText: "散修饋贈薄禮，你收下靈砂致謝。",
         effects: [{ kind: "spirit_stones", amount: 50 }],
       },
       {

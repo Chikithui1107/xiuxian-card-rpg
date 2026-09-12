@@ -11,6 +11,7 @@ interface PathChoiceViewProps {
   tierName: string;
   playerHp: number;
   maxHp: number;
+  runSpirit: number;
   completedCount: number;
   totalCount: number;
   mapMessage?: string | null;
@@ -24,6 +25,7 @@ export function PathChoiceView({
   tierName,
   playerHp,
   maxHp,
+  runSpirit,
   completedCount,
   totalCount,
   mapMessage,
@@ -69,6 +71,12 @@ export function PathChoiceView({
             className="hp-bar-fill h-full rounded-full transition-all"
             style={{ width: `${hpPercent}%` }}
           />
+        </div>
+        <div className="mb-2.5 flex justify-between text-[10px]">
+          <span className="text-[#c9a84c]/90">靈砂</span>
+          <span className="stat-value text-[#c9a84c]">
+            {runSpirit.toLocaleString()}
+          </span>
         </div>
         <div className="mb-1 flex justify-between text-[10px]">
           <span className="text-stone-500">修行進度</span>

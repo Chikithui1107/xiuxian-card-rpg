@@ -36,7 +36,7 @@ export function CardRewardModal({
       : null;
 
   const rewardSummary = [
-    floorReward > 0 ? `獲得靈石 +${floorReward}` : null,
+    floorReward > 0 ? `獲得靈砂 +${floorReward}` : null,
     "可擇一法訣加入本次牌組",
   ]
     .filter(Boolean)
@@ -109,7 +109,7 @@ export function CardRewardModal({
           捨棄此法
         </button>
         <p className="text-[9px] text-stone-600">
-          僅保留靈石，不增加本次牌組張數
+          僅保留靈砂，不增加本次牌組張數
         </p>
       </div>
     </div>

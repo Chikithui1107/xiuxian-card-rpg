@@ -53,7 +53,7 @@ export function applyEventChoice(
       }
       case "spirit_stones": {
         spiritDelta += effect.amount;
-        bits.push(`靈石 +${effect.amount}`);
+        bits.push(`靈砂 +${effect.amount}`);
         break;
       }
       case "nothing":
