@@ -30,7 +30,7 @@ export function CardRewardModal({
 }: CardRewardModalProps) {
   const progressLabel =
     tierName && tierFloor && totalFloors
-      ? `${tierName} · 關卡 ${tierFloor}/${totalFloors}`
+      ? `秘境進度 ${tierFloor}/${totalFloors}`
       : null;
 
   const rewardSummary = [
@@ -57,6 +57,9 @@ export function CardRewardModal({
         <p className="mt-2 text-xs text-stone-500">斬殺 {enemyName}</p>
         {progressLabel && (
           <p className="mt-1 text-[10px] text-[#7aab9a]">{progressLabel}</p>
+        )}
+        {tierName && (
+          <p className="mt-0.5 text-[10px] text-stone-600">{tierName}</p>
         )}
         <p className="mt-3 text-sm text-stone-400">{rewardSummary}</p>
         {isTierComplete && (
@@ -86,7 +89,7 @@ export function CardRewardModal({
       <p className="mb-4 text-center text-[10px] text-stone-500">
         擇一劍訣永久納入牌庫，或放棄以免污染牌組
         {!isTierComplete && tierFloor && totalFloors && tierFloor < totalFloors
-          ? "，續闖下一關"
+          ? "，續行下一段路程"
           : ""}
       </p>
 

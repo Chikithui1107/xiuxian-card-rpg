@@ -115,22 +115,19 @@ export function TierSelectionView({
               </div>
             )}
 
-            <div className="realm-floor-row mt-3.5">
-              {Array.from({ length: tier.floors }, (_, i) => {
-                const floor = i + 1;
-                const isCurrent = unlocked && !cleared && floor === 1;
-                const isDone = cleared;
-                const nodeClass = isCurrent
-                  ? "is-active"
-                  : isDone
-                    ? "is-done"
-                    : "is-idle";
+            <div className="realm-floor-row mt-3.5" aria-hidden>
+              {Array.from({ length: Math.min(tier.floors, 8) }, (_, i) => {
+                const isLast = i === Math.min(tier.floors, 8) - 1;
                 return (
-                  <div key={floor} className="flex items-center gap-1.5">
-                    <div className={`realm-floor-node ${nodeClass}`}>
-                      <span>{floor}</span>
-                    </div>
-                    {floor < tier.floors && (
+                  <div key={i} className="flex items-center gap-1">
+                    <span
+                      className={`text-[10px] ${
+                        isLast ? "text-[#c9a84c]/90" : "text-stone-500/80"
+                      }`}
+                    >
+                      {isLast ? "◆" : "◇"}
+                    </span>
+                    {!isLast && (
                       <span className="realm-floor-sep" aria-hidden />
                     )}
                   </div>
@@ -141,7 +138,7 @@ export function TierSelectionView({
             <p className="mt-3 text-[11px] tracking-[0.12em]">
               <span className="realm-accent">{meta.realmLabel}</span>
               <span className="mx-2.5 text-stone-600">｜</span>
-              <span className="realm-meta-dim">{tier.floors}關</span>
+              <span className="realm-meta-dim">{tier.floors}段路程</span>
               <span className="mx-2.5 text-stone-600">｜</span>
               <span className="realm-reward">
                 {tier.bonusSpiritStones}靈石

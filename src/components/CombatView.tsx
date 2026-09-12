@@ -322,7 +322,7 @@ export function CombatView({
   const placeLabel = locationName ?? tierName ?? "秘境";
   const progressFloor = Math.min(
     Math.max(1, tierFloor ?? 1),
-    totalFloors ?? 3
+    totalFloors ?? 8
   );
   const battleLabel =
     totalFloors != null

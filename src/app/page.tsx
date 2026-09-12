@@ -85,7 +85,7 @@ import {
   getMapNode,
   isBossCleared,
 } from "@/lib/map";
-import { generateMoonNightMap, MOON_NIGHT_STEPS } from "@/utils/mapGenerator";
+import { generateMoonNightMap } from "@/utils/mapGenerator";
 import {
   INITIAL_COMBAT_BUFFS,
   resolveCardEffects,
@@ -717,7 +717,7 @@ export default function GamePage() {
       playStartCultivationSfx();
       setSelectedTier(tier);
       setTierFloor(1);
-      setDungeonMap(generateMoonNightMap());
+      setDungeonMap(generateMoonNightMap(1, tier.floors));
       setCurrentMapNodeId(null);
       setMapMessage(null);
       setActiveEvent(null);
@@ -1757,7 +1757,7 @@ export default function GamePage() {
                 : undefined
             }
             tierFloor={tierFloor}
-            totalFloors={selectedTier?.floors ?? 3}
+            totalFloors={selectedTier?.floors ?? 8}
             playerHp={playerHp}
             energy={energy}
             combatBuffs={combatBuffs}
@@ -1902,7 +1902,7 @@ export default function GamePage() {
           isTierComplete={pendingTierComplete}
           tierName={selectedTier?.name}
           tierFloor={tierFloor}
-          totalFloors={MOON_NIGHT_STEPS}
+          totalFloors={selectedTier?.floors ?? 8}
         />
       )}
 

@@ -107,15 +107,19 @@ function pickMoonNightType(step: number, totalSteps: number): NodeType {
 }
 
 /** 月圓之夜式分支地圖：每層雙岔路，節點帶修仙風格名稱 */
-export function generateMoonNightMap(chapter = 1): MapNode[][] {
+export function generateMoonNightMap(
+  chapter = 1,
+  totalSteps = MOON_NIGHT_STEPS
+): MapNode[][] {
+  const steps = Math.max(1, Math.floor(totalSteps));
   const map: MapNode[][] = [];
 
-  for (let step = 0; step < MOON_NIGHT_STEPS; step++) {
+  for (let step = 0; step < steps; step++) {
     const stepNodes: MapNode[] = [];
-    const numNodes = step === MOON_NIGHT_STEPS - 1 ? 1 : 2;
+    const numNodes = step === steps - 1 ? 1 : 2;
 
     for (let col = 0; col < numNodes; col++) {
-      const type = pickMoonNightType(step, MOON_NIGHT_STEPS);
+      const type = pickMoonNightType(step, steps);
       stepNodes.push({
         id: `ch${chapter}-step-${step}-col-${col}`,
         tier: step,
@@ -130,7 +134,7 @@ export function generateMoonNightMap(chapter = 1): MapNode[][] {
     map.push(stepNodes);
   }
 
-  for (let step = 0; step < MOON_NIGHT_STEPS - 1; step++) {
+  for (let step = 0; step < steps - 1; step++) {
     const currentStep = map[step];
     const nextStep = map[step + 1];
     for (const node of currentStep) {
