@@ -1,24 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { getMonsterConfig } from "@/data/monsters";
 import { formatNumber } from "@/lib/stats";
 import { getEnemyIntent, totalIntentDamage } from "@/lib/enemy-intent";
 import { publicAsset } from "@/lib/paths";
 import {
-  CARD_IMPACT_DELAY_MS,
-  HIT_IMPACT_OFFSET_MS,
   HIT_SHAKE_MS,
   HIT_SLASH_MS,
-  HP_BAR_DELAY_MS,
   HP_BAR_TRANSITION_MS,
   STAT_PULSE_MS,
+  type CombatImpactFeedback,
 } from "@/lib/combat-feedback";
 import type { CombatEnemy, DamagePopup, EnemyIntent } from "@/types/game";
 
 interface EnemyPanelProps {
   enemy: CombatEnemy;
   damagePopups: DamagePopup[];
+  impactFeedback?: CombatImpactFeedback | null;
   /** @deprecated 震動改由立繪本體處理 */
   isShaking?: boolean;
   hitFlash?: boolean;
@@ -75,6 +74,7 @@ function formatIntentText(intent: EnemyIntent): string {
 export function EnemyPanel({
   enemy,
   damagePopups,
+  impactFeedback = null,
   hitFlash = false,
   lastEnemyDamage,
   lastDodge,
@@ -99,6 +99,7 @@ export function EnemyPanel({
   const prevKarmaRef = useRef(karmaMarks);
   const prevBlockRef = useRef(enemy.block ?? 0);
   const feedbackKeyRef = useRef(0);
+  const lastImpactIdRef = useRef(0);
   const hitTimersRef = useRef<number[]>([]);
 
   const clearHitTimers = () => {
@@ -106,41 +107,46 @@ export function EnemyPanel({
     hitTimersRef.current = [];
   };
 
-  // 受擊：slash → shake → HP bar（不碰 enemy-unit 的 scale／offset）
-  useEffect(() => {
-    const prev = prevHpRef.current;
-    const next = enemy.currentHp;
-    if (next >= prev) {
-      prevHpRef.current = next;
-      setDisplayHp(next);
+  /**
+   * 統一 impact：shake + slash + HP 在 layout 階段啟動，保證命中幀可見。
+   */
+  useLayoutEffect(() => {
+    if (!impactFeedback || impactFeedback.id === lastImpactIdRef.current) {
       return;
     }
-
+    lastImpactIdRef.current = impactFeedback.id;
     clearHitTimers();
-    prevHpRef.current = next;
 
-    const tSlash = window.setTimeout(() => {
-      if (frostSlash) {
-        setSlashKey((k) => k + 1);
-        setShowSlash(true);
-        const tSlashEnd = window.setTimeout(() => setShowSlash(false), HIT_SLASH_MS);
-        hitTimersRef.current.push(tSlashEnd);
-      }
-    }, CARD_IMPACT_DELAY_MS);
+    prevHpRef.current = impactFeedback.displayHp;
+    setDisplayHp(impactFeedback.displayHp);
 
-    const tImpact = window.setTimeout(() => {
-      setSpriteShake(true);
-      const tShakeEnd = window.setTimeout(() => setSpriteShake(false), HIT_SHAKE_MS);
-      hitTimersRef.current.push(tShakeEnd);
-    }, CARD_IMPACT_DELAY_MS + HIT_IMPACT_OFFSET_MS);
+    const useFrost = impactFeedback.frostSlash || frostSlash;
+    if (useFrost) {
+      setSlashKey((k) => k + 1);
+      setShowSlash(true);
+      hitTimersRef.current.push(
+        window.setTimeout(() => setShowSlash(false), HIT_SLASH_MS)
+      );
+    }
 
-    const tHp = window.setTimeout(() => {
-      setDisplayHp(next);
-    }, CARD_IMPACT_DELAY_MS + HP_BAR_DELAY_MS);
+    setSpriteShake(true);
+    hitTimersRef.current.push(
+      window.setTimeout(() => setSpriteShake(false), HIT_SHAKE_MS)
+    );
 
-    hitTimersRef.current.push(tSlash, tImpact, tHp);
     return () => clearHitTimers();
-  }, [enemy.currentHp, frostSlash]);
+  }, [impactFeedback, frostSlash]);
+
+  // 非玩家命中的 HP 變化：直接同步
+  useEffect(() => {
+    if (impactFeedback && impactFeedback.displayHp === enemy.currentHp) {
+      prevHpRef.current = enemy.currentHp;
+      return;
+    }
+    if (enemy.currentHp === prevHpRef.current) return;
+    prevHpRef.current = enemy.currentHp;
+    setDisplayHp(enemy.currentHp);
+  }, [enemy.currentHp, impactFeedback]);
 
   useEffect(() => {
     if (karmaMarks > prevKarmaRef.current) {

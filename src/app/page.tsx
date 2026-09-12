@@ -97,8 +97,10 @@ import { playStartCultivationSfx, playCardDrawSfx, playBattleWinSfx, playGameOve
 import { stopDefeatMusic } from "@/lib/bgm";
 import {
   DAMAGE_NUMBER_MS,
-  damageNumberAppearAtMs,
+  type CombatImpactFeedback,
 } from "@/lib/combat-feedback";
+import type { PlayFxKind } from "@/lib/combat-fx";
+import { playImpact } from "@/lib/combat-audio";
 import type { BattleDeckState } from "@/types/battle";
 import type { Card } from "@/types/battle";
 import { getEffectiveCost } from "@/types/battle";
@@ -252,6 +254,10 @@ export default function GamePage() {
     null
   );
   const [damagePopups, setDamagePopups] = useState<DamagePopup[]>([]);
+  const [impactFeedback, setImpactFeedback] =
+    useState<CombatImpactFeedback | null>(null);
+  const pendingPlayerHitRef = useRef<{ damage: number } | null>(null);
+  const impactIdRef = useRef(0);
   const [isShaking, setIsShaking] = useState(false);
   const [lastDamage, setLastDamage] = useState<number | null>(null);
   const [lastEnemyDamage, setLastEnemyDamage] = useState<number | null>(null);
@@ -466,6 +472,8 @@ export default function GamePage() {
     setBattlePhase("IN_BATTLE");
     setStageClearMessage(null);
     setDamagePopups([]);
+    pendingPlayerHitRef.current = null;
+    setImpactFeedback(null);
     setLastDamage(null);
     setLastEnemyDamage(null);
     setLastDodge(false);
@@ -520,6 +528,8 @@ export default function GamePage() {
       victoryStartedRef.current = false;
       playLockRef.current = false;
       setDamagePopups([]);
+      pendingPlayerHitRef.current = null;
+      setImpactFeedback(null);
       setLastDamage(null);
       setLastEnemyDamage(null);
       setLastPassiveHeal(null);
@@ -725,7 +735,7 @@ export default function GamePage() {
     returnToLobby("已放棄秘境，本次進度已重置。", true);
   }, [returnToLobby, resetPermanentDeck]);
 
-  const addDamagePopup = useCallback((damage: number) => {
+  const spawnDamagePopupNow = useCallback((damage: number) => {
     popupIdRef.current += 1;
     const popup: DamagePopup = {
       id: `popup_${popupIdRef.current}`,
@@ -735,14 +745,16 @@ export default function GamePage() {
       x: 38 + Math.random() * 24,
       y: 28 + Math.random() * 18,
     };
-    // 對齊出牌命中：slash → 數字；震動由 EnemyPanel 立繪層處理
-    const appearAt = damageNumberAppearAtMs();
+    setDamagePopups((prev) => [...prev, popup]);
     window.setTimeout(() => {
-      setDamagePopups((prev) => [...prev, popup]);
-      window.setTimeout(() => {
-        setDamagePopups((prev) => prev.filter((p) => p.id !== popup.id));
-      }, DAMAGE_NUMBER_MS);
-    }, appearAt);
+      setDamagePopups((prev) => prev.filter((p) => p.id !== popup.id));
+    }, DAMAGE_NUMBER_MS);
+  }, []);
+
+  const queuePendingPlayerHit = useCallback((damage: number) => {
+    if (damage <= 0) return;
+    pendingPlayerHitRef.current = { damage };
+    setLastDamage(damage);
   }, []);
 
   const beginVictorySequence = useCallback(
@@ -803,6 +815,59 @@ export default function GamePage() {
       }
     },
     [battlePhase, beginVictorySequence]
+  );
+
+  /**
+   * 統一命中幀：音效 + HP 結算 + 傷害數字 + 立繪 feedback。
+   * 必須由 CombatView 在 IMPACT_AT_MS 呼叫，不可在出牌當下呼叫。
+   */
+  const resolveCombatImpact = useCallback(
+    (fx: PlayFxKind) => {
+      playImpact(fx);
+
+      const pending = pendingPlayerHitRef.current;
+      pendingPlayerHitRef.current = null;
+      if (!pending || pending.damage <= 0) return;
+
+      const dmg = pending.damage;
+      let displayHp = 0;
+
+      setEnemy((prev) => {
+        const next = applyDamageToEnemy(prev, dmg);
+        displayHp = next.currentHp;
+        checkVictory(
+          next.currentHp,
+          prev.name,
+          selectedTier,
+          currentMapNodeId,
+          dungeonMap
+        );
+        return next;
+      });
+
+      setTotalDamage((prev) => prev + dmg);
+      spawnDamagePopupNow(dmg);
+
+      impactIdRef.current += 1;
+      setImpactFeedback({
+        id: impactIdRef.current,
+        damage: dmg,
+        displayHp,
+        frostSlash: character.combatPath === "sword",
+      });
+
+      queueMicrotask(() => {
+        if (!victoryStartedRef.current) playLockRef.current = false;
+      });
+    },
+    [
+      checkVictory,
+      selectedTier,
+      currentMapNodeId,
+      dungeonMap,
+      character.combatPath,
+      spawnDamagePopupNow,
+    ]
   );
 
   const playCard = useCallback(
@@ -948,27 +1013,11 @@ export default function GamePage() {
 
         const applyDamageAndMaybeUnlock = (dmg: number, unlock: boolean) => {
           if (dmg > 0) {
-            let appliedHp = 0;
-            setEnemy((prev) => {
-              const next = applyDamageToEnemy(prev, dmg);
-              appliedHp = prev.currentHp - next.currentHp;
-              checkVictory(
-                next.currentHp,
-                prev.name,
-                selectedTier,
-                currentMapNodeId,
-                dungeonMap
-              );
-              return next;
-            });
-            setTotalDamage((prev) => prev + dmg);
-            addDamagePopup(dmg);
-            setLastDamage(dmg);
-            void appliedHp;
+            queuePendingPlayerHit(dmg);
           } else {
             setLastDamage(null);
           }
-          if (unlock) {
+          if (unlock && !pendingPlayerHitRef.current) {
             queueMicrotask(() => {
               if (!victoryStartedRef.current) playLockRef.current = false;
             });
@@ -1079,20 +1128,7 @@ export default function GamePage() {
               });
             }
             if (autoDealt > 0) {
-              setEnemy((prev) => {
-                const next = applyDamageToEnemy(prev, autoDealt);
-                checkVictory(
-                  next.currentHp,
-                  prev.name,
-                  selectedTier,
-                  currentMapNodeId,
-                  dungeonMap
-                );
-                return next;
-              });
-              setTotalDamage((prev) => prev + autoDealt);
-              addDamagePopup(autoDealt);
-              setLastDamage(autoDealt);
+              queuePendingPlayerHit(autoDealt);
             }
           };
 
@@ -1151,26 +1187,9 @@ export default function GamePage() {
       }
 
       if (damage > 0) {
-        setEnemy((prev) => {
-          const next = applyDamageToEnemy(prev, damage);
-          checkVictory(
-            next.currentHp,
-            prev.name,
-            selectedTier,
-            currentMapNodeId,
-            dungeonMap
-          );
-          return next;
-        });
-        setTotalDamage((prev) => prev + damage);
-        addDamagePopup(damage);
-        setLastDamage(damage);
+        queuePendingPlayerHit(damage);
         setDeckState(newDeck);
-        queueMicrotask(() => {
-          if (!victoryStartedRef.current) {
-            playLockRef.current = false;
-          }
-        });
+        // 解鎖與 HP 結算改由 resolveCombatImpact（命中幀）處理
         return true;
       }
 
@@ -1193,7 +1212,7 @@ export default function GamePage() {
       karmaState,
       pendingDiscard,
       karmaAutoPlayCard,
-      addDamagePopup,
+      queuePendingPlayerHit,
       checkVictory,
       selectedTier,
       currentMapNodeId,
@@ -1308,20 +1327,10 @@ export default function GamePage() {
       }
 
       if (dealt > 0) {
-        setEnemy((prev) => {
-          const next = applyDamageToEnemy(prev, dealt);
-          checkVictory(
-            next.currentHp,
-            prev.name,
-            selectedTier,
-            currentMapNodeId,
-            dungeonMap
-          );
-          return next;
-        });
-        setTotalDamage((prev) => prev + dealt);
-        addDamagePopup(dealt);
-        setLastDamage(dealt);
+        queuePendingPlayerHit(dealt);
+        resolveCombatImpact(
+          character.combatPath === "sword" ? "fuxue" : "qiandhen"
+        );
       }
     },
     [
@@ -1330,7 +1339,9 @@ export default function GamePage() {
       karmaState,
       energy,
       enemy,
-      addDamagePopup,
+      queuePendingPlayerHit,
+      resolveCombatImpact,
+      character.combatPath,
       checkVictory,
       selectedTier,
       currentMapNodeId,
@@ -1655,6 +1666,7 @@ export default function GamePage() {
             exhaustPileCount={deckInfo.exhaust}
             deckCount={permanentDeck.length}
             damagePopups={damagePopups}
+            impactFeedback={impactFeedback}
             isShaking={isShaking}
             lastDamage={lastDamage}
             lastEnemyDamage={lastEnemyDamage}
@@ -1662,6 +1674,7 @@ export default function GamePage() {
             lastPassiveHeal={lastPassiveHeal}
             totalDamage={totalDamage}
             onPlayCard={playCard}
+            onCombatImpact={resolveCombatImpact}
             onEndTurn={endTurn}
             onEndTurnDraw={completeEndTurnDraw}
             onEndTurnSequenceDone={finishEndTurnSequence}

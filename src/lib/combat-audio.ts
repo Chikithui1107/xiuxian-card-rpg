@@ -126,16 +126,36 @@ export function playDenySfx(): void {
   // 尚未提供專用檔時保持安靜
 }
 
-export function playWhoosh(kind?: PlayFxKind): void {
-  const key = whooshKey(kind);
-  if (!key) return;
-  void playSample(key, 0.9);
+/** 同步播放已預載 buffer；未命中快取時再 async 載入（避免命中幀被 await 拖慢） */
+function playSampleSync(
+  logicalKey: string,
+  peak = 1,
+  offsetSec = 0
+): void {
+  const cached = bufferCache.get(logicalKey);
+  if (cached) {
+    playBuffer(cached, peak, offsetSec);
+    return;
+  }
+  if (bufferCache.has(logicalKey) && cached === null) return;
+  void playSample(logicalKey, peak, offsetSec);
 }
 
+/** 出牌離手：輕「唰」，不是命中 */
+export function playCardCommitWhoosh(kind?: PlayFxKind): void {
+  const key = whooshKey(kind) ?? "tuxu_whoosh";
+  playSampleSync(key, kind === "tuxu" ? 0.85 : 0.32);
+}
+
+export function playWhoosh(kind?: PlayFxKind): void {
+  playCardCommitWhoosh(kind);
+}
+
+/** 命中：重「斬／鏘」，必須在 impact 幀呼叫 */
 export function playImpact(kind: PlayFxKind): void {
   const key = impactKey(kind);
   if (!key) return;
-  void playSample(key, 1);
+  playSampleSync(key, 1);
 }
 
 /** 開始 / 繼續修行時的過渡音 */

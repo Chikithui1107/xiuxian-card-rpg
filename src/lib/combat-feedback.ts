@@ -1,27 +1,27 @@
 /**
- * 戰鬥受擊／出牌反饋時序（與 CombatView 出牌命中延遲對齊）。
- * 僅控制視覺層，不改數值結算。
+ * 戰鬥攻擊節奏：出牌 → windup → 統一 impact。
+ * 音效／震動／傷害數字／HP 必須由同一個 impact 觸發，不可各自 setTimeout。
  */
 
-/** 出牌飛行到敵人的命中延遲（須與 CombatView impactDelayMs 一致） */
-export const CARD_IMPACT_DELAY_MS = 280;
+/** 卡牌飛向目標 */
+export const CARD_FLIGHT_MS = 140;
 
-/** 霜白劍光 */
-export const HIT_SLASH_MS = 150;
+/** 劍光／攻擊特效略早於命中（windup） */
+export const ATTACK_WINDUP_MS = 140;
 
-/** 劍光開始後，震動＋傷害數字 */
-export const HIT_IMPACT_OFFSET_MS = 100;
+/** ★ 命中點：sound + shake + number + HP 同一幀 */
+export const IMPACT_AT_MS = 170;
 
-/** 精靈左右震 */
-export const HIT_SHAKE_MS = 180;
+/** 立繪 hit shake */
+export const HIT_SHAKE_MS = 160;
 
-/** 劍光開始後，HP 條開始平滑下降 */
-export const HP_BAR_DELAY_MS = 160;
+/** 霜白劍光（可略早於 impact 起，覆蓋命中瞬間） */
+export const HIT_SLASH_MS = 180;
 
-/** HP 條 transition */
-export const HP_BAR_TRANSITION_MS = 300;
+/** HP 條平滑下降（impact 起算） */
+export const HP_BAR_TRANSITION_MS = 160;
 
-/** 傷害數字浮現時長 */
+/** 傷害數字浮現 */
 export const DAMAGE_NUMBER_MS = 520;
 
 /** HUD 數值 pulse */
@@ -30,7 +30,13 @@ export const STAT_PULSE_MS = 420;
 /** 護罩閃現 */
 export const SHIELD_AURA_MS = 380;
 
-/** 傷害數字相對命中的出現時間（自出牌結算起算） */
-export function damageNumberAppearAtMs(): number {
-  return CARD_IMPACT_DELAY_MS + HIT_IMPACT_OFFSET_MS;
+/** 出牌扇形凍結：略長於飛行，不影響手牌幾何 */
+export const PLAY_LAYOUT_HOLD_MS = 220;
+
+/** 一次命中的視覺／結算快照（由 triggerImpact 寫入） */
+export interface CombatImpactFeedback {
+  id: number;
+  damage: number;
+  displayHp: number;
+  frostSlash: boolean;
 }

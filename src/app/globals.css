@@ -257,7 +257,7 @@
 }
 
 .animate-card-fly {
-  animation: card-fly 0.34s cubic-bezier(0.22, 0.75, 0.2, 1) forwards;
+  animation: card-fly 0.14s cubic-bezier(0.22, 0.75, 0.2, 1) forwards;
 }
 
 @keyframes enemy-hit-flash {

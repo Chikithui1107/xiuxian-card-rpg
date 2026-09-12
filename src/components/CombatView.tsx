@@ -49,7 +49,6 @@ import {
 } from "@/lib/combat-fx";
 import {
   playDenySfx,
-  playImpact,
   playWhoosh,
   preloadCombatSfx,
   unlockCombatAudio,
@@ -59,7 +58,12 @@ import { publicAsset } from "@/lib/paths";
 import type { CardFacePreviewState } from "@/lib/card-face-display";
 import { aspectClassName, aspectFromTemplateId } from "@/components/CardFace";
 import { createPortal } from "react-dom";
-import { CARD_IMPACT_DELAY_MS } from "@/lib/combat-feedback";
+import {
+  ATTACK_WINDUP_MS,
+  IMPACT_AT_MS,
+  PLAY_LAYOUT_HOLD_MS,
+  type CombatImpactFeedback,
+} from "@/lib/combat-feedback";
 
 const COMBAT_BG = publicAsset("/backgrounds/combat-moon-path.jpg");
 
@@ -67,8 +71,6 @@ const DRAW_DURATION_MS = 280;
 const DRAW_STAGGER_MS = 48;
 const DISCARD_DURATION_MS = 470;
 const DISCARD_STAGGER_MS = 42;
-/** 出牌飛行動畫期間凍結扇形；結束後才真正依新手牌重排（略長於 card-fly 0.34s） */
-const PLAY_LAYOUT_HOLD_MS = 360;
 
 function logHandLayerRects(label: string) {
   if (typeof window === "undefined") return;
@@ -139,6 +141,7 @@ interface CombatViewProps {
   exhaustPileCount: number;
   deckCount: number;
   damagePopups: DamagePopup[];
+  impactFeedback?: CombatImpactFeedback | null;
   isShaking: boolean;
   lastDamage: number | null;
   lastEnemyDamage: number | null;
@@ -146,6 +149,8 @@ interface CombatViewProps {
   lastPassiveHeal?: number | null;
   totalDamage: number;
   onPlayCard: (card: Card) => boolean;
+  /** 統一命中幀（音效＋結算＋受擊反饋） */
+  onCombatImpact?: (fx: PlayFxKind) => void;
   /** 棄牌＋敵方回合；回傳 true 表示之後還要抽牌 */
   onEndTurn: () => boolean;
   /** 棄牌動畫結束後抽新手牌（勿在棄牌期間呼叫） */
@@ -263,6 +268,7 @@ export function CombatView({
   exhaustPileCount,
   deckCount,
   damagePopups,
+  impactFeedback = null,
   isShaking,
   lastDamage,
   lastEnemyDamage,
@@ -270,6 +276,7 @@ export function CombatView({
   lastPassiveHeal,
   totalDamage: _totalDamage,
   onPlayCard,
+  onCombatImpact,
   onEndTurn,
   onEndTurnDraw,
   onEndTurnSequenceDone,
@@ -830,6 +837,7 @@ export function CombatView({
 
       const template = CARD_TEMPLATES[card.id as CardTemplateId];
       const fx = getPlayFxKind(template);
+      // 出牌離手：輕唰（不是命中）
       playWhoosh(fx);
 
       const damage = isDamagePlayFx(fx);
@@ -869,24 +877,20 @@ export function CombatView({
         },
       ]);
 
-      const impactDelayMs = CARD_IMPACT_DELAY_MS;
-      const sfxDelayMs =
-        fx === "fuxue" ? Math.max(0, impactDelayMs - 200) : impactDelayMs;
-
-      if (sfxDelayMs < impactDelayMs) {
-        window.setTimeout(() => {
-          playImpact(fx);
-        }, sfxDelayMs);
-      }
-
+      // windup：劍光／burst 略早於命中
       window.setTimeout(() => {
-        if (sfxDelayMs >= impactDelayMs) {
-          playImpact(fx);
-        }
         setBursts((prev) => [
           ...prev,
           { key, kind: fx, x: impactX, y: impactY },
         ]);
+        window.setTimeout(() => {
+          setBursts((prev) => prev.filter((b) => b.key !== key));
+        }, playFxDurationMs(fx));
+      }, ATTACK_WINDUP_MS);
+
+      // ★ 統一 impact：音效 + HP + 數字 + shake（同一回呼）
+      window.setTimeout(() => {
+        onCombatImpact?.(fx);
         if (shouldScreenFlash(fx)) {
           setScreenFlash(true);
           window.setTimeout(() => setScreenFlash(false), 480);
@@ -899,10 +903,7 @@ export function CombatView({
           );
         }
         setFlights((prev) => prev.filter((f) => f.key !== key));
-        window.setTimeout(() => {
-          setBursts((prev) => prev.filter((b) => b.key !== key));
-        }, playFxDurationMs(fx));
-      }, impactDelayMs);
+      }, IMPACT_AT_MS);
 
       window.setTimeout(() => {
         logHandLayerRects("during-play-flight");
@@ -921,7 +922,7 @@ export function CombatView({
         queueMicrotask(() => logHandLayerRects("after-hold-clear"));
       }, PLAY_LAYOUT_HOLD_MS);
     },
-    [flightId, onPlayCard, hand]
+    [flightId, onPlayCard, onCombatImpact, hand]
   );
 
   const displayHand = useMemo(
@@ -1083,12 +1084,13 @@ export function CombatView({
         });
         if (cancelled) return;
 
-        playImpact(fx);
+        // 先佇列傷害，再同一幀 impact
+        resolveCb();
+        onCombatImpact?.(fx);
         if (damageFx) {
           setHitFlash(true);
           window.setTimeout(() => setHitFlash(false), 220);
         }
-        resolveCb();
         await delayMs(AUTO_PULL_RESOLVE_BEAT_MS);
         if (cancelled) return;
 
@@ -1147,6 +1149,7 @@ export function CombatView({
         <EnemyPanel
           enemy={enemy}
           damagePopups={damagePopups}
+          impactFeedback={impactFeedback}
           isShaking={isShaking}
           hitFlash={hitFlash}
           lastEnemyDamage={lastEnemyDamage}
