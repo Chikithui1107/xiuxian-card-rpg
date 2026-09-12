@@ -825,6 +825,7 @@ export default function GamePage() {
       setShopOfferIds([]);
       setRunSpirit(0);
       setEnemy(createNeutralEnemy());
+      setPhase("playing");
       resetCombatState();
       if (message) setLastRunMessage(message);
       if (healPlayer) setPlayerHp(heroStats.maxHp);
@@ -1052,12 +1053,12 @@ export default function GamePage() {
   }, []);
 
   const quitRun = useCallback(() => {
-    // 退出＝放棄：立即清檢查點，避免刷新後從死亡前繼續
+    // 主動放棄 ≠ 死亡：清本局、回山門，不進渡劫失敗畫面
     clearActiveRunSave();
     setRunSpirit(0);
-    playGameOverSfx(true);
-    setPhase("defeat");
-  }, []);
+    resetPermanentDeck();
+    returnToLobby("已放棄秘境，本次修行進度已重置。", true);
+  }, [returnToLobby, resetPermanentDeck]);
 
   const dismissRunMessage = useCallback(() => {
     setLastRunMessage(null);
@@ -1101,6 +1102,7 @@ export default function GamePage() {
       setIsInCombat(false);
       setCombatScreen("path");
       setActiveTab("combat");
+      setPhase("playing");
       resetPermanentDeck();
       setRunSpirit(100);
       setPlayerHp(character.maxHp);
@@ -1114,11 +1116,13 @@ export default function GamePage() {
     stopDefeatMusic();
     clearActiveRunSave();
     setRunSpirit(0);
+    setPhase("playing");
     if (!selectedTier) {
       resetPermanentDeck();
       returnToLobby("渡劫失敗，已返回山門。", true);
       return;
     }
+    // 同秘境等級開全新 Run：新地圖、僅第 1 步 available
     startTierRun(selectedTier.id);
   }, [selectedTier, startTierRun, resetPermanentDeck, returnToLobby]);
 
@@ -1126,8 +1130,9 @@ export default function GamePage() {
     stopDefeatMusic();
     clearActiveRunSave();
     setRunSpirit(0);
+    setPhase("playing");
     resetPermanentDeck();
-    returnToLobby("已放棄秘境，本次進度已重置。", true);
+    returnToLobby("渡劫失敗，已返回山門。", true);
   }, [returnToLobby, resetPermanentDeck]);
 
   const spawnDamagePopupNow = useCallback((damage: number) => {
