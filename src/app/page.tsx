@@ -491,102 +491,106 @@ export default function GamePage() {
   );
 
   useEffect(() => {
-    const stored = readStoredProgress();
-    const achievements = readStoredAchievements();
-    const savedRun = readStoredRun();
-    setUnlockedAchievements(achievements);
-
-    const nextProgress: Record<string, CharacterProgress> = {};
-
-    if (savedRun) {
-      const runChar = getCharacter(savedRun.characterId);
-      const tier = getDungeonTier(savedRun.tierId);
-      if (!tier) {
-        clearActiveRunSave();
-      } else {
-        const deck = sanitizeDeckForCharacter(runChar, savedRun.permanentDeck);
-        const hp = Math.max(
-          0,
-          Math.min(runChar.maxHp, Math.floor(savedRun.playerHp))
-        );
-        for (const c of PLAYABLE) {
-          const snap = stored[c.id];
-          if (c.id === savedRun.characterId) {
-            nextProgress[c.id] = {
-              ...(snap ?? createProgress(c)),
-              permanentDeck: deck,
-              playerHp: hp,
-              spiritStones: Math.max(0, Math.floor(savedRun.spiritStones)),
-            };
-          } else {
-            nextProgress[c.id] = {
-              ...(snap ?? createProgress(c)),
-              permanentDeck: sanitizeDeckForCharacter(
-                c,
-                snap?.permanentDeck ?? c.startingDeck
-              ),
-            };
-          }
-        }
-        const progress =
-          nextProgress[savedRun.characterId] ?? createProgress(runChar);
-        setActiveCharacterId(savedRun.characterId);
-        setProgressByCharacter(nextProgress);
-        setPermanentDeck(progress.permanentDeck);
-        setPlayerHp(progress.playerHp);
-        setSpiritStones(progress.spiritStones);
-        setRunSpirit(Math.max(0, Math.floor(savedRun.runSpirit)));
-        setTotalClears(progress.totalClears);
-        setInventory(createInitialInventory(startingInventoryData));
-        setSelectedTier(tier);
-        setDungeonMap(savedRun.dungeonMap);
-        setMapMessage(savedRun.mapMessage);
-        setCombatScreen("path");
-        setIsInCombat(false);
-        setCurrentMapNodeId(null);
-        setActiveEvent(null);
-        setActiveEventNodeId(null);
-        setActiveRestNodeId(null);
-        setActiveShopNodeId(null);
-        setShopOfferIds([]);
-        setActiveTab("lobby");
-        setReady(true);
-        try {
-          localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(nextProgress));
-          localStorage.setItem(ACTIVE_CHAR_KEY, savedRun.characterId);
-          localStorage.setItem(
-            ACHIEVEMENTS_KEY,
-            JSON.stringify(achievements)
-          );
-        } catch {
-          /* ignore */
-        }
-        return;
-      }
-    }
-
-    const activeId = readStoredActiveId();
-    const activeChar = getCharacter(activeId);
-    for (const c of PLAYABLE) {
-      // 無 Active Run：一律回起始牌組，避免戰敗畫面刷新把本局牌帶回山門
-      nextProgress[c.id] = fullHpProgress(c, stored[c.id]);
-    }
-    const progress = nextProgress[activeId] ?? fullHpProgress(activeChar);
-    setActiveCharacterId(activeId);
-    setProgressByCharacter(nextProgress);
-    setPermanentDeck(progress.permanentDeck);
-    setPlayerHp(progress.playerHp);
-    setSpiritStones(progress.spiritStones);
-    setRunSpirit(0);
-    setTotalClears(progress.totalClears);
-    setInventory(createInitialInventory(startingInventoryData));
-    setReady(true);
     try {
-      localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(nextProgress));
-      localStorage.setItem(ACTIVE_CHAR_KEY, activeId);
-      localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(achievements));
+      const stored = readStoredProgress();
+      const achievements = readStoredAchievements();
+      const savedRun = readStoredRun();
+      setUnlockedAchievements(achievements);
+
+      const nextProgress: Record<string, CharacterProgress> = {};
+
+      if (savedRun) {
+        const runChar = getCharacter(savedRun.characterId);
+        const tier = getDungeonTier(savedRun.tierId);
+        if (!tier) {
+          clearActiveRunSave();
+        } else {
+          const deck = sanitizeDeckForCharacter(runChar, savedRun.permanentDeck);
+          const hp = Math.max(
+            0,
+            Math.min(runChar.maxHp, Math.floor(savedRun.playerHp))
+          );
+          for (const c of PLAYABLE) {
+            const snap = stored[c.id];
+            if (c.id === savedRun.characterId) {
+              nextProgress[c.id] = {
+                ...(snap ?? createProgress(c)),
+                permanentDeck: deck,
+                playerHp: hp,
+                spiritStones: Math.max(0, Math.floor(savedRun.spiritStones)),
+              };
+            } else {
+              nextProgress[c.id] = {
+                ...(snap ?? createProgress(c)),
+                permanentDeck: sanitizeDeckForCharacter(
+                  c,
+                  snap?.permanentDeck ?? c.startingDeck
+                ),
+              };
+            }
+          }
+          const progress =
+            nextProgress[savedRun.characterId] ?? createProgress(runChar);
+          setActiveCharacterId(savedRun.characterId);
+          setProgressByCharacter(nextProgress);
+          setPermanentDeck(progress.permanentDeck);
+          setPlayerHp(progress.playerHp);
+          setSpiritStones(progress.spiritStones);
+          setRunSpirit(Math.max(0, Math.floor(savedRun.runSpirit)));
+          setTotalClears(progress.totalClears);
+          setInventory(createInitialInventory(startingInventoryData));
+          setSelectedTier(tier);
+          setDungeonMap(savedRun.dungeonMap);
+          setMapMessage(savedRun.mapMessage);
+          setCombatScreen("path");
+          setIsInCombat(false);
+          setCurrentMapNodeId(null);
+          setActiveEvent(null);
+          setActiveEventNodeId(null);
+          setActiveRestNodeId(null);
+          setActiveShopNodeId(null);
+          setShopOfferIds([]);
+          setActiveTab("lobby");
+          try {
+            localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(nextProgress));
+            localStorage.setItem(ACTIVE_CHAR_KEY, savedRun.characterId);
+            localStorage.setItem(
+              ACHIEVEMENTS_KEY,
+              JSON.stringify(achievements)
+            );
+          } catch {
+            /* ignore */
+          }
+          return;
+        }
+      }
+
+      const activeId = readStoredActiveId();
+      const activeChar = getCharacter(activeId);
+      for (const c of PLAYABLE) {
+        // 無 Active Run：一律回起始牌組，避免戰敗畫面刷新把本局牌帶回山門
+        nextProgress[c.id] = fullHpProgress(c, stored[c.id]);
+      }
+      const progress = nextProgress[activeId] ?? fullHpProgress(activeChar);
+      setActiveCharacterId(activeId);
+      setProgressByCharacter(nextProgress);
+      setPermanentDeck(progress.permanentDeck);
+      setPlayerHp(progress.playerHp);
+      setSpiritStones(progress.spiritStones);
+      setRunSpirit(0);
+      setTotalClears(progress.totalClears);
+      setInventory(createInitialInventory(startingInventoryData));
+      try {
+        localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(nextProgress));
+        localStorage.setItem(ACTIVE_CHAR_KEY, activeId);
+        localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(achievements));
+      } catch {
+        /* ignore */
+      }
     } catch {
-      /* ignore */
+      clearActiveRunSave();
+    } finally {
+      setReady(true);
     }
   }, []);
 

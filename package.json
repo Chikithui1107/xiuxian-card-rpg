@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postbuild": "touch out/.nojekyll",
+    "postbuild": "node scripts/pages-postbuild.js",
     "start": "next start",
     "lint": "next lint"
   },
