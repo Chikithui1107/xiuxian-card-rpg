@@ -31,7 +31,8 @@ export const STORY_EVENTS: StoryEvent[] = [
       {
         id: "touch",
         label: "伸手觸摸",
-        resultText: "符文烙入識海，氣血微損，卻悟得一縷劍意。",
+        resultText:
+          "符文反噬經脈，你氣血微損，卻在碑下發現散落靈石。",
         effects: [
           { kind: "lose_hp_percent", percent: 0.08 },
           { kind: "spirit_stones", amount: 40 },

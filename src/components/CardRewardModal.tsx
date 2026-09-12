@@ -12,6 +12,7 @@ interface CardRewardModalProps {
   enemyName: string;
   floorReward?: number;
   isTierComplete?: boolean;
+  isEliteReward?: boolean;
   tierName?: string;
   tierFloor?: number;
   totalFloors?: number;
@@ -24,6 +25,7 @@ export function CardRewardModal({
   enemyName,
   floorReward = 0,
   isTierComplete = false,
+  isEliteReward = false,
   tierName,
   tierFloor,
   totalFloors,
@@ -35,7 +37,7 @@ export function CardRewardModal({
 
   const rewardSummary = [
     floorReward > 0 ? `獲得靈石 +${floorReward}` : null,
-    "可擇一劍訣納入牌庫",
+    "可擇一法訣加入本次牌組",
   ]
     .filter(Boolean)
     .join(" | ");
@@ -61,13 +63,18 @@ export function CardRewardModal({
         {tierName && (
           <p className="mt-0.5 text-[10px] text-stone-600">{tierName}</p>
         )}
+        {isEliteReward && (
+          <p className="mt-1 text-[10px] tracking-wide text-[#c9a84c]/90">
+            精英戰利品 · 額外法訣可選
+          </p>
+        )}
         <p className="mt-3 text-sm text-stone-400">{rewardSummary}</p>
         {isTierComplete && (
           <p className="mt-1 text-[10px] text-[#c9a84c]">通關獎賞另計</p>
         )}
       </div>
 
-      <div className="mb-6 flex w-full max-w-lg flex-wrap justify-center gap-3">
+      <div className="mb-6 flex w-full max-w-2xl flex-wrap justify-center gap-3">
         {rewardTemplateIds.map((templateId) => {
           const card = CARD_TEMPLATES[templateId];
           const typeStyle =

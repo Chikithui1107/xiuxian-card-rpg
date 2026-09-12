@@ -59,6 +59,8 @@ import {
 } from "@/lib/karma-combat";
 import { buildCardFacePreviewFromKarma } from "@/lib/card-face-display";
 import { AspectDiscardModal } from "@/components/AspectDiscardModal";
+import { RestModal } from "@/components/RestModal";
+import { ShopModal, SHOP_PRICE } from "@/components/ShopModal";
 import {
   advanceEnemyIntent,
   applyRegenPassive,
@@ -184,7 +186,7 @@ function sanitizeDeckForCharacter(
   return filtered.length > 0 ? filtered : [...character.startingDeck];
 }
 
-/** 無進行中秘境時，山門氣血回滿 */
+/** 無進行中秘境時：山門氣血回滿，牌組回角色起始組 */
 function fullHpProgress(
   character: PlayableCharacter,
   snap?: CharacterProgress
@@ -192,7 +194,7 @@ function fullHpProgress(
   const base = snap ?? createProgress(character);
   return {
     ...base,
-    permanentDeck: sanitizeDeckForCharacter(character, base.permanentDeck),
+    permanentDeck: [...character.startingDeck],
     playerHp: character.maxHp,
   };
 }
@@ -417,6 +419,7 @@ export default function GamePage() {
   const [defeatedEnemyName, setDefeatedEnemyName] = useState("");
   const [pendingFloorReward, setPendingFloorReward] = useState(0);
   const [pendingTierComplete, setPendingTierComplete] = useState(false);
+  const [pendingEliteReward, setPendingEliteReward] = useState(false);
   const [dungeonMap, setDungeonMap] = useState<MapNode[][]>([]);
   const [currentMapNodeId, setCurrentMapNodeId] = useState<string | null>(null);
   const [mapMessage, setMapMessage] = useState<string | null>(null);
@@ -424,6 +427,15 @@ export default function GamePage() {
   const [activeEventNodeId, setActiveEventNodeId] = useState<string | null>(
     null
   );
+  const [activeRestNodeId, setActiveRestNodeId] = useState<string | null>(
+    null
+  );
+  const [activeShopNodeId, setActiveShopNodeId] = useState<string | null>(
+    null
+  );
+  const [shopOfferIds, setShopOfferIds] = useState<CardTemplateId[]>([]);
+  const restChoiceLockRef = useRef(false);
+  const shopChoiceLockRef = useRef(false);
   const [combatBuffs, setCombatBuffs] = useState<CombatBuffs>(
     INITIAL_COMBAT_BUFFS
   );
@@ -513,6 +525,9 @@ export default function GamePage() {
         setCurrentMapNodeId(null);
         setActiveEvent(null);
         setActiveEventNodeId(null);
+        setActiveRestNodeId(null);
+        setActiveShopNodeId(null);
+        setShopOfferIds([]);
         setActiveTab("lobby");
         setReady(true);
         try {
@@ -532,17 +547,8 @@ export default function GamePage() {
     const activeId = readStoredActiveId();
     const activeChar = getCharacter(activeId);
     for (const c of PLAYABLE) {
-      const snap = stored[c.id];
-      nextProgress[c.id] =
-        c.id === activeId
-          ? fullHpProgress(c, snap)
-          : {
-              ...(snap ?? createProgress(c)),
-              permanentDeck: sanitizeDeckForCharacter(
-                c,
-                snap?.permanentDeck ?? c.startingDeck
-              ),
-            };
+      // 無 Active Run：一律回起始牌組，避免戰敗畫面刷新把本局牌帶回山門
+      nextProgress[c.id] = fullHpProgress(c, stored[c.id]);
     }
     const progress = nextProgress[activeId] ?? fullHpProgress(activeChar);
     setActiveCharacterId(activeId);
@@ -574,7 +580,7 @@ export default function GamePage() {
     }
   }, [ready, unlockedAchievements]);
 
-  /** 僅在穩定路線頁寫入檢查點；戰鬥／奇遇中不覆蓋 */
+  /** 僅在穩定路線頁寫入檢查點；戰鬥／奇遇／休息／坊市中不覆蓋 */
   useEffect(() => {
     if (!ready) return;
     if (
@@ -582,7 +588,9 @@ export default function GamePage() {
       dungeonMap.length === 0 ||
       combatScreen !== "path" ||
       isInCombat ||
-      activeEvent
+      activeEvent ||
+      activeRestNodeId ||
+      activeShopNodeId
     ) {
       return;
     }
@@ -608,6 +616,8 @@ export default function GamePage() {
     combatScreen,
     isInCombat,
     activeEvent,
+    activeRestNodeId,
+    activeShopNodeId,
     activeCharacterId,
   ]);
 
@@ -750,6 +760,7 @@ export default function GamePage() {
     setDefeatedEnemyName("");
     setPendingFloorReward(0);
     setPendingTierComplete(false);
+    setPendingEliteReward(false);
     setDeckState(EMPTY_DECK);
     setCombatBuffs(INITIAL_COMBAT_BUFFS);
     setKarmaState(INITIAL_KARMA_STATE);
@@ -775,6 +786,9 @@ export default function GamePage() {
       setMapMessage(null);
       setActiveEvent(null);
       setActiveEventNodeId(null);
+      setActiveRestNodeId(null);
+      setActiveShopNodeId(null);
+      setShopOfferIds([]);
       resetCombatState();
       if (message) setLastRunMessage(message);
       if (healPlayer) setPlayerHp(heroStats.maxHp);
@@ -847,12 +861,13 @@ export default function GamePage() {
         !selectedTier ||
         node.status !== "available" ||
         activeEvent ||
+        activeRestNodeId ||
+        activeShopNodeId ||
         mapActionLockRef.current
       ) {
         return;
       }
 
-      // 與「開始修行」同款：踏入岔路瞬間播 horror-hit
       playStartCultivationSfx();
 
       switch (node.type) {
@@ -866,23 +881,18 @@ export default function GamePage() {
           });
           break;
         case "rest": {
-          mapActionLockRef.current = true;
-          const heal = Math.floor(heroStats.maxHp * 0.3);
-          setPlayerHp((hp) => Math.min(heroStats.maxHp, hp + heal));
-          finishMapNode(node.id, `休整恢復 ${heal} 氣血`);
-          queueMicrotask(() => {
-            mapActionLockRef.current = false;
-          });
+          restChoiceLockRef.current = false;
+          setActiveRestNodeId(node.id);
           break;
         }
         case "shop": {
-          mapActionLockRef.current = true;
-          const stones = 80;
-          setSpiritStones((s) => s + stones);
-          finishMapNode(node.id, `坊市購得靈物，獲得 ${stones} 靈石`);
-          queueMicrotask(() => {
-            mapActionLockRef.current = false;
-          });
+          shopChoiceLockRef.current = false;
+          const pool =
+            character.combatPath === "karma"
+              ? KARMA_REWARD_IDS
+              : SWORD_TEMPLATE_IDS;
+          setShopOfferIds(pickRandomTemplateIds(3, pool));
+          setActiveShopNodeId(node.id);
           break;
         }
         case "event": {
@@ -893,8 +903,60 @@ export default function GamePage() {
         }
       }
     },
-    [selectedTier, startBattleForMapNode, finishMapNode, heroStats.maxHp, activeEvent]
+    [
+      selectedTier,
+      startBattleForMapNode,
+      activeEvent,
+      activeRestNodeId,
+      activeShopNodeId,
+      character.combatPath,
+    ]
   );
+
+  const handleRestHeal = useCallback(() => {
+    if (!activeRestNodeId || restChoiceLockRef.current) return;
+    if (playerHp >= heroStats.maxHp) return;
+    restChoiceLockRef.current = true;
+    const heal = Math.floor(heroStats.maxHp * 0.3);
+    setPlayerHp((hp) => Math.min(heroStats.maxHp, hp + heal));
+    const nodeId = activeRestNodeId;
+    setActiveRestNodeId(null);
+    finishMapNode(nodeId, `調息療傷，恢復 ${heal} 氣血`);
+  }, [activeRestNodeId, playerHp, heroStats.maxHp, finishMapNode]);
+
+  const handleRestSpirit = useCallback(() => {
+    if (!activeRestNodeId || restChoiceLockRef.current) return;
+    restChoiceLockRef.current = true;
+    setSpiritStones((s) => s + 80);
+    const nodeId = activeRestNodeId;
+    setActiveRestNodeId(null);
+    finishMapNode(nodeId, "吐納聚靈，獲得 80 靈石");
+  }, [activeRestNodeId, finishMapNode]);
+
+  const handleShopBuy = useCallback(
+    (templateId: CardTemplateId) => {
+      if (!activeShopNodeId || shopChoiceLockRef.current) return;
+      if (spiritStones < SHOP_PRICE) return;
+      shopChoiceLockRef.current = true;
+      setSpiritStones((s) => s - SHOP_PRICE);
+      setPermanentDeck((prev) => [...prev, templateId]);
+      const cardName = CARD_TEMPLATES[templateId]?.name ?? "法訣";
+      const nodeId = activeShopNodeId;
+      setActiveShopNodeId(null);
+      setShopOfferIds([]);
+      finishMapNode(nodeId, `購得「${cardName}」，耗費 ${SHOP_PRICE} 靈石`);
+    },
+    [activeShopNodeId, spiritStones, finishMapNode]
+  );
+
+  const handleShopLeave = useCallback(() => {
+    if (!activeShopNodeId || shopChoiceLockRef.current) return;
+    shopChoiceLockRef.current = true;
+    const nodeId = activeShopNodeId;
+    setActiveShopNodeId(null);
+    setShopOfferIds([]);
+    finishMapNode(nodeId, "未購一物，離開坊市。");
+  }, [activeShopNodeId, finishMapNode]);
 
   const handleEventChoice = useCallback(
     (choice: EventChoice) => {
@@ -1044,9 +1106,10 @@ export default function GamePage() {
 
       const node = getMapNode(mapNodes, mapNodeId);
       setDefeatedEnemyName(enemyName);
+      const rewardCount = node?.type === "elite" ? 4 : 3;
       setRewardTemplateIds(
         pickRandomTemplateIds(
-          3,
+          rewardCount,
           character.combatPath === "karma"
             ? KARMA_REWARD_IDS
             : SWORD_TEMPLATE_IDS
@@ -1057,6 +1120,7 @@ export default function GamePage() {
         : getFloorSpiritReward(tier);
       setPendingFloorReward(floorReward);
       setPendingTierComplete(node?.type === "boss");
+      setPendingEliteReward(node?.type === "elite");
       setBattlePhase("VICTORY_ANIM");
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 500);
@@ -2163,6 +2227,7 @@ export default function GamePage() {
           enemyName={defeatedEnemyName}
           floorReward={pendingFloorReward}
           isTierComplete={pendingTierComplete}
+          isEliteReward={pendingEliteReward}
           tierName={selectedTier?.name}
           tierFloor={tierFloor}
           totalFloors={selectedTier?.floors ?? 8}
@@ -2178,6 +2243,24 @@ export default function GamePage() {
 
       {activeEvent && (
         <EventModal event={activeEvent} onChoose={handleEventChoice} />
+      )}
+
+      {activeRestNodeId && (
+        <RestModal
+          maxHp={heroStats.maxHp}
+          currentHp={playerHp}
+          onHeal={handleRestHeal}
+          onGainSpirit={handleRestSpirit}
+        />
+      )}
+
+      {activeShopNodeId && (
+        <ShopModal
+          offerIds={shopOfferIds}
+          spiritStones={spiritStones}
+          onBuy={handleShopBuy}
+          onLeave={handleShopLeave}
+        />
       )}
 
       {phase === "defeat" && (
