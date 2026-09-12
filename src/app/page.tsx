@@ -85,6 +85,7 @@ import {
   getAvailableNodes,
   getMapNode,
   isBossCleared,
+  validateRunProgress,
 } from "@/lib/map";
 import { generateMoonNightMap } from "@/utils/mapGenerator";
 import {
@@ -148,6 +149,8 @@ interface ActiveRunSaveV1 {
   version: 1;
   characterId: string;
   tierId: string;
+  /** 本局 session；舊存檔缺欄位時讀取時補上 */
+  runSessionId: string;
   dungeonMap: MapNode[][];
   permanentDeck: CardTemplateId[];
   playerHp: number;
@@ -217,6 +220,10 @@ function createNeutralEnemy(): CombatEnemy {
   });
 }
 
+function createRunSessionId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 function readStoredActiveId(): string {
   try {
     const id = localStorage.getItem(ACTIVE_CHAR_KEY);
@@ -269,7 +276,9 @@ function isValidMapNode(node: unknown): node is MapNode {
     typeof n.type === "string" &&
     typeof n.title === "string" &&
     Array.isArray(n.nextNodes) &&
-    typeof n.status === "string"
+    (n.status === "locked" ||
+      n.status === "available" ||
+      n.status === "completed")
   );
 }
 
@@ -278,12 +287,17 @@ function isValidDungeonMap(
   expectedFloors: number
 ): map is MapNode[][] {
   if (!Array.isArray(map) || map.length !== expectedFloors) return false;
-  return map.every(
-    (row) =>
-      Array.isArray(row) &&
-      row.length > 0 &&
-      row.every((node) => isValidMapNode(node))
-  );
+  if (
+    !map.every(
+      (row) =>
+        Array.isArray(row) &&
+        row.length > 0 &&
+        row.every((node) => isValidMapNode(node))
+    )
+  ) {
+    return false;
+  }
+  return validateRunProgress(map);
 }
 
 function readStoredRun(): ActiveRunSaveV1 | null {
@@ -350,10 +364,15 @@ function readStoredRun(): ActiveRunSaveV1 | null {
       clearActiveRunSave();
       return null;
     }
+    const runSessionId =
+      typeof parsed.runSessionId === "string" && parsed.runSessionId.length > 0
+        ? parsed.runSessionId
+        : createRunSessionId();
     return {
       version: 1,
       characterId: parsed.characterId,
       tierId: parsed.tierId,
+      runSessionId,
       dungeonMap: parsed.dungeonMap,
       permanentDeck: parsed.permanentDeck as CardTemplateId[],
       playerHp: parsed.playerHp,
@@ -396,6 +415,8 @@ export default function GamePage() {
   const [spiritStones, setSpiritStones] = useState(1280);
   /** 本局靈砂：僅存於 Active Run，結束／戰敗／放棄清零 */
   const [runSpirit, setRunSpirit] = useState(0);
+  const [runSessionId, setRunSessionId] = useState<string | null>(null);
+  const runSessionIdRef = useRef<string | null>(null);
   const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>(
     []
   );
@@ -542,6 +563,8 @@ export default function GamePage() {
           setPlayerHp(progress.playerHp);
           setSpiritStones(progress.spiritStones);
           setRunSpirit(Math.max(0, Math.floor(savedRun.runSpirit)));
+          runSessionIdRef.current = savedRun.runSessionId;
+          setRunSessionId(savedRun.runSessionId);
           setTotalClears(progress.totalClears);
           setInventory(createInitialInventory(startingInventoryData));
           setSelectedTier(tier);
@@ -583,6 +606,8 @@ export default function GamePage() {
       setPlayerHp(progress.playerHp);
       setSpiritStones(progress.spiritStones);
       setRunSpirit(0);
+      runSessionIdRef.current = null;
+      setRunSessionId(null);
       setTotalClears(progress.totalClears);
       setInventory(createInitialInventory(startingInventoryData));
       try {
@@ -614,6 +639,9 @@ export default function GamePage() {
   /** 僅在穩定路線頁寫入檢查點；戰鬥／奇遇／休息／坊市中不覆蓋 */
   useEffect(() => {
     if (!ready) return;
+    if (!runSessionId) return;
+    // 舊 render 的 effect：session 已結束或已換新，禁止寫回舊地圖
+    if (runSessionIdRef.current !== runSessionId) return;
     if (
       !selectedTier ||
       dungeonMap.length === 0 ||
@@ -629,6 +657,7 @@ export default function GamePage() {
       version: 1,
       characterId: activeCharacterId,
       tierId: selectedTier.id,
+      runSessionId,
       dungeonMap,
       permanentDeck,
       playerHp,
@@ -639,6 +668,7 @@ export default function GamePage() {
     });
   }, [
     ready,
+    runSessionId,
     selectedTier,
     dungeonMap,
     permanentDeck,
@@ -810,6 +840,8 @@ export default function GamePage() {
 
   const returnToLobby = useCallback(
     (message: string | null = null, healPlayer = false) => {
+      runSessionIdRef.current = null;
+      setRunSessionId(null);
       setActiveTab("lobby");
       setIsInCombat(false);
       setCombatScreen("tier-select");
@@ -829,6 +861,18 @@ export default function GamePage() {
       resetCombatState();
       if (message) setLastRunMessage(message);
       if (healPlayer) setPlayerHp(heroStats.maxHp);
+      if (process.env.NODE_ENV !== "production") {
+        queueMicrotask(() => {
+          console.assert(
+            runSessionIdRef.current === null,
+            "[run] session must be null after returnToLobby"
+          );
+          console.assert(
+            localStorage.getItem(RUN_SAVE_KEY) === null,
+            "[run] active run save must be cleared after returnToLobby"
+          );
+        });
+      }
     },
     [heroStats.maxHp, resetCombatState]
   );
@@ -1053,7 +1097,9 @@ export default function GamePage() {
   }, []);
 
   const quitRun = useCallback(() => {
-    // 主動放棄 ≠ 死亡：清本局、回山門，不進渡劫失敗畫面
+    // 先 invalidate session，堵住尚未執行的舊 checkpoint effect 寫回
+    runSessionIdRef.current = null;
+    setRunSessionId(null);
     clearActiveRunSave();
     setRunSpirit(0);
     resetPermanentDeck();
@@ -1089,9 +1135,28 @@ export default function GamePage() {
       const tier = getDungeonTier(tierId);
       if (!tier) return;
       playStartCultivationSfx();
+
+      const newRunId = createRunSessionId();
+      runSessionIdRef.current = newRunId;
+      setRunSessionId(newRunId);
+
+      const freshMap = generateMoonNightMap(1, tier.floors);
+      if (process.env.NODE_ENV !== "production") {
+        for (let step = 0; step < freshMap.length; step++) {
+          for (const node of freshMap[step]) {
+            if (step === 0 && node.status !== "available") {
+              console.error("Fresh run invalid first node", node);
+            }
+            if (step > 0 && node.status !== "locked") {
+              console.error("Fresh run leaked unlocked node", node);
+            }
+          }
+        }
+      }
+
       setSelectedTier(tier);
       setTierFloor(1);
-      setDungeonMap(generateMoonNightMap(1, tier.floors));
+      setDungeonMap(freshMap);
       setCurrentMapNodeId(null);
       setMapMessage(null);
       setActiveEvent(null);
@@ -1114,6 +1179,9 @@ export default function GamePage() {
 
   const restartAfterDefeat = useCallback(() => {
     stopDefeatMusic();
+    // 舊死亡 Run 已無 session；startTierRun 會建立全新 session + 地圖
+    runSessionIdRef.current = null;
+    setRunSessionId(null);
     clearActiveRunSave();
     setRunSpirit(0);
     setPhase("playing");
@@ -1122,12 +1190,13 @@ export default function GamePage() {
       returnToLobby("渡劫失敗，已返回山門。", true);
       return;
     }
-    // 同秘境等級開全新 Run：新地圖、僅第 1 步 available
     startTierRun(selectedTier.id);
   }, [selectedTier, startTierRun, resetPermanentDeck, returnToLobby]);
 
   const returnMenuAfterDefeat = useCallback(() => {
     stopDefeatMusic();
+    runSessionIdRef.current = null;
+    setRunSessionId(null);
     clearActiveRunSave();
     setRunSpirit(0);
     setPhase("playing");
@@ -1910,6 +1979,8 @@ export default function GamePage() {
       setPlayerImpactFeedback(feedback);
 
       if (displayHp <= 0) {
+        runSessionIdRef.current = null;
+        setRunSessionId(null);
         clearActiveRunSave();
         setRunSpirit(0);
         playGameOverSfx(true);
@@ -2061,6 +2132,8 @@ export default function GamePage() {
       return [...prev, selectedTier.achievementId];
     });
     // 通關封印：清空本局地圖與本局牌組成長，回山門
+    runSessionIdRef.current = null;
+    setRunSessionId(null);
     clearActiveRunSave();
     resetPermanentDeck();
     returnToLobby(stageClearMessage, true);
