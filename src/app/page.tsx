@@ -132,6 +132,8 @@ const EMPTY_DECK: BattleDeckState = {
 const PLAYABLE = listPlayableCharacters();
 const ACTIVE_CHAR_KEY = "xiuxian_active_character_v1";
 const CHAR_PROGRESS_KEY = "xiuxian_character_progress_v1";
+const RUN_SAVE_KEY = "xiuxian_active_run_v1";
+const ACHIEVEMENTS_KEY = "xiuxian_achievements_v1";
 
 type CharacterProgress = {
   permanentDeck: CardTemplateId[];
@@ -139,6 +141,19 @@ type CharacterProgress = {
   spiritStones: number;
   totalClears: number;
 };
+
+/** 路線檢查點：不存戰鬥中瞬時狀態 */
+interface ActiveRunSaveV1 {
+  version: 1;
+  characterId: string;
+  tierId: string;
+  dungeonMap: MapNode[][];
+  permanentDeck: CardTemplateId[];
+  playerHp: number;
+  spiritStones: number;
+  mapMessage: string | null;
+  savedAt: number;
+}
 
 const TAB_LABELS: Record<AppTab, string> = {
   lobby: "青雲宗 · 山門",
@@ -169,7 +184,7 @@ function sanitizeDeckForCharacter(
   return filtered.length > 0 ? filtered : [...character.startingDeck];
 }
 
-/** 山門狀態下氣血應為滿值（秘境進度不跨重新整理保存） */
+/** 無進行中秘境時，山門氣血回滿 */
 function fullHpProgress(
   character: PlayableCharacter,
   snap?: CharacterProgress
@@ -204,6 +219,130 @@ function readStoredProgress(): Record<string, CharacterProgress> {
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
+  }
+}
+
+function readStoredAchievements(): string[] {
+  try {
+    const raw = localStorage.getItem(ACHIEVEMENTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((id): id is string => typeof id === "string");
+  } catch {
+    return [];
+  }
+}
+
+function clearActiveRunSave(): void {
+  try {
+    localStorage.removeItem(RUN_SAVE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function isValidMapNode(node: unknown): node is MapNode {
+  if (!node || typeof node !== "object") return false;
+  const n = node as Record<string, unknown>;
+  return (
+    typeof n.id === "string" &&
+    typeof n.tier === "number" &&
+    typeof n.col === "number" &&
+    typeof n.chapter === "number" &&
+    typeof n.type === "string" &&
+    typeof n.title === "string" &&
+    Array.isArray(n.nextNodes) &&
+    typeof n.status === "string"
+  );
+}
+
+function isValidDungeonMap(
+  map: unknown,
+  expectedFloors: number
+): map is MapNode[][] {
+  if (!Array.isArray(map) || map.length !== expectedFloors) return false;
+  return map.every(
+    (row) =>
+      Array.isArray(row) &&
+      row.length > 0 &&
+      row.every((node) => isValidMapNode(node))
+  );
+}
+
+function readStoredRun(): ActiveRunSaveV1 | null {
+  try {
+    const raw = localStorage.getItem(RUN_SAVE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<ActiveRunSaveV1>;
+    if (!parsed || parsed.version !== 1) {
+      clearActiveRunSave();
+      return null;
+    }
+    if (
+      typeof parsed.characterId !== "string" ||
+      !PLAYABLE.some((c) => c.id === parsed.characterId && c.unlocked)
+    ) {
+      clearActiveRunSave();
+      return null;
+    }
+    if (typeof parsed.tierId !== "string") {
+      clearActiveRunSave();
+      return null;
+    }
+    const tier = getDungeonTier(parsed.tierId);
+    if (!tier) {
+      clearActiveRunSave();
+      return null;
+    }
+    if (!isValidDungeonMap(parsed.dungeonMap, tier.floors)) {
+      clearActiveRunSave();
+      return null;
+    }
+    if (!Array.isArray(parsed.permanentDeck)) {
+      clearActiveRunSave();
+      return null;
+    }
+    if (typeof parsed.playerHp !== "number" || !Number.isFinite(parsed.playerHp)) {
+      clearActiveRunSave();
+      return null;
+    }
+    if (
+      typeof parsed.spiritStones !== "number" ||
+      !Number.isFinite(parsed.spiritStones)
+    ) {
+      clearActiveRunSave();
+      return null;
+    }
+    if (
+      parsed.mapMessage != null &&
+      typeof parsed.mapMessage !== "string"
+    ) {
+      clearActiveRunSave();
+      return null;
+    }
+    return {
+      version: 1,
+      characterId: parsed.characterId,
+      tierId: parsed.tierId,
+      dungeonMap: parsed.dungeonMap,
+      permanentDeck: parsed.permanentDeck as CardTemplateId[],
+      playerHp: parsed.playerHp,
+      spiritStones: parsed.spiritStones,
+      mapMessage: parsed.mapMessage ?? null,
+      savedAt: typeof parsed.savedAt === "number" ? parsed.savedAt : Date.now(),
+    };
+  } catch {
+    clearActiveRunSave();
+    return null;
+  }
+}
+
+function writeActiveRunSave(save: ActiveRunSaveV1): void {
+  try {
+    localStorage.setItem(RUN_SAVE_KEY, JSON.stringify(save));
+  } catch {
+    /* ignore */
   }
 }
 
@@ -320,10 +459,78 @@ export default function GamePage() {
   );
 
   useEffect(() => {
-    const activeId = readStoredActiveId();
     const stored = readStoredProgress();
-    const activeChar = getCharacter(activeId);
+    const achievements = readStoredAchievements();
+    const savedRun = readStoredRun();
+    setUnlockedAchievements(achievements);
+
     const nextProgress: Record<string, CharacterProgress> = {};
+
+    if (savedRun) {
+      const runChar = getCharacter(savedRun.characterId);
+      const tier = getDungeonTier(savedRun.tierId);
+      if (!tier) {
+        clearActiveRunSave();
+      } else {
+        const deck = sanitizeDeckForCharacter(runChar, savedRun.permanentDeck);
+        const hp = Math.max(
+          0,
+          Math.min(runChar.maxHp, Math.floor(savedRun.playerHp))
+        );
+        for (const c of PLAYABLE) {
+          const snap = stored[c.id];
+          if (c.id === savedRun.characterId) {
+            nextProgress[c.id] = {
+              ...(snap ?? createProgress(c)),
+              permanentDeck: deck,
+              playerHp: hp,
+              spiritStones: Math.max(0, Math.floor(savedRun.spiritStones)),
+            };
+          } else {
+            nextProgress[c.id] = {
+              ...(snap ?? createProgress(c)),
+              permanentDeck: sanitizeDeckForCharacter(
+                c,
+                snap?.permanentDeck ?? c.startingDeck
+              ),
+            };
+          }
+        }
+        const progress =
+          nextProgress[savedRun.characterId] ?? createProgress(runChar);
+        setActiveCharacterId(savedRun.characterId);
+        setProgressByCharacter(nextProgress);
+        setPermanentDeck(progress.permanentDeck);
+        setPlayerHp(progress.playerHp);
+        setSpiritStones(progress.spiritStones);
+        setTotalClears(progress.totalClears);
+        setInventory(createInitialInventory(startingInventoryData));
+        setSelectedTier(tier);
+        setDungeonMap(savedRun.dungeonMap);
+        setMapMessage(savedRun.mapMessage);
+        setCombatScreen("path");
+        setIsInCombat(false);
+        setCurrentMapNodeId(null);
+        setActiveEvent(null);
+        setActiveEventNodeId(null);
+        setActiveTab("lobby");
+        setReady(true);
+        try {
+          localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(nextProgress));
+          localStorage.setItem(ACTIVE_CHAR_KEY, savedRun.characterId);
+          localStorage.setItem(
+            ACHIEVEMENTS_KEY,
+            JSON.stringify(achievements)
+          );
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
+    }
+
+    const activeId = readStoredActiveId();
+    const activeChar = getCharacter(activeId);
     for (const c of PLAYABLE) {
       const snap = stored[c.id];
       nextProgress[c.id] =
@@ -349,10 +556,60 @@ export default function GamePage() {
     try {
       localStorage.setItem(CHAR_PROGRESS_KEY, JSON.stringify(nextProgress));
       localStorage.setItem(ACTIVE_CHAR_KEY, activeId);
+      localStorage.setItem(ACHIEVEMENTS_KEY, JSON.stringify(achievements));
     } catch {
       /* ignore */
     }
   }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      localStorage.setItem(
+        ACHIEVEMENTS_KEY,
+        JSON.stringify(unlockedAchievements)
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [ready, unlockedAchievements]);
+
+  /** 僅在穩定路線頁寫入檢查點；戰鬥／奇遇中不覆蓋 */
+  useEffect(() => {
+    if (!ready) return;
+    if (
+      !selectedTier ||
+      dungeonMap.length === 0 ||
+      combatScreen !== "path" ||
+      isInCombat ||
+      activeEvent
+    ) {
+      return;
+    }
+    writeActiveRunSave({
+      version: 1,
+      characterId: activeCharacterId,
+      tierId: selectedTier.id,
+      dungeonMap,
+      permanentDeck,
+      playerHp,
+      spiritStones,
+      mapMessage,
+      savedAt: Date.now(),
+    });
+  }, [
+    ready,
+    selectedTier,
+    dungeonMap,
+    permanentDeck,
+    playerHp,
+    spiritStones,
+    mapMessage,
+    combatScreen,
+    isInCombat,
+    activeEvent,
+    activeCharacterId,
+  ]);
 
   useEffect(() => {
     if (!ready) return;
@@ -681,7 +938,8 @@ export default function GamePage() {
   }, []);
 
   const quitRun = useCallback(() => {
-    // 退出＝放棄：與氣血歸零同一套失敗結算（專屬曲 + 渡劫失敗畫面）
+    // 退出＝放棄：立即清檢查點，避免刷新後從死亡前繼續
+    clearActiveRunSave();
     playGameOverSfx(true);
     setPhase("defeat");
   }, []);
@@ -726,14 +984,16 @@ export default function GamePage() {
       setCombatScreen("path");
       setActiveTab("combat");
       resetPermanentDeck();
+      setPlayerHp(character.maxHp);
       resetCombatState();
     },
-    [resetCombatState, resetPermanentDeck]
+    [resetCombatState, resetPermanentDeck, character.maxHp]
   );
 
   const restartAfterDefeat = useCallback(() => {
+    stopDefeatMusic();
+    clearActiveRunSave();
     if (!selectedTier) {
-      stopDefeatMusic();
       resetPermanentDeck();
       returnToLobby("渡劫失敗，已返回山門。", true);
       return;
@@ -743,6 +1003,7 @@ export default function GamePage() {
 
   const returnMenuAfterDefeat = useCallback(() => {
     stopDefeatMusic();
+    clearActiveRunSave();
     resetPermanentDeck();
     returnToLobby("已放棄秘境，本次進度已重置。", true);
   }, [returnToLobby, resetPermanentDeck]);
@@ -1520,6 +1781,7 @@ export default function GamePage() {
       setPlayerImpactFeedback(feedback);
 
       if (displayHp <= 0) {
+        clearActiveRunSave();
         playGameOverSfx(true);
         setPhase("defeat");
         playLockRef.current = false;
@@ -1663,6 +1925,7 @@ export default function GamePage() {
       return [...prev, selectedTier.achievementId];
     });
     // 通關封印：清空本局地圖與本局牌組成長，回山門
+    clearActiveRunSave();
     resetPermanentDeck();
     returnToLobby(stageClearMessage, true);
   }, [selectedTier, stageClearMessage, returnToLobby, resetPermanentDeck]);
