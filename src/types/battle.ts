@@ -8,7 +8,7 @@ export interface Card {
   isRetain?: boolean;
   /** 本回合臨時費用修正（如牽引 −1）；回合結束清除 */
   costModifier?: number;
-  /** 由【因果相生】牽引；不可再觸發相生 */
+  /** 本回合由【因果相生】牽引；本回合不可再次觸發相生，回合結束清除 */
   pulledByKarma?: boolean;
 }
 

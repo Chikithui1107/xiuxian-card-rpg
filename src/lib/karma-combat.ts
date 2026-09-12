@@ -85,21 +85,27 @@ export function beginKarmaPlayerTurn(
   };
 }
 
-/** 回合結束：失效本回合費用減免（牽引 −1）；輪轉轉化在敵方攻擊後執行 */
+/** 回合結束：清除牽引臨時狀態（費用減免、pulledByKarma）；輪轉轉化在敵方攻擊後執行 */
 export function endKarmaPlayerTurn(
   state: KarmaCombatState,
   deck: BattleDeckState
 ): { state: KarmaCombatState; deck: BattleDeckState } {
-  const clearMod = (c: Card): Card =>
-    c.costModifier
-      ? { ...c, costModifier: undefined }
-      : c;
+  const clearTurnTemporaryState = (c: Card): Card => {
+    if (c.costModifier === undefined && !c.pulledByKarma) {
+      return c;
+    }
+    return {
+      ...c,
+      costModifier: undefined,
+      pulledByKarma: undefined,
+    };
+  };
 
   const nextDeck: BattleDeckState = {
-    drawPile: deck.drawPile.map(clearMod),
-    hand: deck.hand.map(clearMod),
-    discardPile: deck.discardPile.map(clearMod),
-    exhaustPile: deck.exhaustPile.map(clearMod),
+    drawPile: deck.drawPile.map(clearTurnTemporaryState),
+    hand: deck.hand.map(clearTurnTemporaryState),
+    discardPile: deck.discardPile.map(clearTurnTemporaryState),
+    exhaustPile: deck.exhaustPile.map(clearTurnTemporaryState),
   };
 
   return {
