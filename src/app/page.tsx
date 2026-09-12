@@ -205,6 +205,18 @@ function initBattleDeck(templateIds: CardTemplateId[]): BattleDeckState {
   return createBattleDeck(templateIds, COMBAT_HAND_SIZE);
 }
 
+/** 非戰鬥期間的占位敵人，避免上一場 elite/boss 殘留在 state */
+function createNeutralEnemy(): CombatEnemy {
+  const base = ENEMY_LIST[0];
+  return lockEnemyIntent({
+    ...base,
+    currentHp: base.maxHp,
+    intentIndex: 0,
+    block: 0,
+    monsterSprite: ENEMY_SPRITE_ID[base.id],
+  });
+}
+
 function readStoredActiveId(): string {
   try {
     const id = localStorage.getItem(ACTIVE_CHAR_KEY);
@@ -390,15 +402,8 @@ export default function GamePage() {
   const [playerHp, setPlayerHp] = useState(60);
   const [lastRunMessage, setLastRunMessage] = useState<string | null>(null);
 
-  const [enemy, setEnemy] = useState<CombatEnemy>(() =>
-    lockEnemyIntent({
-      ...ENEMY_LIST[0],
-      currentHp: ENEMY_LIST[0].maxHp,
-      intentIndex: 0,
-      block: 0,
-      monsterSprite: ENEMY_SPRITE_ID[ENEMY_LIST[0].id],
-    })
-  );
+  const [enemy, setEnemy] = useState<CombatEnemy>(() => createNeutralEnemy());
+  const [battleInstanceId, setBattleInstanceId] = useState(0);
   const [deckState, setDeckState] = useState<BattleDeckState>(EMPTY_DECK);
   const popupIdRef = useRef(0);
   const [energy, setEnergy] = useState(MAX_ENERGY);
@@ -819,6 +824,7 @@ export default function GamePage() {
       setActiveShopNodeId(null);
       setShopOfferIds([]);
       setRunSpirit(0);
+      setEnemy(createNeutralEnemy());
       resetCombatState();
       if (message) setLastRunMessage(message);
       if (healPlayer) setPlayerHp(heroStats.maxHp);
@@ -829,7 +835,23 @@ export default function GamePage() {
   const startBattleForMapNode = useCallback(
     (tier: DungeonTier, node: MapNode) => {
       const scaledEnemy = getEnemyForMapNode(tier, node, ENEMY_LIST);
-      setEnemy(scaledEnemy);
+      if (process.env.NODE_ENV !== "production") {
+        console.log("[battle:start]", {
+          nodeId: node.id,
+          nodeType: node.type,
+          enemyId: scaledEnemy.id,
+          hp: scaledEnemy.maxHp,
+        });
+      }
+      // 強制新物件，不沿用上一場 enemy state
+      const freshEnemy = lockEnemyIntent({
+        ...scaledEnemy,
+        currentHp: scaledEnemy.maxHp,
+        block: 0,
+        intentIndex: 0,
+      });
+      setEnemy(freshEnemy);
+      setBattleInstanceId((id) => id + 1);
       setTierFloor(node.tier + 1);
       setCurrentMapNodeId(node.id);
       setDeckState(initBattleDeck(permanentDeck));
@@ -1082,6 +1104,7 @@ export default function GamePage() {
       resetPermanentDeck();
       setRunSpirit(100);
       setPlayerHp(character.maxHp);
+      setEnemy(createNeutralEnemy());
       resetCombatState();
     },
     [resetCombatState, resetPermanentDeck, character.maxHp]
@@ -2125,6 +2148,7 @@ export default function GamePage() {
         }
         return (
           <CombatView
+            key={`${currentMapNodeId ?? "battle"}-${battleInstanceId}`}
             hero={hero}
             heroStats={heroStats}
             enemy={enemy}
