@@ -51,7 +51,6 @@ import {
   beginKarmaPlayerTurn,
   endKarmaPlayerTurn,
   convertLunzhuanAfterEnemyAttack,
-  applyPlayerDamageThroughBlock,
   resolveKarmaCardPlay,
   finishAspectDiscardAndDraw,
   canPlayAspectDiscardCard,
@@ -97,10 +96,13 @@ import { playStartCultivationSfx, playCardDrawSfx, playBattleWinSfx, playGameOve
 import { stopDefeatMusic } from "@/lib/bgm";
 import {
   DAMAGE_NUMBER_MS,
+  planPlayerHitSteps,
   type CombatImpactFeedback,
+  type EnemyTurnPlan,
+  type PlayerImpactFeedback,
 } from "@/lib/combat-feedback";
 import type { PlayFxKind } from "@/lib/combat-fx";
-import { playImpact } from "@/lib/combat-audio";
+import { playImpact, playPlayerHitSfx, playShieldHitSfx } from "@/lib/combat-audio";
 import type { BattleDeckState } from "@/types/battle";
 import type { Card } from "@/types/battle";
 import { getEffectiveCost } from "@/types/battle";
@@ -256,8 +258,14 @@ export default function GamePage() {
   const [damagePopups, setDamagePopups] = useState<DamagePopup[]>([]);
   const [impactFeedback, setImpactFeedback] =
     useState<CombatImpactFeedback | null>(null);
+  const [playerImpactFeedback, setPlayerImpactFeedback] =
+    useState<PlayerImpactFeedback | null>(null);
+  const [enemyTurnPlan, setEnemyTurnPlan] = useState<EnemyTurnPlan | null>(
+    null
+  );
   const pendingPlayerHitRef = useRef<{ damage: number } | null>(null);
   const impactIdRef = useRef(0);
+  const playerImpactIdRef = useRef(0);
   const [isShaking, setIsShaking] = useState(false);
   const [lastDamage, setLastDamage] = useState<number | null>(null);
   const [lastEnemyDamage, setLastEnemyDamage] = useState<number | null>(null);
@@ -474,6 +482,8 @@ export default function GamePage() {
     setDamagePopups([]);
     pendingPlayerHitRef.current = null;
     setImpactFeedback(null);
+    setPlayerImpactFeedback(null);
+    setEnemyTurnPlan(null);
     setLastDamage(null);
     setLastEnemyDamage(null);
     setLastDodge(false);
@@ -530,6 +540,8 @@ export default function GamePage() {
       setDamagePopups([]);
       pendingPlayerHitRef.current = null;
       setImpactFeedback(null);
+      setPlayerImpactFeedback(null);
+      setEnemyTurnPlan(null);
       setLastDamage(null);
       setLastEnemyDamage(null);
       setLastPassiveHeal(null);
@@ -1349,7 +1361,7 @@ export default function GamePage() {
     ]
   );
 
-  const endTurn = useCallback((): boolean => {
+  const endTurn = useCallback((): EnemyTurnPlan | false => {
     if (
       playLockRef.current ||
       victoryStartedRef.current ||
@@ -1378,6 +1390,7 @@ export default function GamePage() {
 
     setEnergy(MAX_ENERGY + nextTurnBonus);
     setLastPassiveHeal(null);
+    setLastDamage(null);
 
     const intent = getEnemyIntent(enemy);
     const isAttack =
@@ -1385,9 +1398,7 @@ export default function GamePage() {
     const hitCount =
       intent.type === "multiAttack" ? Math.max(1, intent.hits ?? 1) : 1;
 
-    let totalDmg = 0;
     let anyDodge = false;
-
     if (
       character.combatPath === "sword" &&
       isAttack &&
@@ -1397,46 +1408,149 @@ export default function GamePage() {
       setCombatBuffs((prev) => ({ ...prev, dodge: 0 }));
     }
 
+    const hits: number[] = [];
     if (isAttack && !anyDodge) {
-      // pendingIntent 已鎖定數值（含灼燒），不可再重算
-      totalDmg =
-        intent.type === "multiAttack" ? intent.value * hitCount : intent.value;
+      const perHit = intent.value;
+      for (let i = 0; i < hitCount; i++) hits.push(perHit);
     }
 
-    if (character.combatPath === "karma" && totalDmg > 0) {
-      const blocked = applyPlayerDamageThroughBlock(karma, totalDmg);
-      karma = blocked.state;
-      totalDmg = blocked.hpDamage;
-    }
+    let kind: EnemyTurnPlan["kind"] = "idle";
+    if (isAttack) kind = "attack";
+    else if (intent.type === "defend") kind = "defend";
+    else if (intent.type === "buff") kind = "buff";
+    else if (intent.type === "debuff") kind = "debuff";
+    else if (intent.type === "special") kind = "special";
 
-    if (character.combatPath === "karma") {
-      karma = convertLunzhuanAfterEnemyAttack(karma);
-    }
+    const plan: EnemyTurnPlan = {
+      intentType: intent.type,
+      label: intent.label,
+      dodged: anyDodge,
+      hits,
+      defendValue: intent.type === "defend" ? intent.value : 0,
+      kind,
+    };
 
+    setEnemyTurnPlan(plan);
     setLastDodge(anyDodge);
-    setLastEnemyDamage(totalDmg);
-    const newPlayerHp = Math.max(0, playerHp - totalDmg);
-    setPlayerHp(newPlayerHp);
+    setLastEnemyDamage(null);
 
-    // 先只更新棄牌後牌組；抽牌等棄牌動畫結束再進行
     setDeckState(newDeck);
     if (character.combatPath === "karma") {
       setKarmaState(karma);
     }
 
-    if (newPlayerHp <= 0) {
-      // 失敗結算：單獨播失敗曲，曲終後也不恢復戰鬥 BGM，直到選按鈕
-      playGameOverSfx(true);
-      setPhase("defeat");
-      playLockRef.current = false;
+    setEnemy((prev) => clearEnemyBlock(prev));
+
+    return plan;
+  }, [
+    phase,
+    battlePhase,
+    enemy,
+    deckState,
+    combatBuffs,
+    character.combatPath,
+    karmaState,
+    pendingDiscard,
+    karmaAutoPlayCard,
+  ]);
+
+  const playerHpRef = useRef(playerHp);
+  const karmaBlockRef = useRef(karmaState.block);
+  useEffect(() => {
+    playerHpRef.current = playerHp;
+  }, [playerHp]);
+  useEffect(() => {
+    karmaBlockRef.current = karmaState.block;
+  }, [karmaState.block]);
+
+  /**
+   * 敵人單段命中 → 可能拆成護盾／破盾／HP 多步；
+   * 每步由 CombatView 在對應 impact 幀呼叫 applyPlayerImpactStep。
+   */
+  const takeEnemyHitSteps = useCallback(
+    (rawDamage: number) => {
+      const block =
+        character.combatPath === "karma" ? karmaBlockRef.current : 0;
+      return planPlayerHitSteps(block, rawDamage);
+    },
+    [character.combatPath]
+  );
+
+  /** 統一玩家受擊 impact 幀 */
+  const applyPlayerImpactStep = useCallback(
+    (step: { kind: "shield" | "shieldBreak" | "hp"; amount: number }) => {
+      const amount = Math.max(0, Math.floor(step.amount));
+      let displayHp = playerHpRef.current;
+      let displayBlock =
+        character.combatPath === "karma" ? karmaBlockRef.current : 0;
+
+      if (step.kind === "shield" || step.kind === "shieldBreak") {
+        playShieldHitSfx();
+        if (character.combatPath === "karma" && amount > 0) {
+          displayBlock = Math.max(0, displayBlock - amount);
+          karmaBlockRef.current = displayBlock;
+          setKarmaState((prev) => ({
+            ...prev,
+            block: displayBlock,
+            damageTakenThisTurn: prev.damageTakenThisTurn + amount,
+          }));
+        }
+      } else {
+        playPlayerHitSfx();
+        displayHp = Math.max(0, playerHpRef.current - amount);
+        playerHpRef.current = displayHp;
+        setPlayerHp(displayHp);
+        if (character.combatPath === "karma" && amount > 0) {
+          setKarmaState((prev) => ({
+            ...prev,
+            damageTakenThisTurn: prev.damageTakenThisTurn + amount,
+          }));
+        }
+        setLastEnemyDamage(amount);
+      }
+
+      playerImpactIdRef.current += 1;
+      const feedback: PlayerImpactFeedback = {
+        id: playerImpactIdRef.current,
+        kind: step.kind,
+        amount,
+        displayHp,
+        displayBlock,
+      };
+      setPlayerImpactFeedback(feedback);
+
+      if (displayHp <= 0) {
+        playGameOverSfx(true);
+        setPhase("defeat");
+        playLockRef.current = false;
+        return { defeated: true, feedback };
+      }
+      return { defeated: false, feedback };
+    },
+    [character.combatPath]
+  );
+
+  const resolveEnemyDefend = useCallback((value: number) => {
+    if (value <= 0) return;
+    setEnemy((prev) => ({
+      ...prev,
+      block: (prev.block ?? 0) + value,
+    }));
+  }, []);
+
+  /** 當前敵行動完全結束後：推進 Intent、再生，再允許抽牌 */
+  const finishEnemyTurn = useCallback((): boolean => {
+    if (phase === "defeat" || victoryStartedRef.current) {
+      setEnemyTurnPlan(null);
       return false;
     }
 
+    if (character.combatPath === "karma") {
+      setKarmaState((prev) => convertLunzhuanAfterEnemyAttack(prev));
+    }
+
     setEnemy((prev) => {
-      let next = clearEnemyBlock(prev);
-      if (intent.type === "defend" && intent.value > 0) {
-        next = { ...next, block: (next.block ?? 0) + intent.value };
-      }
+      let next = prev;
       if (next.passive === "regen") {
         const healed = applyRegenPassive(next);
         const healAmount = healed.currentHp - next.currentHp;
@@ -1445,20 +1559,9 @@ export default function GamePage() {
       }
       return advanceEnemyIntent(next);
     });
-    setLastDamage(null);
+    setEnemyTurnPlan(null);
     return true;
-  }, [
-    phase,
-    battlePhase,
-    enemy,
-    deckState,
-    playerHp,
-    combatBuffs,
-    character.combatPath,
-    karmaState,
-    pendingDiscard,
-    karmaAutoPlayCard,
-  ]);
+  }, [phase, character.combatPath]);
 
   /** 棄牌動畫結束後補抽；保持鎖定直到抽牌動畫結束 */
   const completeEndTurnDraw = useCallback(() => {
@@ -1667,6 +1770,8 @@ export default function GamePage() {
             deckCount={permanentDeck.length}
             damagePopups={damagePopups}
             impactFeedback={impactFeedback}
+            playerImpactFeedback={playerImpactFeedback}
+            enemyTurnPlan={enemyTurnPlan}
             isShaking={isShaking}
             lastDamage={lastDamage}
             lastEnemyDamage={lastEnemyDamage}
@@ -1676,6 +1781,10 @@ export default function GamePage() {
             onPlayCard={playCard}
             onCombatImpact={resolveCombatImpact}
             onEndTurn={endTurn}
+            takeEnemyHitSteps={takeEnemyHitSteps}
+            applyPlayerImpactStep={applyPlayerImpactStep}
+            resolveEnemyDefend={resolveEnemyDefend}
+            finishEnemyTurn={finishEnemyTurn}
             onEndTurnDraw={completeEndTurnDraw}
             onEndTurnSequenceDone={finishEndTurnSequence}
             karmaMarks={karmaState.karmaMarks}

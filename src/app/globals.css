@@ -177,10 +177,114 @@
   animation: enemy-frost-slash 0.15s cubic-bezier(0.12, 0.8, 0.2, 1) forwards;
 }
 
-.hud-stat-pulse {
-  display: inline-block;
-  animation: hud-stat-pulse 0.42s ease-out;
-  transform-origin: center;
+.enemy-intent--highlight {
+  border-color: rgba(220, 190, 120, 0.65);
+  box-shadow: 0 0 10px rgba(201, 168, 76, 0.35);
+  filter: brightness(1.2);
+  transform: scale(1.06);
+  transition:
+    filter 0.12s ease,
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+@keyframes enemy-sprite-lunge {
+  0% {
+    transform: translateY(0);
+  }
+  55% {
+    transform: translateY(14px);
+  }
+  100% {
+    transform: translateY(12px);
+  }
+}
+
+.enemy-sprite-lunge {
+  animation: enemy-sprite-lunge 0.19s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  will-change: transform;
+}
+
+@keyframes player-hud-hit-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.player-hud-hit-shake {
+  animation: player-hud-hit-shake 0.18s ease-in-out;
+}
+
+@keyframes player-hud-hit-flash {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  35% {
+    filter: brightness(1.15) sepia(0.25) hue-rotate(-15deg);
+  }
+}
+
+.player-hud-hit-flash {
+  animation: player-hud-hit-flash 0.22s ease-out;
+}
+
+.combat-shield-hit-flash {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  border: 1.5px solid rgba(180, 220, 230, 0.85);
+  background: radial-gradient(
+    circle,
+    rgba(200, 235, 240, 0.4) 0%,
+    transparent 70%
+  );
+  transform: translate(-50%, -50%);
+  animation: combat-shield-aura 0.32s ease-out forwards;
+}
+
+.player-dmg-float {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: -0.35rem;
+  z-index: 20;
+  transform: translate(-50%, 0);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  animation: combat-dmg-float 0.52s ease-out forwards;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+}
+
+.player-dmg-float--hp {
+  color: #e8b0a8;
+}
+
+.player-dmg-float--shield {
+  color: #9eb8b0;
+}
+
+.player-dmg-float--break {
+  color: #c4b090;
 }
 
 .combat-shield-aura {

@@ -15,6 +15,10 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
   tuxu_whoosh: ["tuxu-whoosh", "tuxu_whoosh"],
   // 新檔名避開舊 start-cultivation.mp3 的瀏覽器快取
   start_cultivation: ["horror-hit", "start-cultivation"],
+  /** 敵人打中玩家 */
+  player_hit: ["horror-hit", "fuxue-slash", "fuxue_slash"],
+  /** 護盾受擊（沿用較輕的 whoosh） */
+  shield_hit: ["tuxu-whoosh", "tuxu_whoosh"],
   card_draw: ["card-draw", "card_draw"],
   reward_click: ["reward-click", "reward_click"],
   battle_win: ["battle-win", "battle_win", "level-up"],
@@ -158,6 +162,16 @@ export function playImpact(kind: PlayFxKind): void {
   playSampleSync(key, 1);
 }
 
+/** 敵人打中玩家（HP） */
+export function playPlayerHitSfx(): void {
+  playSampleSync("player_hit", 0.95);
+}
+
+/** 打在護盾上 */
+export function playShieldHitSfx(): void {
+  playSampleSync("shield_hit", 0.7);
+}
+
 /** 開始 / 繼續修行時的過渡音 */
 export function playStartCultivationSfx(): void {
   // 若仍在播失敗曲，先停掉再開修行
@@ -206,6 +220,8 @@ export function preloadCombatSfx(): void {
   void loadBuffer("fuxue_slash");
   void loadBuffer("tuxu_whoosh");
   void loadBuffer("start_cultivation");
+  void loadBuffer("player_hit");
+  void loadBuffer("shield_hit");
   void loadBuffer("card_draw");
   void loadBuffer("reward_click");
   void loadBuffer("battle_win");

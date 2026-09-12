@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hero, HeroStats } from "@/lib/stats";
 import { formatNumber } from "@/lib/stats";
 import type { CombatBuffs } from "@/lib/battle-resolve";
 import { getStackDodgeChance } from "@/lib/battle-resolve";
 import { publicAsset } from "@/lib/paths";
-import { SHIELD_AURA_MS, STAT_PULSE_MS } from "@/lib/combat-feedback";
+import {
+  DAMAGE_NUMBER_MS,
+  PLAYER_HIT_SHAKE_MS,
+  PLAYER_HP_TRANSITION_MS,
+  SHIELD_AURA_MS,
+  STAT_PULSE_MS,
+  type PlayerImpactFeedback,
+} from "@/lib/combat-feedback";
 
 interface CombatPlayerBarProps {
   hero: Hero;
@@ -19,6 +26,7 @@ interface CombatPlayerBarProps {
   karmaMode?: boolean;
   yinPullUsed?: boolean;
   yangPullUsed?: boolean;
+  playerImpact?: PlayerImpactFeedback | null;
 }
 
 export function CombatPlayerBar({
@@ -32,12 +40,22 @@ export function CombatPlayerBar({
   karmaMode = false,
   yinPullUsed = false,
   yangPullUsed = false,
+  playerImpact = null,
 }: CombatPlayerBarProps) {
-  const hpPercent = Math.max(0, (currentHp / stats.maxHp) * 100);
   const dodgeChance = getStackDodgeChance(combatBuffs.dodge);
   const avatarSrc = hero.avatar ? publicAsset(hero.avatar) : null;
   const orbCount = Math.min(8, Math.max(maxEnergy, energy));
 
+  const [displayHp, setDisplayHp] = useState(currentHp);
+  const [displayBlock, setDisplayBlock] = useState(block);
+  const [hitShake, setHitShake] = useState(false);
+  const [hitFlash, setHitFlash] = useState(false);
+  const [shieldHit, setShieldHit] = useState(false);
+  const [dmgFloat, setDmgFloat] = useState<{
+    id: number;
+    amount: number;
+    kind: PlayerImpactFeedback["kind"];
+  } | null>(null);
   const [blockPulse, setBlockPulse] = useState(false);
   const [shieldAura, setShieldAura] = useState(false);
   const [intentPulse, setIntentPulse] = useState(false);
@@ -45,6 +63,65 @@ export function CombatPlayerBar({
   const prevBlock = useRef(block);
   const prevIntent = useRef(combatBuffs.swordIntent);
   const prevDodge = useRef(combatBuffs.dodge);
+  const lastImpactId = useRef(0);
+  const timersRef = useRef<number[]>([]);
+
+  const clearTimers = () => {
+    for (const id of timersRef.current) window.clearTimeout(id);
+    timersRef.current = [];
+  };
+
+  useLayoutEffect(() => {
+    if (!playerImpact || playerImpact.id === lastImpactId.current) return;
+    lastImpactId.current = playerImpact.id;
+    clearTimers();
+
+    setDisplayHp(playerImpact.displayHp);
+    setDisplayBlock(playerImpact.displayBlock);
+    setDmgFloat({
+      id: playerImpact.id,
+      amount: playerImpact.amount,
+      kind: playerImpact.kind,
+    });
+    timersRef.current.push(
+      window.setTimeout(() => setDmgFloat(null), DAMAGE_NUMBER_MS)
+    );
+
+    if (playerImpact.kind === "hp") {
+      setHitShake(true);
+      setHitFlash(true);
+      timersRef.current.push(
+        window.setTimeout(() => setHitShake(false), PLAYER_HIT_SHAKE_MS)
+      );
+      timersRef.current.push(
+        window.setTimeout(() => setHitFlash(false), 220)
+      );
+    } else if (
+      playerImpact.kind === "shield" ||
+      playerImpact.kind === "shieldBreak"
+    ) {
+      setShieldHit(true);
+      setBlockPulse(true);
+      timersRef.current.push(
+        window.setTimeout(() => setShieldHit(false), PLAYER_HIT_SHAKE_MS)
+      );
+      timersRef.current.push(
+        window.setTimeout(() => setBlockPulse(false), STAT_PULSE_MS)
+      );
+    }
+
+    return () => clearTimers();
+  }, [playerImpact]);
+
+  useEffect(() => {
+    if (playerImpact) return;
+    setDisplayHp(currentHp);
+  }, [currentHp, playerImpact]);
+
+  useEffect(() => {
+    if (playerImpact) return;
+    setDisplayBlock(block);
+  }, [block, playerImpact]);
 
   useEffect(() => {
     if (block > prevBlock.current) {
@@ -81,8 +158,15 @@ export function CombatPlayerBar({
     prevDodge.current = combatBuffs.dodge;
   }, [combatBuffs.dodge]);
 
+  const hpPercent = Math.max(0, (displayHp / stats.maxHp) * 100);
+  const showBlock = karmaMode ? displayBlock : block;
+
   return (
-    <div className="combat-player-hud">
+    <div
+      className={`combat-player-hud relative ${
+        hitShake ? "player-hud-hit-shake" : ""
+      } ${hitFlash ? "player-hud-hit-flash" : ""}`}
+    >
       {avatarSrc && (
         <div className="combat-player-hud__avatar relative">
           <img
@@ -91,6 +175,9 @@ export function CombatPlayerBar({
             className="h-full w-full object-cover object-center"
           />
           {shieldAura && <span className="combat-shield-aura" aria-hidden />}
+          {shieldHit && (
+            <span className="combat-shield-hit-flash" aria-hidden />
+          )}
         </div>
       )}
 
@@ -99,7 +186,7 @@ export function CombatPlayerBar({
           <p className="combat-player-hud__name">
             {hero.name}
             <span className="combat-player-hud__hp-num">
-              {formatNumber(currentHp)}/{formatNumber(stats.maxHp)}
+              {formatNumber(displayHp)}/{formatNumber(stats.maxHp)}
             </span>
           </p>
           <div
@@ -120,8 +207,11 @@ export function CombatPlayerBar({
 
         <div className="combat-player-hud__bar">
           <div
-            className="hp-bar-fill h-full rounded-full transition-all"
-            style={{ width: `${hpPercent}%` }}
+            className="hp-bar-fill h-full rounded-full"
+            style={{
+              width: `${hpPercent}%`,
+              transition: `width ${PLAYER_HP_TRANSITION_MS}ms ease-out`,
+            }}
           />
         </div>
 
@@ -132,12 +222,12 @@ export function CombatPlayerBar({
                 護盾{" "}
                 <span
                   className={
-                    block > 0
+                    showBlock > 0
                       ? "font-semibold text-[#9ab8aa]"
                       : "tabular-nums"
                   }
                 >
-                  {block}
+                  {showBlock}
                 </span>
               </span>
               <span
@@ -186,6 +276,25 @@ export function CombatPlayerBar({
           )}
         </div>
       </div>
+
+      {dmgFloat && (
+        <div
+          key={dmgFloat.id}
+          className={`player-dmg-float ${
+            dmgFloat.kind === "hp"
+              ? "player-dmg-float--hp"
+              : dmgFloat.kind === "shieldBreak"
+                ? "player-dmg-float--break"
+                : "player-dmg-float--shield"
+          }`}
+        >
+          {dmgFloat.kind === "hp"
+            ? `-${dmgFloat.amount}`
+            : dmgFloat.kind === "shieldBreak"
+              ? `護盾破裂 -${dmgFloat.amount}`
+              : `護盾 -${dmgFloat.amount}`}
+        </div>
+      )}
     </div>
   );
 }

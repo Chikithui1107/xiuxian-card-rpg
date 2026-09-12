@@ -62,7 +62,16 @@ import {
   ATTACK_WINDUP_MS,
   IMPACT_AT_MS,
   PLAY_LAYOUT_HOLD_MS,
+  ENEMY_INTENT_HIGHLIGHT_MS,
+  ENEMY_ATTACK_WINDUP_MS,
+  ENEMY_LUNGE_MS,
+  ENEMY_RETURN_MS,
+  ENEMY_MULTI_HIT_GAP_MS,
+  SHIELD_BREAK_TO_HP_MS,
+  ENEMY_SUPPORT_ACTION_MS,
   type CombatImpactFeedback,
+  type EnemyTurnPlan,
+  type PlayerImpactFeedback,
 } from "@/lib/combat-feedback";
 
 const COMBAT_BG = publicAsset("/backgrounds/combat-moon-path.jpg");
@@ -142,6 +151,8 @@ interface CombatViewProps {
   deckCount: number;
   damagePopups: DamagePopup[];
   impactFeedback?: CombatImpactFeedback | null;
+  playerImpactFeedback?: PlayerImpactFeedback | null;
+  enemyTurnPlan?: EnemyTurnPlan | null;
   isShaking: boolean;
   lastDamage: number | null;
   lastEnemyDamage: number | null;
@@ -151,8 +162,17 @@ interface CombatViewProps {
   onPlayCard: (card: Card) => boolean;
   /** 統一命中幀（音效＋結算＋受擊反饋） */
   onCombatImpact?: (fx: PlayFxKind) => void;
-  /** 棄牌＋敵方回合；回傳 true 表示之後還要抽牌 */
-  onEndTurn: () => boolean;
+  /** 棄牌＋敵方回合準備；回傳 plan，失敗為 false */
+  onEndTurn: () => EnemyTurnPlan | false;
+  takeEnemyHitSteps?: (
+    rawDamage: number
+  ) => Array<{ kind: "shield" | "shieldBreak" | "hp"; amount: number }>;
+  applyPlayerImpactStep?: (step: {
+    kind: "shield" | "shieldBreak" | "hp";
+    amount: number;
+  }) => { defeated: boolean };
+  resolveEnemyDefend?: (value: number) => void;
+  finishEnemyTurn?: () => boolean;
   /** 棄牌動畫結束後抽新手牌（勿在棄牌期間呼叫） */
   onEndTurnDraw: () => void;
   /** 抽牌動畫全部完成後解鎖 */
@@ -269,6 +289,8 @@ export function CombatView({
   deckCount,
   damagePopups,
   impactFeedback = null,
+  playerImpactFeedback = null,
+  enemyTurnPlan = null,
   isShaking,
   lastDamage,
   lastEnemyDamage,
@@ -278,6 +300,10 @@ export function CombatView({
   onPlayCard,
   onCombatImpact,
   onEndTurn,
+  takeEnemyHitSteps,
+  applyPlayerImpactStep,
+  resolveEnemyDefend,
+  finishEnemyTurn,
   onEndTurnDraw,
   onEndTurnSequenceDone,
   karmaMarks = 0,
@@ -357,6 +383,8 @@ export function CombatView({
   const [bursts, setBursts] = useState<PlayBurst[]>([]);
   const [screenFlash, setScreenFlash] = useState(false);
   const [hitFlash, setHitFlash] = useState(false);
+  const [intentHighlight, setIntentHighlight] = useState(false);
+  const [enemyLunge, setEnemyLunge] = useState(false);
   const [denyShake, setDenyShake] = useState(false);
   const [feelToast, setFeelToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -546,7 +574,6 @@ export function CombatView({
           skipDiscardIdsRef.current.add(c.instanceId);
         }
 
-        // 動畫期間先隱藏舊牌，但暫不改 deck；避免新牌提前出現
         if (toDiscard.length > 0) {
           setHiddenCardIds((prev) => {
             const next = new Set(prev);
@@ -556,8 +583,7 @@ export function CombatView({
           await playEndTurnDiscardAnimation(toDiscard);
         }
 
-        // 棄牌動畫完整結束後，才結算棄牌／敵方回合 → 手牌清空
-        const shouldDraw = onEndTurn();
+        const plan = onEndTurn();
         setHiddenCardIds((prev) => {
           if (prev.size === 0) return prev;
           const next = new Set(prev);
@@ -565,15 +591,76 @@ export function CombatView({
           return next;
         });
 
-        if (!shouldDraw) {
+        if (!plan) {
           finishTurnSequence();
           return;
         }
 
-        // 短暫停頓，讓玩家感知「上回合結束了」再抽牌
+        // Intent 短暫高亮
+        setIntentHighlight(true);
+        await delayMs(ENEMY_INTENT_HIGHLIGHT_MS);
+        setIntentHighlight(false);
+
+        let defeated = false;
+
+        if (plan.kind === "attack" && !plan.dodged && plan.hits.length > 0) {
+          for (let i = 0; i < plan.hits.length; i++) {
+            setEnemyLunge(true);
+            await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
+
+            const steps =
+              takeEnemyHitSteps?.(plan.hits[i]) ?? [
+                { kind: "hp" as const, amount: plan.hits[i] },
+              ];
+
+            for (let s = 0; s < steps.length; s++) {
+              const result = applyPlayerImpactStep?.(steps[s]);
+              if (result?.defeated) {
+                defeated = true;
+                break;
+              }
+              if (s < steps.length - 1) {
+                await delayMs(SHIELD_BREAK_TO_HP_MS);
+              }
+            }
+
+            setEnemyLunge(false);
+            if (defeated) break;
+            if (i < plan.hits.length - 1) {
+              await delayMs(ENEMY_MULTI_HIT_GAP_MS);
+            } else {
+              await delayMs(ENEMY_RETURN_MS);
+            }
+          }
+        } else if (plan.kind === "attack" && plan.dodged) {
+          setEnemyLunge(true);
+          await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
+          setEnemyLunge(false);
+          await delayMs(ENEMY_RETURN_MS);
+        } else if (plan.kind === "defend" && plan.defendValue > 0) {
+          resolveEnemyDefend?.(plan.defendValue);
+          await delayMs(ENEMY_SUPPORT_ACTION_MS);
+        } else if (
+          plan.kind === "buff" ||
+          plan.kind === "debuff" ||
+          plan.kind === "special"
+        ) {
+          await delayMs(ENEMY_SUPPORT_ACTION_MS);
+        }
+
+        if (defeated) {
+          finishTurnSequence();
+          return;
+        }
+
+        const canDraw = finishEnemyTurn?.() ?? true;
+        if (!canDraw) {
+          finishTurnSequence();
+          return;
+        }
+
         await delayMs(END_TURN_BEAT_MS);
 
-        // 再開新回合抽牌；等抽牌飛完才解鎖
         const drawWait = waitForNextDrawBatch();
         onEndTurnDraw();
         await drawWait;
@@ -586,6 +673,10 @@ export function CombatView({
     hand,
     inputLocked,
     onEndTurn,
+    takeEnemyHitSteps,
+    applyPlayerImpactStep,
+    resolveEnemyDefend,
+    finishEnemyTurn,
     onEndTurnDraw,
     playEndTurnDiscardAnimation,
     waitForNextDrawBatch,
@@ -1157,6 +1248,8 @@ export function CombatView({
           lastPassiveHeal={lastPassiveHeal}
           karmaMarks={karmaMarks}
           frostSlash={frostSlash}
+          intentHighlight={intentHighlight}
+          attackLunge={enemyLunge}
         />
       </div>
 
@@ -1193,6 +1286,7 @@ export function CombatView({
               karmaMode={karmaMode}
               yinPullUsed={yinPullUsed}
               yangPullUsed={yangPullUsed}
+              playerImpact={playerImpactFeedback}
             />
           }
         />

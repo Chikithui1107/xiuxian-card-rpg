@@ -27,6 +27,8 @@ interface EnemyPanelProps {
   karmaMarks?: number;
   /** 白夜：霜白劍光；因果道先不開 */
   frostSlash?: boolean;
+  intentHighlight?: boolean;
+  attackLunge?: boolean;
 }
 
 const INTENT_ICON: Partial<Record<EnemyIntent["type"], string>> = {
@@ -81,6 +83,8 @@ export function EnemyPanel({
   lastPassiveHeal,
   karmaMarks = 0,
   frostSlash = false,
+  intentHighlight = false,
+  attackLunge = false,
 }: EnemyPanelProps) {
   const isDefeated = enemy.currentHp <= 0;
   const intent = getEnemyIntent(enemy);
@@ -235,7 +239,9 @@ export function EnemyPanel({
 
   const intentChip = !isDefeated && (
     <div
-      className={`enemy-intent enemy-intent--${intent.type}`}
+      className={`enemy-intent enemy-intent--${intent.type}${
+        intentHighlight ? " enemy-intent--highlight" : ""
+      }`}
       title={intent.label}
     >
       <IntentGlyph type={intent.type} />
@@ -346,7 +352,7 @@ export function EnemyPanel({
                 <div
                   className={`relative flex h-full max-w-full items-end justify-center ${
                     spriteShake ? "enemy-sprite-hit-shake" : ""
-                  }`}
+                  } ${attackLunge ? "enemy-sprite-lunge" : ""}`}
                 >
                   <img
                     src={monster.image}
