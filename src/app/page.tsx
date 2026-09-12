@@ -13,7 +13,11 @@ import { MobileFrame } from "@/components/MobileFrame";
 import { BottomNav } from "@/components/BottomNav";
 import { LobbyView } from "@/components/LobbyView";
 import { CombatView } from "@/components/CombatView";
-import { TierSelectionView } from "@/components/TierSelectionView";
+import {
+  CultivationStartView,
+  getCalamityLabel,
+  MAX_CALAMITY_LEVEL,
+} from "@/components/CultivationStartView";
 import { PathChoiceView } from "@/components/PathChoiceView";
 import { CharacterSelectModal } from "@/components/CharacterSelectModal";
 import { CardRewardModal } from "@/components/CardRewardModal";
@@ -142,21 +146,30 @@ type CharacterProgress = {
   playerHp: number;
   spiritStones: number;
   totalClears: number;
+  maxCalamityLevel: number;
+};
+
+type StageClearInfo = {
+  kind: "advance" | "ascend";
+  title: string;
+  subtitle: string;
+  description: string;
+  buttonLabel: string;
+  convertSpirit?: number;
 };
 
 /** 路線檢查點：不存戰鬥中瞬時狀態 */
-interface ActiveRunSaveV1 {
-  version: 1;
-  characterId: string;
-  tierId: string;
-  /** 本局 session；舊存檔缺欄位時讀取時補上 */
+interface ActiveRunSaveV2 {
+  version: 2;
   runSessionId: string;
+  characterId: string;
+  chapterIndex: number;
+  tierId: string;
+  calamityLevel: number;
   dungeonMap: MapNode[][];
   permanentDeck: CardTemplateId[];
   playerHp: number;
-  /** 永久靈石（與 CharacterProgress 同步） */
   spiritStones: number;
-  /** 本局靈砂；舊存檔缺欄位時視為 0 */
   runSpirit: number;
   mapMessage: string | null;
   savedAt: number;
@@ -168,12 +181,18 @@ const TAB_LABELS: Record<AppTab, string> = {
   characters: "選擇角色",
 };
 
+function sanitizeMaxCalamityLevel(value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  return Math.max(0, Math.min(MAX_CALAMITY_LEVEL, Math.floor(value)));
+}
+
 function createProgress(character: PlayableCharacter): CharacterProgress {
   return {
     permanentDeck: [...character.startingDeck],
     playerHp: character.maxHp,
     spiritStones: character.spiritStones,
     totalClears: 0,
+    maxCalamityLevel: 0,
   };
 }
 
@@ -300,12 +319,12 @@ function isValidDungeonMap(
   return validateRunProgress(map);
 }
 
-function readStoredRun(): ActiveRunSaveV1 | null {
+function readStoredRun(): ActiveRunSaveV2 | null {
   try {
     const raw = localStorage.getItem(RUN_SAVE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<ActiveRunSaveV1>;
-    if (!parsed || parsed.version !== 1) {
+    const parsed = JSON.parse(raw) as Partial<ActiveRunSaveV2>;
+    if (!parsed || parsed.version !== 2) {
       clearActiveRunSave();
       return null;
     }
@@ -322,6 +341,31 @@ function readStoredRun(): ActiveRunSaveV1 | null {
     }
     const tier = getDungeonTier(parsed.tierId);
     if (!tier) {
+      clearActiveRunSave();
+      return null;
+    }
+    if (
+      typeof parsed.chapterIndex !== "number" ||
+      !Number.isInteger(parsed.chapterIndex) ||
+      parsed.chapterIndex < 0 ||
+      parsed.chapterIndex > 4
+    ) {
+      clearActiveRunSave();
+      return null;
+    }
+    if (
+      typeof parsed.calamityLevel !== "number" ||
+      !Number.isFinite(parsed.calamityLevel) ||
+      parsed.calamityLevel < 0 ||
+      parsed.calamityLevel > MAX_CALAMITY_LEVEL
+    ) {
+      clearActiveRunSave();
+      return null;
+    }
+    if (
+      typeof parsed.runSessionId !== "string" ||
+      parsed.runSessionId.length === 0
+    ) {
       clearActiveRunSave();
       return null;
     }
@@ -344,18 +388,13 @@ function readStoredRun(): ActiveRunSaveV1 | null {
       clearActiveRunSave();
       return null;
     }
-    // 舊 v1 可無 runSpirit：fallback 0，不整檔作廢
-    let runSpirit = 0;
-    if (parsed.runSpirit !== undefined) {
-      if (
-        typeof parsed.runSpirit !== "number" ||
-        !Number.isFinite(parsed.runSpirit) ||
-        parsed.runSpirit < 0
-      ) {
-        clearActiveRunSave();
-        return null;
-      }
-      runSpirit = Math.floor(parsed.runSpirit);
+    if (
+      typeof parsed.runSpirit !== "number" ||
+      !Number.isFinite(parsed.runSpirit) ||
+      parsed.runSpirit < 0
+    ) {
+      clearActiveRunSave();
+      return null;
     }
     if (
       parsed.mapMessage != null &&
@@ -364,20 +403,18 @@ function readStoredRun(): ActiveRunSaveV1 | null {
       clearActiveRunSave();
       return null;
     }
-    const runSessionId =
-      typeof parsed.runSessionId === "string" && parsed.runSessionId.length > 0
-        ? parsed.runSessionId
-        : createRunSessionId();
     return {
-      version: 1,
+      version: 2,
+      runSessionId: parsed.runSessionId,
       characterId: parsed.characterId,
+      chapterIndex: parsed.chapterIndex,
       tierId: parsed.tierId,
-      runSessionId,
+      calamityLevel: Math.floor(parsed.calamityLevel),
       dungeonMap: parsed.dungeonMap,
       permanentDeck: parsed.permanentDeck as CardTemplateId[],
       playerHp: parsed.playerHp,
       spiritStones: parsed.spiritStones,
-      runSpirit,
+      runSpirit: Math.floor(parsed.runSpirit),
       mapMessage: parsed.mapMessage ?? null,
       savedAt: typeof parsed.savedAt === "number" ? parsed.savedAt : Date.now(),
     };
@@ -387,7 +424,7 @@ function readStoredRun(): ActiveRunSaveV1 | null {
   }
 }
 
-function writeActiveRunSave(save: ActiveRunSaveV1): void {
+function writeActiveRunSave(save: ActiveRunSaveV2): void {
   try {
     localStorage.setItem(RUN_SAVE_KEY, JSON.stringify(save));
   } catch {
@@ -411,6 +448,10 @@ export default function GamePage() {
   const [permanentDeck, setPermanentDeck] = useState<CardTemplateId[]>([]);
   const [selectedTier, setSelectedTier] = useState<DungeonTier | null>(null);
   const [tierFloor, setTierFloor] = useState(1);
+  const [chapterIndex, setChapterIndex] = useState(0);
+  const [calamityLevel, setCalamityLevel] = useState(0);
+  const [pendingCalamity, setPendingCalamity] = useState(0);
+  const [maxCalamityLevel, setMaxCalamityLevel] = useState(0);
   const [totalClears, setTotalClears] = useState(0);
   const [spiritStones, setSpiritStones] = useState(1280);
   /** 本局靈砂：僅存於 Active Run，結束／戰敗／放棄清零 */
@@ -437,11 +478,9 @@ export default function GamePage() {
   const eventChoiceLockRef = useRef(false);
   const rewardDoneRef = useRef(false);
   const stageClearDoneRef = useRef(false);
-  const [stageClearMessage, setStageClearMessage] = useState<string | null>(
+  const [stageClearInfo, setStageClearInfo] = useState<StageClearInfo | null>(
     null
   );
-  /** 通關時預先算好的「餘砂→靈石」轉換量 */
-  const [pendingClearConvert, setPendingClearConvert] = useState(0);
   const [damagePopups, setDamagePopups] = useState<DamagePopup[]>([]);
   const [impactFeedback, setImpactFeedback] =
     useState<CombatImpactFeedback | null>(null);
@@ -544,6 +583,9 @@ export default function GamePage() {
                 permanentDeck: deck,
                 playerHp: hp,
                 spiritStones: Math.max(0, Math.floor(savedRun.spiritStones)),
+                maxCalamityLevel: sanitizeMaxCalamityLevel(
+                  snap?.maxCalamityLevel
+                ),
               };
             } else {
               nextProgress[c.id] = {
@@ -551,6 +593,9 @@ export default function GamePage() {
                 permanentDeck: sanitizeDeckForCharacter(
                   c,
                   snap?.permanentDeck ?? c.startingDeck
+                ),
+                maxCalamityLevel: sanitizeMaxCalamityLevel(
+                  snap?.maxCalamityLevel
                 ),
               };
             }
@@ -565,6 +610,12 @@ export default function GamePage() {
           setRunSpirit(Math.max(0, Math.floor(savedRun.runSpirit)));
           runSessionIdRef.current = savedRun.runSessionId;
           setRunSessionId(savedRun.runSessionId);
+          setChapterIndex(savedRun.chapterIndex);
+          setCalamityLevel(savedRun.calamityLevel);
+          setMaxCalamityLevel(progress.maxCalamityLevel);
+          setPendingCalamity(
+            Math.min(savedRun.calamityLevel, progress.maxCalamityLevel)
+          );
           setTotalClears(progress.totalClears);
           setInventory(createInitialInventory(startingInventoryData));
           setSelectedTier(tier);
@@ -597,7 +648,11 @@ export default function GamePage() {
       const activeChar = getCharacter(activeId);
       for (const c of PLAYABLE) {
         // 無 Active Run：一律回起始牌組，避免戰敗畫面刷新把本局牌帶回山門
-        nextProgress[c.id] = fullHpProgress(c, stored[c.id]);
+        const snap = stored[c.id];
+        nextProgress[c.id] = {
+          ...fullHpProgress(c, snap),
+          maxCalamityLevel: sanitizeMaxCalamityLevel(snap?.maxCalamityLevel),
+        };
       }
       const progress = nextProgress[activeId] ?? fullHpProgress(activeChar);
       setActiveCharacterId(activeId);
@@ -608,6 +663,10 @@ export default function GamePage() {
       setRunSpirit(0);
       runSessionIdRef.current = null;
       setRunSessionId(null);
+      setChapterIndex(0);
+      setCalamityLevel(0);
+      setMaxCalamityLevel(progress.maxCalamityLevel);
+      setPendingCalamity(0);
       setTotalClears(progress.totalClears);
       setInventory(createInitialInventory(startingInventoryData));
       try {
@@ -654,10 +713,12 @@ export default function GamePage() {
       return;
     }
     writeActiveRunSave({
-      version: 1,
-      characterId: activeCharacterId,
-      tierId: selectedTier.id,
+      version: 2,
       runSessionId,
+      characterId: activeCharacterId,
+      chapterIndex,
+      tierId: selectedTier.id,
+      calamityLevel,
       dungeonMap,
       permanentDeck,
       playerHp,
@@ -670,6 +731,8 @@ export default function GamePage() {
     ready,
     runSessionId,
     selectedTier,
+    chapterIndex,
+    calamityLevel,
     dungeonMap,
     permanentDeck,
     playerHp,
@@ -694,6 +757,7 @@ export default function GamePage() {
       playerHp,
       spiritStones,
       totalClears,
+      maxCalamityLevel,
     };
     setProgressByCharacter((prev) => {
       const next = { ...prev, [activeCharacterId]: snapshot };
@@ -712,6 +776,7 @@ export default function GamePage() {
     playerHp,
     spiritStones,
     totalClears,
+    maxCalamityLevel,
   ]);
 
   useEffect(() => {
@@ -733,10 +798,14 @@ export default function GamePage() {
         playerHp,
         spiritStones,
         totalClears,
+        maxCalamityLevel,
       };
       const nextSnap = fullHpProgress(
         nextChar,
         progressByCharacter[nextId] ?? createProgress(nextChar)
+      );
+      const nextMaxCalamity = sanitizeMaxCalamityLevel(
+        nextSnap.maxCalamityLevel
       );
 
       const merged = {
@@ -748,7 +817,10 @@ export default function GamePage() {
             currentSnap.permanentDeck
           ),
         },
-        [nextId]: nextSnap,
+        [nextId]: {
+          ...nextSnap,
+          maxCalamityLevel: nextMaxCalamity,
+        },
       };
       setProgressByCharacter(merged);
       setActiveCharacterId(nextId);
@@ -756,6 +828,8 @@ export default function GamePage() {
       setPlayerHp(nextSnap.playerHp);
       setSpiritStones(nextSnap.spiritStones);
       setTotalClears(nextSnap.totalClears);
+      setMaxCalamityLevel(nextMaxCalamity);
+      setPendingCalamity((p) => Math.min(p, nextMaxCalamity));
       // 清空上一角色戰鬥臨時狀態，避免劍意／印記／牌堆串用
       setDeckState(EMPTY_DECK);
       setCombatBuffs(INITIAL_COMBAT_BUFFS);
@@ -786,6 +860,7 @@ export default function GamePage() {
       playerHp,
       spiritStones,
       totalClears,
+      maxCalamityLevel,
       progressByCharacter,
       selectedTier,
       dungeonMap.length,
@@ -808,8 +883,7 @@ export default function GamePage() {
     stageClearDoneRef.current = false;
     setPhase("playing");
     setBattlePhase("IN_BATTLE");
-    setStageClearMessage(null);
-    setPendingClearConvert(0);
+    setStageClearInfo(null);
     setDamagePopups([]);
     pendingPlayerHitRef.current = null;
     setImpactFeedback(null);
@@ -847,6 +921,9 @@ export default function GamePage() {
       setCombatScreen("tier-select");
       setSelectedTier(null);
       setTierFloor(1);
+      setChapterIndex(0);
+      setCalamityLevel(0);
+      setStageClearInfo(null);
       setDungeonMap([]);
       setCurrentMapNodeId(null);
       setMapMessage(null);
@@ -879,7 +956,12 @@ export default function GamePage() {
 
   const startBattleForMapNode = useCallback(
     (tier: DungeonTier, node: MapNode) => {
-      const scaledEnemy = getEnemyForMapNode(tier, node, ENEMY_LIST);
+      const scaledEnemy = getEnemyForMapNode(
+        tier,
+        node,
+        ENEMY_LIST,
+        calamityLevel
+      );
       if (process.env.NODE_ENV !== "production") {
         console.log("[battle:start]", {
           nodeId: node.id,
@@ -928,7 +1010,7 @@ export default function GamePage() {
       setActiveTab("combat");
       playCardDrawSfx(COMBAT_HAND_SIZE);
     },
-    [permanentDeck]
+    [permanentDeck, calamityLevel]
   );
 
   const returnToPath = useCallback(
@@ -1103,7 +1185,7 @@ export default function GamePage() {
     clearActiveRunSave();
     setRunSpirit(0);
     resetPermanentDeck();
-    returnToLobby("已放棄秘境，本次修行進度已重置。", true);
+    returnToLobby("已放棄修行，本次五境進度已重置。", true);
   }, [returnToLobby, resetPermanentDeck]);
 
   const dismissRunMessage = useCallback(() => {
@@ -1113,7 +1195,9 @@ export default function GamePage() {
   const abandonGame = useCallback(() => {
     if (
       typeof window !== "undefined" &&
-      !window.confirm("確定放棄本次秘境？當前進度將重置。")
+      !window.confirm(
+        "確定放棄本次修行？當前五境進度、法訣與靈砂將全部失去，下次將從引氣入道重新開始。"
+      )
     ) {
       return;
     }
@@ -1126,19 +1210,31 @@ export default function GamePage() {
     setCombatScreen("tier-select");
     setSelectedTier(null);
     setTierFloor(1);
+    setPendingCalamity((p) => Math.min(p, maxCalamityLevel));
     resetCombatState();
     setActiveTab("combat");
-  }, [resetCombatState]);
+  }, [resetCombatState, maxCalamityLevel]);
 
-  const startTierRun = useCallback(
-    (tierId: string) => {
-      const tier = getDungeonTier(tierId);
+  const startCultivationRun = useCallback(
+    (level: number) => {
+      const tier = DUNGEON_TIERS[0];
       if (!tier) return;
       playStartCultivationSfx();
 
+      const calamity = Math.max(
+        0,
+        Math.min(
+          maxCalamityLevel,
+          Math.min(MAX_CALAMITY_LEVEL, Math.floor(level))
+        )
+      );
       const newRunId = createRunSessionId();
       runSessionIdRef.current = newRunId;
       setRunSessionId(newRunId);
+      setChapterIndex(0);
+      setCalamityLevel(calamity);
+      setSelectedTier(tier);
+      setTierFloor(1);
 
       const freshMap = generateMoonNightMap(1, tier.floors);
       if (process.env.NODE_ENV !== "production") {
@@ -1154,8 +1250,6 @@ export default function GamePage() {
         }
       }
 
-      setSelectedTier(tier);
-      setTierFloor(1);
       setDungeonMap(freshMap);
       setCurrentMapNodeId(null);
       setMapMessage(null);
@@ -1174,24 +1268,17 @@ export default function GamePage() {
       setEnemy(createNeutralEnemy());
       resetCombatState();
     },
-    [resetCombatState, resetPermanentDeck, character.maxHp]
+    [resetCombatState, resetPermanentDeck, character.maxHp, maxCalamityLevel]
   );
 
   const restartAfterDefeat = useCallback(() => {
     stopDefeatMusic();
-    // 舊死亡 Run 已無 session；startTierRun 會建立全新 session + 地圖
     runSessionIdRef.current = null;
     setRunSessionId(null);
     clearActiveRunSave();
-    setRunSpirit(0);
     setPhase("playing");
-    if (!selectedTier) {
-      resetPermanentDeck();
-      returnToLobby("渡劫失敗，已返回山門。", true);
-      return;
-    }
-    startTierRun(selectedTier.id);
-  }, [selectedTier, startTierRun, resetPermanentDeck, returnToLobby]);
+    startCultivationRun(calamityLevel);
+  }, [calamityLevel, startCultivationRun]);
 
   const returnMenuAfterDefeat = useCallback(() => {
     stopDefeatMusic();
@@ -1201,7 +1288,7 @@ export default function GamePage() {
     setRunSpirit(0);
     setPhase("playing");
     resetPermanentDeck();
-    returnToLobby("渡劫失敗，已返回山門。", true);
+    returnToLobby("道途已斷，已返回山門。", true);
   }, [returnToLobby, resetPermanentDeck]);
 
   const spawnDamagePopupNow = useCallback((damage: number) => {
@@ -2076,13 +2163,35 @@ export default function GamePage() {
         pendingTierComplete || isBossCleared(updatedMap);
 
       if (tierComplete) {
-        const convert = Math.floor(nextRunSpirit * 0.5);
-        const cardPart = cardName ? `獲得「${cardName}」、` : "已放棄法訣獎勵，";
+        setUnlockedAchievements((prev) => {
+          if (prev.includes(selectedTier.achievementId)) return prev;
+          return [...prev, selectedTier.achievementId];
+        });
+
+        const meta = getDungeonChapterMeta(selectedTier);
         stageClearDoneRef.current = false;
-        setPendingClearConvert(convert);
-        setStageClearMessage(
-          `通關【${selectedTier.name}】！斬殺魔首，${cardPart}餘下靈砂化為靈石 +${convert}，解鎖成就「${selectedTier.achievementName}」。`
-        );
+
+        if (chapterIndex < 4) {
+          setStageClearInfo({
+            kind: "advance",
+            title: meta.breakthroughTitle,
+            subtitle: `${meta.chapterLabel} · ${meta.realmLabel}`,
+            description: meta.breakthroughDescription,
+            buttonLabel: meta.breakthroughButton,
+          });
+          setBattlePhase("STAGE_CLEAR");
+          return;
+        }
+
+        const convert = Math.floor(nextRunSpirit * 0.5);
+        setStageClearInfo({
+          kind: "ascend",
+          title: "渡劫成功",
+          subtitle: "五境圓滿 · 飛升在即",
+          description: meta.breakthroughDescription,
+          buttonLabel: "飛升",
+          convertSpirit: convert,
+        });
         setBattlePhase("STAGE_CLEAR");
         return;
       }
@@ -2100,6 +2209,7 @@ export default function GamePage() {
       pendingFloorReward,
       pendingTierComplete,
       runSpirit,
+      chapterIndex,
       returnToPath,
     ]
   );
@@ -2116,33 +2226,92 @@ export default function GamePage() {
   }, [completeRewardNode]);
 
   const handleStageClearContinue = useCallback(() => {
-    if (!selectedTier || !stageClearMessage || stageClearDoneRef.current) {
+    if (!stageClearInfo || stageClearDoneRef.current) {
       return;
     }
     stageClearDoneRef.current = true;
+    const info = stageClearInfo;
 
-    if (pendingClearConvert > 0) {
-      setSpiritStones((s) => s + pendingClearConvert);
+    if (info.kind === "advance") {
+      const nextIndex = chapterIndex + 1;
+      const nextTier = DUNGEON_TIERS[nextIndex];
+      if (!nextTier) {
+        stageClearDoneRef.current = false;
+        return;
+      }
+
+      const heal = Math.floor(heroStats.maxHp * 0.25);
+      setPlayerHp((hp) => Math.min(heroStats.maxHp, hp + heal));
+      setChapterIndex(nextIndex);
+      setSelectedTier(nextTier);
+      setTierFloor(1);
+
+      const freshMap = generateMoonNightMap(nextIndex + 1, nextTier.floors);
+      if (process.env.NODE_ENV !== "production") {
+        for (let step = 0; step < freshMap.length; step++) {
+          for (const node of freshMap[step]) {
+            if (step === 0 && node.status !== "available") {
+              console.error("Advance chapter invalid first node", node);
+            }
+            if (step > 0 && node.status !== "locked") {
+              console.error("Advance chapter leaked unlocked node", node);
+            }
+          }
+        }
+      }
+
+      setDungeonMap(freshMap);
+      setCurrentMapNodeId(null);
+      setMapMessage(null);
+      setActiveEvent(null);
+      setActiveEventNodeId(null);
+      setActiveRestNodeId(null);
+      setActiveShopNodeId(null);
+      setShopOfferIds([]);
+      setEnemy(createNeutralEnemy());
+      setIsInCombat(false);
+      setCombatScreen("path");
+      setActiveTab("combat");
+      resetCombatState();
+      return;
+    }
+
+    // ascend
+    const convert = info.convertSpirit ?? 0;
+    if (convert > 0) {
+      setSpiritStones((s) => s + convert);
     }
     setRunSpirit(0);
-    setPendingClearConvert(0);
     setTotalClears((c) => c + 1);
+    if (
+      calamityLevel === maxCalamityLevel &&
+      maxCalamityLevel < MAX_CALAMITY_LEVEL
+    ) {
+      setMaxCalamityLevel(maxCalamityLevel + 1);
+    }
     setUnlockedAchievements((prev) => {
-      if (prev.includes(selectedTier.achievementId)) return prev;
-      return [...prev, selectedTier.achievementId];
+      const id = selectedTier?.achievementId ?? "ach_ascension_clear";
+      if (prev.includes(id)) return prev;
+      return [...prev, id];
     });
-    // 通關封印：清空本局地圖與本局牌組成長，回山門
     runSessionIdRef.current = null;
     setRunSessionId(null);
     clearActiveRunSave();
     resetPermanentDeck();
-    returnToLobby(stageClearMessage, true);
+    returnToLobby(
+      `渡劫成功！五境圓滿，餘砂化為靈石 +${convert}。`,
+      true
+    );
   }, [
+    stageClearInfo,
+    chapterIndex,
+    heroStats.maxHp,
+    calamityLevel,
+    maxCalamityLevel,
     selectedTier,
-    stageClearMessage,
-    pendingClearConvert,
     returnToLobby,
     resetPermanentDeck,
+    resetCombatState,
   ]);
 
   const deckInfo = useMemo(
@@ -2173,13 +2342,13 @@ export default function GamePage() {
               hasActiveRun={hasActiveRun}
               runLabel={
                 selectedTier
-                  ? `${selectedTier.name}${
-                      isInCombat
-                        ? " · 戰鬥中"
-                        : combatScreen === "path"
-                          ? " · 岔路"
-                          : ""
-                    }`
+                  ? (() => {
+                      const meta = getDungeonChapterMeta(selectedTier);
+                      const base = `${meta.chapterLabel} · ${meta.realmLabel} · ${getCalamityLabel(calamityLevel)}`;
+                      if (isInCombat) return `${base} · 戰鬥中`;
+                      if (combatScreen === "path") return `${base} · 岔路`;
+                      return base;
+                    })()
                   : null
               }
               onEnterDungeon={enterTierSelect}
@@ -2193,21 +2362,26 @@ export default function GamePage() {
         if (combatScreen === "tier-select") {
           return (
             <div className="flex min-h-0 flex-1 flex-col">
-              <TierSelectionView
-                tiers={DUNGEON_TIERS}
-                unlockedAchievements={unlockedAchievements}
-                playerAttack={heroStats.attack}
-                onSelectTier={startTierRun}
+              <CultivationStartView
+                maxCalamityLevel={maxCalamityLevel}
+                selectedCalamity={pendingCalamity}
+                onCalamityChange={setPendingCalamity}
+                onStart={() => startCultivationRun(pendingCalamity)}
               />
             </div>
           );
         }
         if (combatScreen === "path" && selectedTier) {
+          const meta = getDungeonChapterMeta(selectedTier);
           return (
             <PathChoiceView
               map={dungeonMap}
               choices={getAvailableNodes(dungeonMap)}
               tierName={selectedTier.name}
+              chapterLabel={meta.chapterLabel}
+              realmLabel={meta.realmLabel}
+              runChapterIndex={chapterIndex}
+              runChapterTotal={5}
               playerHp={playerHp}
               maxHp={heroStats.maxHp}
               runSpirit={runSpirit}
@@ -2321,7 +2495,10 @@ export default function GamePage() {
         isInCombat
           ? undefined
           : hasActiveRun && selectedTier
-            ? `${selectedTier.name} · 修行中`
+            ? (() => {
+                const meta = getDungeonChapterMeta(selectedTier);
+                return `${meta.chapterLabel} · ${meta.realmLabel} · 修行中`;
+              })()
             : activeTab === "lobby"
               ? "天樞聖宗"
               : TAB_LABELS[activeTab]
@@ -2387,9 +2564,12 @@ export default function GamePage() {
         />
       )}
 
-      {isInCombat && battlePhase === "STAGE_CLEAR" && (
+      {isInCombat && battlePhase === "STAGE_CLEAR" && stageClearInfo && (
         <StageClearOverlay
-          tierName={selectedTier?.name}
+          title={stageClearInfo.title}
+          subtitle={stageClearInfo.subtitle}
+          description={stageClearInfo.description}
+          buttonLabel={stageClearInfo.buttonLabel}
           onContinue={handleStageClearContinue}
         />
       )}

@@ -159,7 +159,7 @@ export function LobbyView({
               <i className="btn-start-diamond" />
             </span>
             <span className="relative block text-[10px] font-semibold tracking-[0.22em] text-[#b8a878]/90">
-              前往秘境試煉
+              五境連闖 · 一世修行
             </span>
           </button>
         )}

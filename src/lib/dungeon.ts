@@ -70,12 +70,17 @@ function pickEnemyTemplate(
 export function createScaledEnemy(
   base: Enemy,
   tier: DungeonTier,
-  floorInTier: number
+  floorInTier: number,
+  calamityLevel = 0
 ): CombatEnemy {
   const floorScale = 1 + (floorInTier - 1) * 0.08;
-  const maxHp = Math.floor(base.maxHp * tier.hpMultiplier * floorScale);
+  const calamityHp = 1 + Math.max(0, calamityLevel) * 0.08;
+  const calamityAtk = 1 + Math.max(0, calamityLevel) * 0.05;
+  const maxHp = Math.floor(
+    base.maxHp * tier.hpMultiplier * floorScale * calamityHp
+  );
   const attackDamage = Math.floor(
-    base.attackDamage * tier.attackMultiplier * floorScale
+    base.attackDamage * tier.attackMultiplier * floorScale * calamityAtk
   );
 
   return finalizeCombatEnemy({
@@ -107,14 +112,15 @@ export function getEnemyForTierFloor(
   return createScaledEnemy(pool[index], tier, floorInTier);
 }
 
-/** 依地圖節點生成敵人（血量：普通 45 / 精英 80 / Boss 180 @ 煉氣倍率） */
+/** 依地圖節點生成敵人（血量：普通 45 / 精英 80 / Boss 180 @ 境倍率 × 劫數） */
 export function getEnemyForMapNode(
   tier: DungeonTier,
   node: MapNode,
-  pool: Enemy[]
+  pool: Enemy[],
+  calamityLevel = 0
 ): CombatEnemy {
   if (!isCombatNodeType(node.type)) {
-    return createScaledEnemy(pool[0], tier, node.tier + 1);
+    return createScaledEnemy(pool[0], tier, node.tier + 1, calamityLevel);
   }
 
   const template = isWolfEncounter(node)
@@ -123,11 +129,13 @@ export function getEnemyForMapNode(
       ? pool.find((e) => e.id === "enemy_bandit") ?? pickEnemyTemplate(node, pool)
       : pickEnemyTemplate(node, pool);
   const stepScale = 1 + node.tier * 0.04;
+  const calamityHp = 1 + Math.max(0, calamityLevel) * 0.08;
+  const calamityAtk = 1 + Math.max(0, calamityLevel) * 0.05;
   const maxHp = Math.floor(
-    NODE_BASE_HP[node.type] * tier.hpMultiplier * stepScale
+    NODE_BASE_HP[node.type] * tier.hpMultiplier * stepScale * calamityHp
   );
   const attackDamage = Math.floor(
-    NODE_BASE_ATTACK[node.type] * tier.attackMultiplier
+    NODE_BASE_ATTACK[node.type] * tier.attackMultiplier * calamityAtk
   );
 
   return finalizeCombatEnemy({
@@ -207,31 +215,65 @@ const CHAPTER_META: Record<
     locationName: string;
     stageTab: string;
     lawName: string | null;
+    breakthroughTitle: string;
+    breakthroughDescription: string;
+    breakthroughButton: string;
   }
 > = {
   tier_qi: {
     stage: 1,
-    chapterLabel: "新手試煉",
-    realmLabel: "煉氣期",
+    chapterLabel: "第一境",
+    realmLabel: "引氣入道",
     locationName: "青嵐谷",
     stageTab: "煉氣",
     lawName: null,
+    breakthroughTitle: "道基已成",
+    breakthroughDescription: "靈氣化液，道基初築。法訣與靈砂將延續至下一境。",
+    breakthroughButton: "破境築基",
   },
   tier_foundation: {
     stage: 2,
-    chapterLabel: "進階試煉",
-    realmLabel: "築基期",
+    chapterLabel: "第二境",
+    realmLabel: "金丹大道",
     locationName: "古修洞府",
     stageTab: "築基",
     lawName: "生生不息",
+    breakthroughTitle: "金丹凝成",
+    breakthroughDescription: "丹成一瞬，周天靈機盡歸己身。",
+    breakthroughButton: "凝丹破境",
   },
   tier_golden: {
     stage: 3,
-    chapterLabel: "極限挑戰",
-    realmLabel: "金丹期",
-    locationName: "血禁地",
+    chapterLabel: "第三境",
+    realmLabel: "元嬰出世",
+    locationName: "問心秘境",
     stageTab: "金丹",
     lawName: "業火餘燼",
+    breakthroughTitle: "元嬰初成",
+    breakthroughDescription: "丹破神生，靈台之中，一念化嬰。",
+    breakthroughButton: "元嬰出竅",
+  },
+  tier_nascent: {
+    stage: 4,
+    chapterLabel: "第四境",
+    realmLabel: "化神問道",
+    locationName: "太虛道場",
+    stageTab: "元嬰",
+    lawName: null,
+    breakthroughTitle: "神意通天",
+    breakthroughDescription: "神魂化境，大道已近天門。",
+    breakthroughButton: "問道天門",
+  },
+  tier_ascension: {
+    stage: 5,
+    chapterLabel: "第五境",
+    realmLabel: "渡劫飛升",
+    locationName: "九重天門",
+    stageTab: "渡劫",
+    lawName: null,
+    breakthroughTitle: "渡劫成功",
+    breakthroughDescription: "肉身洗煉，神魂超脫。此界再無前路。",
+    breakthroughButton: "飛升",
   },
 };
 
@@ -244,6 +286,9 @@ export function getDungeonChapterMeta(tier: DungeonTier) {
       locationName: tier.name,
       stageTab: "秘境",
       lawName: null as string | null,
+      breakthroughTitle: "破境",
+      breakthroughDescription: "此境已過，道途繼續。",
+      breakthroughButton: "繼續",
     }
   );
 }

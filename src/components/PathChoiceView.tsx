@@ -9,6 +9,10 @@ interface PathChoiceViewProps {
   map: MapNode[][];
   choices: MapNode[];
   tierName: string;
+  chapterLabel?: string;
+  realmLabel?: string;
+  runChapterIndex?: number;
+  runChapterTotal?: number;
   playerHp: number;
   maxHp: number;
   runSpirit: number;
@@ -23,6 +27,10 @@ export function PathChoiceView({
   map,
   choices,
   tierName,
+  chapterLabel,
+  realmLabel,
+  runChapterIndex = 0,
+  runChapterTotal = 5,
   playerHp,
   maxHp,
   runSpirit,
@@ -34,20 +42,23 @@ export function PathChoiceView({
 }: PathChoiceViewProps) {
   const [showMap, setShowMap] = useState(false);
   const hpPercent = Math.max(0, (playerHp / maxHp) * 100);
-  const chapter = map[0]?.[0]?.chapter ?? 1;
   const progressPercent =
     totalCount > 0 ? Math.min(100, (completedCount / totalCount) * 100) : 0;
+  const title =
+    chapterLabel && realmLabel
+      ? `${chapterLabel} · ${realmLabel}`
+      : tierName;
 
   return (
     <div className="flex flex-col gap-3 px-3 pb-4 pt-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="zone-label">第{chapter}章 · 秘境前路</p>
+          <p className="zone-label">秘境前路</p>
           <h2 className="title-ink mt-1 text-lg font-bold tracking-wider">
-            {tierName}
+            {title}
           </h2>
           <p className="mt-1 text-[11px] text-stone-400">
-            擇一路而行 · 全圖僅供觀覽
+            本次修行 {runChapterIndex + 1} / {runChapterTotal}
           </p>
         </div>
         <button
@@ -79,7 +90,7 @@ export function PathChoiceView({
           </span>
         </div>
         <div className="mb-1 flex justify-between text-[10px]">
-          <span className="text-stone-500">修行進度</span>
+          <span className="text-stone-500">本境進度</span>
           <span className="text-[#c9a84c]">
             {completedCount}/{totalCount}
           </span>
@@ -138,7 +149,7 @@ export function PathChoiceView({
       </div>
 
       <p className="text-center text-[10px] leading-relaxed text-stone-500">
-        右上選單可隨時退出 · 通關後本章封印，需重新挑戰
+        右上選單可隨時退出 · 破境後將延續至下一境
       </p>
 
       {showMap && (
