@@ -120,76 +120,84 @@ export function EnemyPanel({
   ]);
 
   const shaking = isShaking || hitShake;
+  const isBoss =
+    enemy.id === "enemy_elder" || enemy.monsterSprite === "blood_elder";
+  const scale = monster?.visualScale ?? 1;
+  const offsetY = monster?.visualOffsetY ?? 0;
+
+  const statusLines = (
+    <>
+      {(enemy.block ?? 0) > 0 && (
+        <p className="mt-0.5 text-[9px] tracking-wide text-[#8a9aaa]">
+          護盾 {enemy.block}
+        </p>
+      )}
+      {enemy.passiveLabel && (
+        <p className="mt-0.5 text-[9px] tracking-wide text-[#a8a0c8]/80">
+          {enemy.passiveLabel}
+        </p>
+      )}
+      {karmaMarks > 0 && (
+        <p
+          className={`mt-0.5 text-[9px] tracking-wide ${
+            karmaMarks >= 5
+              ? "font-semibold text-[#e0a090] karma-marks-heavy"
+              : "text-[#c48888]/90"
+          }`}
+        >
+          因果印記 · {karmaMarks}
+          {karmaMarks >= 5 ? " · 將滿" : ""}
+        </p>
+      )}
+    </>
+  );
+
+  const intentChip = !isDefeated && (
+    <div
+      className={`enemy-intent enemy-intent--${intent.type}`}
+      title={intent.label}
+    >
+      <IntentGlyph type={intent.type} />
+      <span className="enemy-intent__text">{formatIntentText(intent)}</span>
+    </div>
+  );
 
   return (
     <div
-      className={`enemy-panel relative flex h-full min-h-0 flex-col items-center justify-start pt-1 ${
-        isDefeated ? "opacity-70" : ""
-      }`}
+      className={`enemy-panel relative flex h-full min-h-0 flex-col items-center justify-start ${
+        isBoss ? "pt-9" : "pt-1"
+      } ${isDefeated ? "opacity-70" : ""}`}
     >
-      {/* 頭頂輕量 HUD：名稱 + 境界，細血條（與立繪緊貼） */}
-      <div className="enemy-hud pointer-events-none z-20 mb-0.5 w-full max-w-[10.5rem] shrink-0 text-center">
-        <p className="flex items-baseline justify-center gap-1.5 text-[11px] tracking-wide">
-          <span
-            className={`font-bold ${
-              isDefeated ? "text-stone-500 line-through" : "text-[#f0e6d3]"
-            }`}
-          >
-            {displayName}
-          </span>
-          <span className="text-stone-400">{enemy.realm}</span>
-        </p>
-        <div className="mx-auto mt-0.5 flex w-[78%] items-center gap-1">
-          <div className="h-[3px] min-w-0 flex-1 overflow-hidden rounded-full bg-black/45">
-            <div
-              className="enemy-hp-fill h-full rounded-full transition-all duration-300"
-              style={{ width: `${hpPercent}%` }}
-            />
+      {/* Boss：頂部大型血條（不套用立繪 scale／offset） */}
+      {isBoss && (
+        <div className="enemy-boss-hud pointer-events-none absolute left-1/2 top-1 z-30 w-[min(92%,20rem)] -translate-x-1/2 text-center">
+          <p className="flex items-baseline justify-center gap-1.5 text-[12px] tracking-wide">
+            <span
+              className={`font-bold ${
+                isDefeated ? "text-stone-500 line-through" : "text-[#f0e6d3]"
+              }`}
+            >
+              {displayName}
+            </span>
+            <span className="text-stone-400">{enemy.realm}</span>
+          </p>
+          <div className="mx-auto mt-1 flex w-full items-center gap-1.5">
+            <div className="h-[7px] min-w-0 flex-1 overflow-hidden rounded-full border border-[#5a3030]/45 bg-black/55">
+              <div
+                className="enemy-hp-fill h-full rounded-full transition-all duration-300"
+                style={{ width: `${hpPercent}%` }}
+              />
+            </div>
+            <span className="shrink-0 text-[10px] tabular-nums text-[#e0a8a8]">
+              {formatNumber(Math.max(0, enemy.currentHp))}/
+              {formatNumber(enemy.maxHp)}
+            </span>
           </div>
-          <span className="shrink-0 text-[9px] tabular-nums text-[#e0a8a8]">
-            {formatNumber(Math.max(0, enemy.currentHp))}/
-            {formatNumber(enemy.maxHp)}
-          </span>
         </div>
+      )}
 
-        {!isDefeated && (
-          <div
-            className={`enemy-intent enemy-intent--${intent.type}`}
-            title={intent.label}
-          >
-            <IntentGlyph type={intent.type} />
-            <span className="enemy-intent__text">{formatIntentText(intent)}</span>
-          </div>
-        )}
-
-        {(enemy.block ?? 0) > 0 && (
-          <p className="mt-0.5 text-[9px] tracking-wide text-[#8a9aaa]">
-            護盾 {enemy.block}
-          </p>
-        )}
-
-        {enemy.passiveLabel && (
-          <p className="mt-0.5 text-[9px] tracking-wide text-[#a8a0c8]/80">
-            {enemy.passiveLabel}
-          </p>
-        )}
-        {karmaMarks > 0 && (
-          <p
-            className={`mt-0.5 text-[9px] tracking-wide ${
-              karmaMarks >= 5
-                ? "font-semibold text-[#e0a090] karma-marks-heavy"
-                : "text-[#c48888]/90"
-            }`}
-          >
-            因果印記 · {karmaMarks}
-            {karmaMarks >= 5 ? " · 將滿" : ""}
-          </p>
-        )}
-      </div>
-
-      {/* 人形基準舞台；各怪用 visualScale / visualOffsetY 個別調整 */}
       <div
-        className={`enemy-sprite-stage relative mx-auto flex h-[min(72%,14.25rem)] w-[min(72%,15.75rem)] max-w-[15.75rem] shrink-0 items-end justify-center ${
+        className={`enemy-sprite-stage relative mx-auto w-[min(72%,15.75rem)] max-w-[15.75rem] shrink-0 ${
           shaking ? "animate-shake" : ""
         } ${hitFlash ? "enemy-hit-flash" : ""}`}
       >
@@ -202,43 +210,80 @@ export function EnemyPanel({
           aria-hidden
         />
 
-        {monster ? (
-          <div
-            className="relative z-[1] flex h-full w-full items-end justify-center"
-            style={{
-              transform: `translateY(${monster.visualOffsetY}%) scale(${monster.visualScale})`,
-              transformOrigin: "bottom center",
-            }}
-          >
-            <img
-              src={monster.image}
-              alt={displayName}
-              className={`enemy-sprite h-full w-auto max-w-full object-contain object-bottom ${
-                isDefeated
-                  ? "scale-90 opacity-40 grayscale transition-all duration-500"
-                  : "enemy-sprite-float"
-              }`}
-              style={{
-                filter:
-                  "drop-shadow(0 8px 14px rgba(0,0,0,0.55)) contrast(1.08) saturate(1.02) brightness(1.04)",
-              }}
-              draggable={false}
-            />
+        {/* 名稱／HP／Intent／立繪同一 unit：跟隨 visualScale／visualOffsetY */}
+        <div
+          className="enemy-unit relative z-[1] flex w-full flex-col items-center"
+          style={{
+            transform: `translateY(${offsetY}%) scale(${scale})`,
+            transformOrigin: "bottom center",
+          }}
+        >
+          <div className="enemy-hud pointer-events-none z-20 mb-0.5 w-full max-w-[10.5rem] shrink-0 text-center">
+            {!isBoss && (
+              <>
+                <p className="flex items-baseline justify-center gap-1.5 text-[11px] tracking-wide">
+                  <span
+                    className={`font-bold ${
+                      isDefeated
+                        ? "text-stone-500 line-through"
+                        : "text-[#f0e6d3]"
+                    }`}
+                  >
+                    {displayName}
+                  </span>
+                  <span className="text-stone-400">{enemy.realm}</span>
+                </p>
+                <div className="mx-auto mt-0.5 flex w-[78%] items-center gap-1">
+                  <div className="h-[3px] min-w-0 flex-1 overflow-hidden rounded-full bg-black/45">
+                    <div
+                      className="enemy-hp-fill h-full rounded-full transition-all duration-300"
+                      style={{ width: `${hpPercent}%` }}
+                    />
+                  </div>
+                  <span className="shrink-0 text-[9px] tabular-nums text-[#e0a8a8]">
+                    {formatNumber(Math.max(0, enemy.currentHp))}/
+                    {formatNumber(enemy.maxHp)}
+                  </span>
+                </div>
+              </>
+            )}
+            {intentChip}
+            {statusLines}
           </div>
-        ) : (
-          <div className="relative z-[1] mb-2 flex h-24 w-24 items-center justify-center rounded-full border border-[#8b3a3a]/35 bg-stone-950/50">
-            <span className="text-3xl font-black text-[#c48888]">
-              {displayName.slice(0, 1)}
-            </span>
+
+          <div className="relative flex h-[min(72%,14.25rem)] w-full items-end justify-center">
+            {monster ? (
+              <img
+                src={monster.image}
+                alt={displayName}
+                className={`enemy-sprite h-full w-auto max-w-full object-contain object-bottom ${
+                  isDefeated
+                    ? "scale-90 opacity-40 grayscale transition-all duration-500"
+                    : "enemy-sprite-float"
+                }`}
+                style={{
+                  filter:
+                    "drop-shadow(0 8px 14px rgba(0,0,0,0.55)) contrast(1.08) saturate(1.02) brightness(1.04)",
+                }}
+                draggable={false}
+              />
+            ) : (
+              <div className="mb-2 flex h-24 w-24 items-center justify-center rounded-full border border-[#8b3a3a]/35 bg-stone-950/50">
+                <span className="text-3xl font-black text-[#c48888]">
+                  {displayName.slice(0, 1)}
+                </span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {intentFloat && (
           <div
             key={feedbackKeyRef.current}
             className="animate-combat-float pointer-events-none absolute left-1/2 top-[8%] z-30 -translate-x-1/2 whitespace-nowrap text-[12px] font-semibold tracking-wide text-[#f0d8a8]"
             style={{
-              textShadow: "0 1px 4px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.4)",
+              textShadow:
+                "0 1px 4px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.4)",
             }}
           >
             {intentFloat}

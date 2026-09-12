@@ -64,6 +64,16 @@
   overflow: visible;
 }
 
+/* 名稱／HP／Intent 與立繪同一 transform 容器 */
+.enemy-unit {
+  transform-origin: bottom center;
+  will-change: transform;
+}
+
+.enemy-boss-hud {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+}
+
 .enemy-sprite {
   display: block;
   background: transparent;
