@@ -2581,52 +2581,62 @@ html.combat-scroll-lock {
   background: linear-gradient(90deg, #5a2020, #8b3a3a, #a85555);
 }
 
-/* 敵人下一動預告：名稱／血條旁小型標籤 */
+/* 敵人下一動預告：名稱／血條旁小型標籤 + 專屬圖標 */
 .enemy-intent {
   margin: 0.35rem auto 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.28rem;
+  gap: 0.32rem;
   min-width: 2.6rem;
-  padding: 0.12rem 0.45rem;
-  border: 1px solid rgba(138, 115, 64, 0.28);
-  border-radius: 0.2rem;
-  background: rgba(12, 12, 14, 0.72);
-  font-size: 10px;
+  padding: 0.1rem 0.4rem 0.1rem 0.12rem;
+  border: 1px solid rgba(138, 115, 64, 0.22);
+  border-radius: 999px;
+  background: rgba(8, 8, 10, 0.55);
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   color: #c8c0b4;
+}
+
+.enemy-intent__icon {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(180, 150, 90, 0.22);
 }
 
 .enemy-intent--attack,
 .enemy-intent--multiAttack {
-  border-color: rgba(140, 80, 80, 0.35);
+  border-color: rgba(140, 80, 80, 0.28);
   color: #c48888;
 }
 
 .enemy-intent--defend {
-  border-color: rgba(90, 120, 130, 0.4);
+  border-color: rgba(90, 120, 130, 0.32);
   color: #8a9aaa;
 }
 
 .enemy-intent--debuff {
-  border-color: rgba(100, 80, 120, 0.4);
+  border-color: rgba(100, 80, 120, 0.32);
   color: #9a8aaa;
 }
 
 .enemy-intent--buff {
-  border-color: rgba(138, 115, 64, 0.4);
+  border-color: rgba(138, 115, 64, 0.35);
   color: #c9a84c;
 }
 
 .enemy-intent--special {
-  border-color: rgba(120, 120, 120, 0.35);
+  border-color: rgba(120, 120, 120, 0.3);
   color: #a8a29e;
 }
 
 .enemy-intent__text {
   font-weight: 600;
+  padding-right: 0.12rem;
 }
 
 /* 因果印記 ≥5：克制提示，不改整體美術 */

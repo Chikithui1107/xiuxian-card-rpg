@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getMonsterConfig } from "@/data/monsters";
 import { formatNumber } from "@/lib/stats";
 import { getEnemyIntent, totalIntentDamage } from "@/lib/enemy-intent";
+import { publicAsset } from "@/lib/paths";
 import type { CombatEnemy, DamagePopup, EnemyIntent } from "@/types/game";
 
 interface EnemyPanelProps {
@@ -17,22 +18,28 @@ interface EnemyPanelProps {
   karmaMarks?: number;
 }
 
+const INTENT_ICON: Partial<Record<EnemyIntent["type"], string>> = {
+  attack: publicAsset("/ui/intent/attack.jpg"),
+  multiAttack: publicAsset("/ui/intent/multi-attack.jpg"),
+  defend: publicAsset("/ui/intent/defend.jpg"),
+  buff: publicAsset("/ui/intent/buff.jpg"),
+  debuff: publicAsset("/ui/intent/debuff.jpg"),
+};
+
 function IntentGlyph({ type }: { type: EnemyIntent["type"] }) {
-  switch (type) {
-    case "attack":
-    case "multiAttack":
-      return <span aria-hidden>刃</span>;
-    case "defend":
-      return <span aria-hidden>禦</span>;
-    case "debuff":
-      return <span aria-hidden>蝕</span>;
-    case "buff":
-      return <span aria-hidden>勢</span>;
-    case "special":
-      return <span aria-hidden>？</span>;
-    default:
-      return <span aria-hidden>·</span>;
+  const src = INTENT_ICON[type];
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt=""
+        className="enemy-intent__icon"
+        draggable={false}
+        aria-hidden
+      />
+    );
   }
+  return <span aria-hidden>？</span>;
 }
 
 function formatIntentText(intent: EnemyIntent): string {
