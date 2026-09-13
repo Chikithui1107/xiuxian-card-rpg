@@ -65,6 +65,12 @@ import { buildCardFacePreviewFromKarma } from "@/lib/card-face-display";
 import { AspectDiscardModal } from "@/components/AspectDiscardModal";
 import { RestModal } from "@/components/RestModal";
 import { ShopModal, SHOP_PRICE } from "@/components/ShopModal";
+import { StoryOverlay } from "@/components/StoryOverlay";
+import {
+  getStartStoryScenesForCharacter,
+  type StoryScene,
+} from "@/data/story";
+import { markStorySeen, readSeenStories } from "@/lib/story";
 import {
   advanceEnemyIntent,
   applyRegenPassive,
@@ -518,6 +524,8 @@ export default function GamePage() {
     null
   );
   const [shopOfferIds, setShopOfferIds] = useState<CardTemplateId[]>([]);
+  /** 主線劇情隊列（僅覆蓋層，不改 Run） */
+  const [storyQueue, setStoryQueue] = useState<StoryScene[]>([]);
   const restChoiceLockRef = useRef(false);
   const shopChoiceLockRef = useRef(false);
   const [combatBuffs, setCombatBuffs] = useState<CombatBuffs>(
@@ -934,6 +942,7 @@ export default function GamePage() {
       setRunSpirit(0);
       setEnemy(createNeutralEnemy());
       setPhase("playing");
+      setStoryQueue([]);
       resetCombatState();
       if (message) setLastRunMessage(message);
       if (healPlayer) setPlayerHp(heroStats.maxHp);
@@ -1214,6 +1223,16 @@ export default function GamePage() {
     setActiveTab("combat");
   }, [resetCombatState, maxCalamityLevel]);
 
+  const queueStoryScenes = useCallback((scenes: StoryScene[]) => {
+    if (scenes.length === 0) return;
+    setStoryQueue((prev) => [...prev, ...scenes]);
+  }, []);
+
+  const finishCurrentStory = useCallback((scene: StoryScene) => {
+    markStorySeen(scene.id);
+    setStoryQueue((prev) => prev.slice(1));
+  }, []);
+
   const startCultivationRun = useCallback(
     (level: number) => {
       const tier = DUNGEON_TIERS[0];
@@ -1266,8 +1285,23 @@ export default function GamePage() {
       setPlayerHp(heroStats.maxHp);
       setEnemy(createNeutralEnemy());
       resetCombatState();
+
+      // 先建 Run，再排主線劇情（刷新不會丟 Run）
+      const stories = getStartStoryScenesForCharacter(
+        character.id,
+        readSeenStories()
+      );
+      setStoryQueue([]);
+      queueStoryScenes(stories);
     },
-    [resetCombatState, resetPermanentDeck, heroStats.maxHp, maxCalamityLevel]
+    [
+      resetCombatState,
+      resetPermanentDeck,
+      heroStats.maxHp,
+      maxCalamityLevel,
+      character.id,
+      queueStoryScenes,
+    ]
   );
 
   const restartAfterDefeat = useCallback(() => {
@@ -2601,6 +2635,18 @@ export default function GamePage() {
           onReturnMenu={returnMenuAfterDefeat}
         />
       )}
+
+      {storyQueue[0] &&
+        phase !== "defeat" &&
+        battlePhase !== "REWARD" &&
+        battlePhase !== "STAGE_CLEAR" &&
+        battlePhase !== "VICTORY_ANIM" && (
+          <StoryOverlay
+            scene={storyQueue[0]}
+            onComplete={() => finishCurrentStory(storyQueue[0])}
+            onSkip={() => finishCurrentStory(storyQueue[0])}
+          />
+        )}
     </MobileFrame>
   );
 }
