@@ -17,6 +17,8 @@ export interface MapNode {
   title: string;
   nextNodes: string[];
   status: NodeStatus;
+  /** 戰鬥節點指定敵人；缺省時由 getEnemyForMapNode fallback */
+  enemyId?: string;
 }
 
 export interface DungeonMapState {

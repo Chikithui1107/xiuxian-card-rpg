@@ -54,6 +54,10 @@ function pickEnemyTemplate(
   node: MapNode,
   pool: Enemy[]
 ): Enemy {
+  if (node.enemyId) {
+    const byId = pool.find((e) => e.id === node.enemyId);
+    if (byId) return byId;
+  }
   if (node.type === "boss") {
     return pool.find((e) => e.id === "enemy_elder") ?? pool[pool.length - 1];
   }
@@ -61,9 +65,9 @@ function pickEnemyTemplate(
     return pool.find((e) => e.id === "enemy_traitor") ?? pool[0];
   }
   const normals = pool.filter(
-    (e) => e.id !== "enemy_elder" && e.id !== "enemy_traitor"
+    (e) => e.id === "enemy_wolf" || e.id === "enemy_bandit"
   );
-  return normals[node.tier % normals.length] ?? normals[0];
+  return normals[node.tier % normals.length] ?? normals[0] ?? pool[0];
 }
 
 /** 依副本級別與層數生成縮放後的敵人（線性關卡用） */
@@ -112,7 +116,7 @@ export function getEnemyForTierFloor(
   return createScaledEnemy(pool[index], tier, floorInTier);
 }
 
-/** 依地圖節點生成敵人（血量：普通 45 / 精英 80 / Boss 180 @ 境倍率 × 劫數） */
+/** 依地圖節點生成敵人；優先 node.enemyId，再 title fallback */
 export function getEnemyForMapNode(
   tier: DungeonTier,
   node: MapNode,
@@ -123,20 +127,29 @@ export function getEnemyForMapNode(
     return createScaledEnemy(pool[0], tier, node.tier + 1, calamityLevel);
   }
 
-  const template = isWolfEncounter(node)
-    ? pool.find((e) => e.id === "enemy_wolf") ?? pickEnemyTemplate(node, pool)
-    : isBanditEncounter(node)
-      ? pool.find((e) => e.id === "enemy_bandit") ?? pickEnemyTemplate(node, pool)
-      : pickEnemyTemplate(node, pool);
+  const template = node.enemyId
+    ? pickEnemyTemplate(node, pool)
+    : isWolfEncounter(node)
+      ? pool.find((e) => e.id === "enemy_wolf") ?? pickEnemyTemplate(node, pool)
+      : isBanditEncounter(node)
+        ? pool.find((e) => e.id === "enemy_bandit") ??
+          pickEnemyTemplate(node, pool)
+        : pickEnemyTemplate(node, pool);
+
   const stepScale = 1 + node.tier * 0.04;
   const calamityHp = 1 + Math.max(0, calamityLevel) * 0.08;
   const calamityAtk = 1 + Math.max(0, calamityLevel) * 0.05;
+  // 以敵人模板血攻為準（同類型節點也能有差異）；舊邏輯 NODE_BASE 僅作無模板時備援
+  const baseHp = template.maxHp || NODE_BASE_HP[node.type];
+  const baseAtk = template.attackDamage || NODE_BASE_ATTACK[node.type];
   const maxHp = Math.floor(
-    NODE_BASE_HP[node.type] * tier.hpMultiplier * stepScale * calamityHp
+    baseHp * tier.hpMultiplier * stepScale * calamityHp
   );
   const attackDamage = Math.floor(
-    NODE_BASE_ATTACK[node.type] * tier.attackMultiplier * calamityAtk
+    baseAtk * tier.attackMultiplier * calamityAtk
   );
+
+  const isTraitorElite = template.id === "enemy_traitor";
 
   return finalizeCombatEnemy({
     ...template,
@@ -148,14 +161,13 @@ export function getEnemyForMapNode(
     totalFloors: tier.floors,
     passive: node.type === "boss" ? tier.enemyPassive : null,
     passiveLabel: node.type === "boss" ? tier.passiveDescription : null,
-    attackPattern: node.type === "elite" ? "triple_slash" : null,
-    attackPatternLabel:
-      node.type === "elite" ? "三連斬（單次攻擊判定閃避）" : null,
+    attackPattern: isTraitorElite ? "triple_slash" : null,
+    attackPatternLabel: isTraitorElite
+      ? "三連斬（單次攻擊判定閃避）"
+      : null,
     intentIndex: 0,
     block: 0,
-    monsterSprite:
-      (isWolfEncounter(node) ? "demon_wolf" : undefined) ??
-      ENEMY_SPRITE_ID[template.id],
+    monsterSprite: ENEMY_SPRITE_ID[template.id],
   });
 }
 

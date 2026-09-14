@@ -25,11 +25,35 @@ const BANDIT_SCHEDULE: IntentTemplate[] = [
   { type: "attack", valueScale: 1.65, label: "重擊" },
 ];
 
+/** 青鱗靈蛇：纏身 → 毒牙 → 雙噬 */
+const SPIRIT_SNAKE_SCHEDULE: IntentTemplate[] = [
+  { type: "defend", flatValue: 6, label: "纏身" },
+  { type: "attack", valueScale: 1.25, label: "毒牙" },
+  { type: "multiAttack", valueScale: 0.7, hits: 2, label: "雙噬" },
+];
+
 /** 叛劍客（精英）：試探 → 架劍 → 三連斬 */
 const TRAITOR_SCHEDULE: IntentTemplate[] = [
   { type: "attack", valueScale: 1, label: "試探" },
   { type: "defend", flatValue: 10, label: "架劍" },
   { type: "multiAttack", valueScale: 0.85, hits: 3, label: "三連斬" },
+];
+
+/** 裂石猿：護身 → 碎岩拳 → 蓄勢 → 崩山 */
+const STONE_APE_SCHEDULE: IntentTemplate[] = [
+  { type: "defend", flatValue: 12, label: "護身" },
+  { type: "attack", valueScale: 1.15, label: "碎岩拳" },
+  { type: "special", flatValue: 0, label: "蓄勢" },
+  { type: "attack", valueScale: 2.0, label: "崩山" },
+];
+
+/** 噬靈虎王：虎爪 → 護體 → 連撲 → 怒吼 → 噬靈撲殺 */
+const DEMONIC_TIGER_SCHEDULE: IntentTemplate[] = [
+  { type: "attack", valueScale: 1, label: "虎爪" },
+  { type: "defend", flatValue: 10, label: "妖風護體" },
+  { type: "multiAttack", valueScale: 0.65, hits: 3, label: "連撲" },
+  { type: "special", flatValue: 0, label: "怒吼" },
+  { type: "attack", valueScale: 2.1, label: "噬靈撲殺" },
 ];
 
 /** 血魔長老：血爪 → 蓄力 → 血爆 */
@@ -43,19 +67,36 @@ const DEFAULT_SCHEDULE: IntentTemplate[] = [
   { type: "attack", valueScale: 1, label: "攻擊" },
 ];
 
+const ENEMY_INTENT_SCHEDULES: Record<string, IntentTemplate[]> = {
+  enemy_wolf: WOLF_SCHEDULE,
+  enemy_bandit: BANDIT_SCHEDULE,
+  enemy_spirit_snake: SPIRIT_SNAKE_SCHEDULE,
+  enemy_traitor: TRAITOR_SCHEDULE,
+  enemy_stone_ape: STONE_APE_SCHEDULE,
+  enemy_demonic_tiger: DEMONIC_TIGER_SCHEDULE,
+  enemy_elder: ELDER_SCHEDULE,
+};
+
+/** sprite → schedule（舊存檔／無 id 時） */
+const SPRITE_INTENT_SCHEDULES: Record<string, IntentTemplate[]> = {
+  demon_wolf: WOLF_SCHEDULE,
+  bandit: BANDIT_SCHEDULE,
+  spirit_snake: SPIRIT_SNAKE_SCHEDULE,
+  traitor: TRAITOR_SCHEDULE,
+  stone_ape: STONE_APE_SCHEDULE,
+  demonic_tiger: DEMONIC_TIGER_SCHEDULE,
+  blood_elder: ELDER_SCHEDULE,
+};
+
 function scheduleForEnemy(enemy: CombatEnemy): IntentTemplate[] {
-  if (enemy.id === "enemy_wolf" || enemy.monsterSprite === "demon_wolf") {
-    return WOLF_SCHEDULE;
+  const byId = ENEMY_INTENT_SCHEDULES[enemy.id];
+  if (byId) return byId;
+
+  if (enemy.monsterSprite) {
+    const bySprite = SPRITE_INTENT_SCHEDULES[enemy.monsterSprite];
+    if (bySprite) return bySprite;
   }
-  if (enemy.id === "enemy_bandit" || enemy.monsterSprite === "bandit") {
-    return BANDIT_SCHEDULE;
-  }
-  if (enemy.id === "enemy_traitor" || enemy.monsterSprite === "traitor") {
-    return TRAITOR_SCHEDULE;
-  }
-  if (enemy.id === "enemy_elder" || enemy.monsterSprite === "blood_elder") {
-    return ELDER_SCHEDULE;
-  }
+
   if (enemy.attackPattern === "triple_slash") {
     return [
       {

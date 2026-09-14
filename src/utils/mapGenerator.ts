@@ -12,9 +12,77 @@ export const NODE_NAMES: Record<NodeType, string[]> = {
   boss: ["通天塔決戰：迎戰大魔頭"],
 };
 
+/** 第一境（chapter === 1）戰鬥節點標題 */
+export const CHAPTER1_ENEMY_TITLES: Record<string, string> = {
+  enemy_wolf: "霧林 · 妖狼出沒",
+  enemy_bandit: "荒道 · 劫修攔路",
+  enemy_spirit_snake: "青溪 · 靈蛇潛伏",
+  enemy_traitor: "斷崖 · 叛劍客",
+  enemy_stone_ape: "亂石谷 · 裂石猿",
+  enemy_demonic_tiger: "青嵐谷深處 · 噬靈虎王",
+};
+
+const CHAPTER1_COMBAT_POOL = [
+  "enemy_wolf",
+  "enemy_bandit",
+  "enemy_spirit_snake",
+] as const;
+
+const CHAPTER1_ELITE_POOL = ["enemy_traitor", "enemy_stone_ape"] as const;
+
+const CHAPTER1_BOSS_ID = "enemy_demonic_tiger";
+
 function pickNodeTitle(type: NodeType): string {
   const names = NODE_NAMES[type];
   return names[Math.floor(Math.random() * names.length)];
+}
+
+function pickAvoiding(pool: readonly string[], avoid: Set<string>): string {
+  const filtered = pool.filter((id) => !avoid.has(id));
+  const use = filtered.length > 0 ? filtered : [...pool];
+  return use[Math.floor(Math.random() * use.length)];
+}
+
+/** 第一境：寫入 enemyId + 對應標題，並避免相鄰層戰鬥連續同怪 */
+function assignChapter1Encounters(map: MapNode[][]): void {
+  let prevCombatIds = new Set<string>();
+  let prevEliteIds = new Set<string>();
+
+  for (const stepNodes of map) {
+    const thisCombatIds = new Set<string>();
+    const thisEliteIds = new Set<string>();
+    let lastCombatInStep: string | null = null;
+    let lastEliteInStep: string | null = null;
+
+    for (const node of stepNodes) {
+      if (node.type === "combat") {
+        const avoid = new Set(prevCombatIds);
+        if (lastCombatInStep) avoid.add(lastCombatInStep);
+        const enemyId = pickAvoiding(CHAPTER1_COMBAT_POOL, avoid);
+        node.enemyId = enemyId;
+        node.title =
+          CHAPTER1_ENEMY_TITLES[enemyId] ?? pickNodeTitle("combat");
+        lastCombatInStep = enemyId;
+        thisCombatIds.add(enemyId);
+      } else if (node.type === "elite") {
+        const avoid = new Set(prevEliteIds);
+        if (lastEliteInStep) avoid.add(lastEliteInStep);
+        const enemyId = pickAvoiding(CHAPTER1_ELITE_POOL, avoid);
+        node.enemyId = enemyId;
+        node.title =
+          CHAPTER1_ENEMY_TITLES[enemyId] ?? pickNodeTitle("elite");
+        lastEliteInStep = enemyId;
+        thisEliteIds.add(enemyId);
+      } else if (node.type === "boss") {
+        node.enemyId = CHAPTER1_BOSS_ID;
+        node.title =
+          CHAPTER1_ENEMY_TITLES[CHAPTER1_BOSS_ID] ?? pickNodeTitle("boss");
+      }
+    }
+
+    if (thisCombatIds.size > 0) prevCombatIds = thisCombatIds;
+    if (thisEliteIds.size > 0) prevEliteIds = thisEliteIds;
+  }
 }
 
 function pickNodeType(tier: number): NodeType {
@@ -91,6 +159,7 @@ export function generateSlayTheSpireMap(): MapNode[][] {
     wireConnections(map[i], map[i + 1]);
   }
 
+  assignChapter1Encounters(map);
   return map;
 }
 
@@ -140,6 +209,10 @@ export function generateMoonNightMap(
     for (const node of currentStep) {
       node.nextNodes = nextStep.map((nextNode) => nextNode.id);
     }
+  }
+
+  if (chapter === 1) {
+    assignChapter1Encounters(map);
   }
 
   return map;

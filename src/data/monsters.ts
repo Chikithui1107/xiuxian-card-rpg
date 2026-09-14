@@ -50,18 +50,54 @@ export const BLOOD_ELDER: MonsterConfig = {
   visualOffsetY: -0.5,
 };
 
+/** 暫用妖狼立繪；日後只換 image 路徑即可 */
+export const SPIRIT_SNAKE: MonsterConfig = {
+  id: "spirit_snake",
+  name: "青鱗靈蛇",
+  image: publicAsset("/monsters/demon_wolf.png"),
+  description: "潛伏溪澗的靈蛇，動作迅捷，擅長連續撕咬。",
+  visualScale: 0.92,
+  visualOffsetY: 0.4,
+};
+
+/** 暫用叛劍客立繪 */
+export const STONE_APE: MonsterConfig = {
+  id: "stone_ape",
+  name: "裂石猿",
+  image: publicAsset("/monsters/traitor.png"),
+  description: "盤踞亂石谷的妖猿，皮堅如石，蓄力後的一擊極為兇猛。",
+  visualScale: 1.1,
+  visualOffsetY: 0,
+};
+
+/** 暫用血魔長老立繪 */
+export const DEMONIC_TIGER: MonsterConfig = {
+  id: "demonic_tiger",
+  name: "噬靈虎王",
+  image: publicAsset("/monsters/blood_elder.png"),
+  description: "青嵐谷深處的妖王，吞噬靈氣修行，攻勢兇猛且節奏多變。",
+  visualScale: 1.22,
+  visualOffsetY: -0.5,
+};
+
 const MONSTER_BY_ID: Record<string, MonsterConfig> = {
   demon_wolf: DEMON_WOLF,
   bandit: BANDIT,
   traitor: TRAITOR,
   blood_elder: BLOOD_ELDER,
+  spirit_snake: SPIRIT_SNAKE,
+  stone_ape: STONE_APE,
+  demonic_tiger: DEMONIC_TIGER,
 };
 
 /** 敵人 id → 立繪 id */
 export const ENEMY_SPRITE_ID: Record<string, string> = {
   enemy_wolf: "demon_wolf",
   enemy_bandit: "bandit",
+  enemy_spirit_snake: "spirit_snake",
   enemy_traitor: "traitor",
+  enemy_stone_ape: "stone_ape",
+  enemy_demonic_tiger: "demonic_tiger",
   enemy_elder: "blood_elder",
 };
 

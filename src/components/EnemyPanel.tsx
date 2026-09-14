@@ -62,12 +62,12 @@ function formatIntentText(intent: EnemyIntent): string {
     case "multiAttack":
       return `${intent.value}×${intent.hits ?? 2}`;
     case "defend":
-      return `${intent.value}`;
+      return `${intent.label} +${intent.value}`;
     case "debuff":
     case "buff":
       return intent.label;
     case "special":
-      return intent.value > 0 ? `${intent.label} ${intent.value}` : intent.label;
+      return intent.label;
     default:
       return intent.label;
   }
@@ -89,7 +89,7 @@ export function EnemyPanel({
   const isDefeated = enemy.currentHp <= 0;
   const intent = getEnemyIntent(enemy);
   const monster = getMonsterConfig(enemy);
-  const displayName = monster?.name ?? enemy.name;
+  const displayName = enemy.name || monster?.name || "敵人";
   const previewDamage = totalIntentDamage(intent);
 
   const [displayHp, setDisplayHp] = useState(enemy.currentHp);
@@ -202,7 +202,10 @@ export function EnemyPanel({
 
   const hpPercent = Math.max(0, (displayHp / enemy.maxHp) * 100);
   const isBoss =
-    enemy.id === "enemy_elder" || enemy.monsterSprite === "blood_elder";
+    enemy.id === "enemy_elder" ||
+    enemy.id === "enemy_demonic_tiger" ||
+    enemy.monsterSprite === "blood_elder" ||
+    enemy.monsterSprite === "demonic_tiger";
   const scale = monster?.visualScale ?? 1;
   const offsetY = monster?.visualOffsetY ?? 0;
 
