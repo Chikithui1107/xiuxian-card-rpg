@@ -163,23 +163,73 @@ export function getStoryScene(id: string): StoryScene | undefined {
   return STORY_BY_ID[id];
 }
 
+/** 各境劇情節奏點（entry / boss intro / clear）；不含可選 Event */
+export interface ChapterStoryConfig {
+  characterId: string;
+  chapterIndex: number;
+  entrySceneId?: string;
+  bossIntroSceneId?: string;
+  clearSceneId?: string;
+}
+
+export const CHAPTER_STORY_CONFIGS: ChapterStoryConfig[] = [
+  {
+    characterId: "baiye",
+    chapterIndex: 0,
+    entrySceneId: "baiye_qi_entry",
+    bossIntroSceneId: "baiye_qi_boss_intro",
+    clearSceneId: "baiye_qi_clear",
+  },
+];
+
+export function getChapterStoryConfig(
+  characterId: string,
+  chapterIndex: number
+): ChapterStoryConfig | undefined {
+  return CHAPTER_STORY_CONFIGS.find(
+    (c) => c.characterId === characterId && c.chapterIndex === chapterIndex
+  );
+}
+
+/**
+ * 純函式：依已讀集合取未看過的 scene（不碰 localStorage）。
+ * once === true 且已 seen → undefined。
+ */
+export function resolveUnseenStoryScene(
+  sceneId: string | undefined,
+  seenIds: ReadonlySet<string> | string[]
+): StoryScene | undefined {
+  if (!sceneId) return undefined;
+  const scene = getStoryScene(sceneId);
+  if (!scene) return undefined;
+  const seen = seenIds instanceof Set ? seenIds : new Set(seenIds);
+  if (scene.once && seen.has(scene.id)) return undefined;
+  return scene;
+}
+
+/** 某境開場劇情（未看過才回傳） */
+export function getChapterEntryScene(
+  characterId: string,
+  chapterIndex: number,
+  seenIds: ReadonlySet<string> | string[]
+): StoryScene | undefined {
+  const cfg = getChapterStoryConfig(characterId, chapterIndex);
+  return resolveUnseenStoryScene(cfg?.entrySceneId, seenIds);
+}
+
 /**
  * 白夜開始修行時應播放的劇情（依已讀過濾）。
- * 序章未看 → 序章 + 入場；僅入場未看 → 入場；都看過 → 空。
+ * 序章未看 → 序章 + 第一境入場；僅入場未看 → 入場；都看過 → 空。
  */
 export function getBaiyeStartStoryScenes(
   seenIds: ReadonlySet<string> | string[]
 ): StoryScene[] {
   const seen = seenIds instanceof Set ? seenIds : new Set(seenIds);
   const queue: StoryScene[] = [];
-  const prologue = getStoryScene("baiye_prologue_rebirth");
-  const entry = getStoryScene("baiye_qi_entry");
-  if (prologue && !(prologue.once && seen.has(prologue.id))) {
-    queue.push(prologue);
-  }
-  if (entry && !(entry.once && seen.has(entry.id))) {
-    queue.push(entry);
-  }
+  const prologue = resolveUnseenStoryScene("baiye_prologue_rebirth", seen);
+  if (prologue) queue.push(prologue);
+  const entry = getChapterEntryScene("baiye", 0, seen);
+  if (entry) queue.push(entry);
   return queue;
 }
 

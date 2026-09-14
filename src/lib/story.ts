@@ -1,4 +1,8 @@
-import type { StoryScene } from "@/data/story";
+import {
+  getStoryScene,
+  resolveUnseenStoryScene,
+  type StoryScene,
+} from "@/data/story";
 
 const STORY_SEEN_KEY = "xiuxian_story_seen_v1";
 
@@ -31,3 +35,19 @@ export function markStorySeen(id: string): void {
 export function markStorySceneSeen(scene: StoryScene): void {
   markStorySeen(scene.id);
 }
+
+/** 依 localStorage seen 取未看過 scene；sceneId 空／不存在／已看 once → undefined */
+export function getUnseenStoryScene(
+  sceneId?: string
+): StoryScene | undefined {
+  return resolveUnseenStoryScene(sceneId, readSeenStories());
+}
+
+/** 相容別名：與 getUnseenStoryScene 相同 */
+export function getUnseenSceneForChapter(
+  sceneId?: string
+): StoryScene | undefined {
+  return getUnseenStoryScene(sceneId);
+}
+
+export { getStoryScene, resolveUnseenStoryScene };

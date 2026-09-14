@@ -71,11 +71,11 @@ import { RestModal } from "@/components/RestModal";
 import { ShopModal, SHOP_PRICE } from "@/components/ShopModal";
 import { StoryOverlay } from "@/components/StoryOverlay";
 import {
+  getChapterStoryConfig,
   getStartStoryScenesForCharacter,
-  getStoryScene,
   type StoryScene,
 } from "@/data/story";
-import { hasSeenStory, markStorySeen, readSeenStories } from "@/lib/story";
+import { getUnseenStoryScene, markStorySeen, readSeenStories } from "@/lib/story";
 import {
   advanceEnemyIntent,
   applyRegenPassive,
@@ -535,9 +535,13 @@ export default function GamePage() {
   const pendingBossAfterStoryRef = useRef<{
     tier: DungeonTier;
     node: MapNode;
+    sceneId: string;
   } | null>(null);
   /** 戰後劇情結束後再進 StageClear */
-  const pendingStageClearAfterStoryRef = useRef<StageClearInfo | null>(null);
+  const pendingStageClearAfterStoryRef = useRef<{
+    info: StageClearInfo;
+    sceneId: string;
+  } | null>(null);
   const storyQueueRef = useRef(storyQueue);
   storyQueueRef.current = storyQueue;
   const restChoiceLockRef = useRef(false);
@@ -1086,16 +1090,14 @@ export default function GamePage() {
           break;
         case "boss": {
           mapActionLockRef.current = true;
-          const intro =
-            character.id === "baiye" &&
-            chapterIndex === 0 &&
-            !hasSeenStory("baiye_qi_boss_intro")
-              ? getStoryScene("baiye_qi_boss_intro")
-              : undefined;
+          const intro = getUnseenStoryScene(
+            getChapterStoryConfig(character.id, chapterIndex)?.bossIntroSceneId
+          );
           if (intro) {
             pendingBossAfterStoryRef.current = {
               tier: selectedTier,
               node,
+              sceneId: intro.id,
             };
             setStoryQueue((prev) => [...prev, intro]);
             queueMicrotask(() => {
@@ -1287,24 +1289,20 @@ export default function GamePage() {
       markStorySeen(scene.id);
       setStoryQueue((prev) => prev.slice(1));
 
-      if (scene.id === "baiye_qi_boss_intro") {
-        const pending = pendingBossAfterStoryRef.current;
+      const pendingBoss = pendingBossAfterStoryRef.current;
+      if (pendingBoss && pendingBoss.sceneId === scene.id) {
         pendingBossAfterStoryRef.current = null;
-        if (pending) {
-          queueMicrotask(() => {
-            startBattleForMapNode(pending.tier, pending.node);
-          });
-        }
+        queueMicrotask(() => {
+          startBattleForMapNode(pendingBoss.tier, pendingBoss.node);
+        });
         return;
       }
 
-      if (scene.id === "baiye_qi_clear") {
-        const info = pendingStageClearAfterStoryRef.current;
+      const pendingClear = pendingStageClearAfterStoryRef.current;
+      if (pendingClear && pendingClear.sceneId === scene.id) {
         pendingStageClearAfterStoryRef.current = null;
-        if (info) {
-          setStageClearInfo(info);
-          setBattlePhase("STAGE_CLEAR");
-        }
+        setStageClearInfo(pendingClear.info);
+        setBattlePhase("STAGE_CLEAR");
       }
     },
     [startBattleForMapNode]
@@ -2301,15 +2299,15 @@ export default function GamePage() {
                 convertSpirit: Math.floor(nextRunSpirit * 0.5),
               };
 
-        const clearScene =
-          character.id === "baiye" &&
-          chapterIndex === 0 &&
-          !hasSeenStory("baiye_qi_clear")
-            ? getStoryScene("baiye_qi_clear")
-            : undefined;
+        const clearScene = getUnseenStoryScene(
+          getChapterStoryConfig(character.id, chapterIndex)?.clearSceneId
+        );
 
         if (clearScene) {
-          pendingStageClearAfterStoryRef.current = stageInfo;
+          pendingStageClearAfterStoryRef.current = {
+            info: stageInfo,
+            sceneId: clearScene.id,
+          };
           // 離開 REWARD，讓 StoryOverlay 可顯示；StageClear 等劇情結束
           setBattlePhase("IN_BATTLE");
           queueStoryScenes([clearScene]);
