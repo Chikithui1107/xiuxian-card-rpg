@@ -125,6 +125,34 @@ export const STORY_SCENES: StoryScene[] = [
       },
     ],
   },
+  {
+    id: "baiye_qi_boss_intro",
+    characterId: "baiye",
+    once: true,
+    title: "青嵐谷深處",
+    lines: [
+      {
+        speaker: "narrator",
+        text: "越往谷底走，魔氣越濃。\n\n白夜很快看見了源頭。\n\n妖獸身上，浮現著一道若隱若現的人為禁制。\n\n「妖獸不會自己刻下這種東西。」\n\n「有人來過這裡。」",
+      },
+    ],
+  },
+  {
+    id: "baiye_qi_clear",
+    characterId: "baiye",
+    once: true,
+    title: "青嵐谷 · 戰後",
+    lines: [
+      {
+        speaker: "narrator",
+        text: "妖獸倒下。\n\n纏繞在它身上的魔氣，也開始消散。\n\n白夜卻沒有離開。\n\n他的目光停在那道殘破的禁制上。",
+      },
+      {
+        speaker: "narrator",
+        text: "其中一個印記，他絕不可能認錯。\n\n——天樞聖宗的鎖靈印。\n\n白夜沉默片刻。\n\n「為什麼宗門的禁制……會出現在這裡？」",
+      },
+    ],
+  },
 ];
 
 const STORY_BY_ID = Object.fromEntries(

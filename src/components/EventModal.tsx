@@ -15,7 +15,7 @@ export function EventModal({ event, onChoose }: EventModalProps) {
         <h2 className="mt-1 text-lg font-bold tracking-[0.2em] text-[#c9a84c]">
           {event.title}
         </h2>
-        <p className="mt-3 text-[13px] leading-relaxed text-stone-300">
+        <p className="mt-3 whitespace-pre-line text-[13px] leading-relaxed text-stone-300">
           {event.body}
         </p>
 

@@ -21,6 +21,35 @@ export interface StoryEvent {
   choices: EventChoice[];
 }
 
+/**
+ * 白夜第一境專屬奇遇（不進 generic 隨機池）。
+ * seen 鍵：baiye_qi_sword_trace（與 event id 分開，寫入 xiuxian_story_seen_v1）
+ */
+export const BAIYE_QI_SWORD_TRACE_EVENT: StoryEvent = {
+  id: "baiye_qi_sword_trace_event",
+  title: "斷崖劍痕",
+  body: "山路盡頭，一道劍痕橫在斷崖石壁之上。\n\n白夜只看了一眼，腳步便停了下來。\n\n這套劍法，他不可能認錯。\n\n——大師兄。\n\n可按照上一世的記憶，大師兄應該三年後，才第一次來到青嵐谷。\n\n而眼前這道劍痕……\n\n很新。",
+  choices: [
+    {
+      id: "inspect",
+      label: "查看劍痕",
+      resultText:
+        "白夜伸手拂過石壁。殘留的劍意尚未完全散去。這絕不是上一世留下的痕跡。「事情……提前了？」",
+      effects: [{ kind: "spirit_stones", amount: 40 }],
+    },
+    {
+      id: "leave",
+      label: "暫不深究",
+      resultText:
+        "白夜收回目光。現在掌握的線索還太少。但他已經記住了這個地方。",
+      effects: [{ kind: "nothing" }],
+    },
+  ],
+};
+
+/** 寫入 story seen 的鍵（非 event.id） */
+export const BAIYE_QI_SWORD_TRACE_SEEN_ID = "baiye_qi_sword_trace";
+
 export const STORY_EVENTS: StoryEvent[] = [
   {
     id: "stone_tablet",

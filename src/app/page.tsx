@@ -26,7 +26,11 @@ import { InGameMenu } from "@/components/InGameMenu";
 import { VictoryAnimOverlay } from "@/components/VictoryAnimOverlay";
 import { StageClearOverlay } from "@/components/StageClearOverlay";
 import { DefeatOverlay } from "@/components/DefeatOverlay";
-import { applyEventChoice, pickStoryEvent } from "@/lib/events";
+import {
+  applyEventChoice,
+  BAIYE_QI_SWORD_TRACE_SEEN_ID,
+  pickEventForRunContext,
+} from "@/lib/events";
 import type { EventChoice, StoryEvent } from "@/data/events";
 import {
   calculateHeroStats,
@@ -68,9 +72,10 @@ import { ShopModal, SHOP_PRICE } from "@/components/ShopModal";
 import { StoryOverlay } from "@/components/StoryOverlay";
 import {
   getStartStoryScenesForCharacter,
+  getStoryScene,
   type StoryScene,
 } from "@/data/story";
-import { markStorySeen, readSeenStories } from "@/lib/story";
+import { hasSeenStory, markStorySeen, readSeenStories } from "@/lib/story";
 import {
   advanceEnemyIntent,
   applyRegenPassive,
@@ -526,6 +531,15 @@ export default function GamePage() {
   const [shopOfferIds, setShopOfferIds] = useState<CardTemplateId[]>([]);
   /** 主線劇情隊列（僅覆蓋層，不改 Run） */
   const [storyQueue, setStoryQueue] = useState<StoryScene[]>([]);
+  /** Boss 前短劇情結束後自動開打 */
+  const pendingBossAfterStoryRef = useRef<{
+    tier: DungeonTier;
+    node: MapNode;
+  } | null>(null);
+  /** 戰後劇情結束後再進 StageClear */
+  const pendingStageClearAfterStoryRef = useRef<StageClearInfo | null>(null);
+  const storyQueueRef = useRef(storyQueue);
+  storyQueueRef.current = storyQueue;
   const restChoiceLockRef = useRef(false);
   const shopChoiceLockRef = useRef(false);
   const [combatBuffs, setCombatBuffs] = useState<CombatBuffs>(
@@ -943,6 +957,8 @@ export default function GamePage() {
       setEnemy(createNeutralEnemy());
       setPhase("playing");
       setStoryQueue([]);
+      pendingBossAfterStoryRef.current = null;
+      pendingStageClearAfterStoryRef.current = null;
       resetCombatState();
       if (message) setLastRunMessage(message);
       if (healPlayer) setPlayerHp(heroStats.maxHp);
@@ -1050,7 +1066,9 @@ export default function GamePage() {
         activeEvent ||
         activeRestNodeId ||
         activeShopNodeId ||
-        mapActionLockRef.current
+        mapActionLockRef.current ||
+        storyQueueRef.current.length > 0 ||
+        pendingBossAfterStoryRef.current
       ) {
         return;
       }
@@ -1060,13 +1078,37 @@ export default function GamePage() {
       switch (node.type) {
         case "combat":
         case "elite":
-        case "boss":
           mapActionLockRef.current = true;
           startBattleForMapNode(selectedTier, node);
           queueMicrotask(() => {
             mapActionLockRef.current = false;
           });
           break;
+        case "boss": {
+          mapActionLockRef.current = true;
+          const intro =
+            character.id === "baiye" &&
+            chapterIndex === 0 &&
+            !hasSeenStory("baiye_qi_boss_intro")
+              ? getStoryScene("baiye_qi_boss_intro")
+              : undefined;
+          if (intro) {
+            pendingBossAfterStoryRef.current = {
+              tier: selectedTier,
+              node,
+            };
+            setStoryQueue((prev) => [...prev, intro]);
+            queueMicrotask(() => {
+              mapActionLockRef.current = false;
+            });
+            break;
+          }
+          startBattleForMapNode(selectedTier, node);
+          queueMicrotask(() => {
+            mapActionLockRef.current = false;
+          });
+          break;
+        }
         case "rest": {
           restChoiceLockRef.current = false;
           setActiveRestNodeId(node.id);
@@ -1084,7 +1126,14 @@ export default function GamePage() {
         }
         case "event": {
           eventChoiceLockRef.current = false;
-          setActiveEvent(pickStoryEvent(node.title));
+          setActiveEvent(
+            pickEventForRunContext({
+              nodeTitle: node.title,
+              characterId: character.id,
+              chapterIndex,
+              seenStoryIds: readSeenStories(),
+            })
+          );
           setActiveEventNodeId(node.id);
           break;
         }
@@ -1097,6 +1146,8 @@ export default function GamePage() {
       activeRestNodeId,
       activeShopNodeId,
       character.combatPath,
+      character.id,
+      chapterIndex,
     ]
   );
 
@@ -1151,6 +1202,9 @@ export default function GamePage() {
         return;
       }
       eventChoiceLockRef.current = true;
+      if (activeEvent.id === "baiye_qi_sword_trace_event") {
+        markStorySeen(BAIYE_QI_SWORD_TRACE_SEEN_ID);
+      }
       const { nextHp, spiritDelta, summary } = applyEventChoice(choice, {
         maxHp: heroStats.maxHp,
         currentHp: playerHp,
@@ -1228,10 +1282,33 @@ export default function GamePage() {
     setStoryQueue((prev) => [...prev, ...scenes]);
   }, []);
 
-  const finishCurrentStory = useCallback((scene: StoryScene) => {
-    markStorySeen(scene.id);
-    setStoryQueue((prev) => prev.slice(1));
-  }, []);
+  const finishCurrentStory = useCallback(
+    (scene: StoryScene) => {
+      markStorySeen(scene.id);
+      setStoryQueue((prev) => prev.slice(1));
+
+      if (scene.id === "baiye_qi_boss_intro") {
+        const pending = pendingBossAfterStoryRef.current;
+        pendingBossAfterStoryRef.current = null;
+        if (pending) {
+          queueMicrotask(() => {
+            startBattleForMapNode(pending.tier, pending.node);
+          });
+        }
+        return;
+      }
+
+      if (scene.id === "baiye_qi_clear") {
+        const info = pendingStageClearAfterStoryRef.current;
+        pendingStageClearAfterStoryRef.current = null;
+        if (info) {
+          setStageClearInfo(info);
+          setBattlePhase("STAGE_CLEAR");
+        }
+      }
+    },
+    [startBattleForMapNode]
+  );
 
   const startCultivationRun = useCallback(
     (level: number) => {
@@ -1291,6 +1368,8 @@ export default function GamePage() {
         character.id,
         readSeenStories()
       );
+      pendingBossAfterStoryRef.current = null;
+      pendingStageClearAfterStoryRef.current = null;
       setStoryQueue([]);
       queueStoryScenes(stories);
     },
@@ -2204,27 +2283,40 @@ export default function GamePage() {
         const meta = getDungeonChapterMeta(selectedTier);
         stageClearDoneRef.current = false;
 
-        if (chapterIndex < 4) {
-          setStageClearInfo({
-            kind: "advance",
-            title: meta.breakthroughTitle,
-            subtitle: `${meta.chapterLabel} · ${meta.realmLabel}`,
-            description: meta.breakthroughDescription,
-            buttonLabel: meta.breakthroughButton,
-          });
-          setBattlePhase("STAGE_CLEAR");
+        const stageInfo: StageClearInfo =
+          chapterIndex < 4
+            ? {
+                kind: "advance",
+                title: meta.breakthroughTitle,
+                subtitle: `${meta.chapterLabel} · ${meta.realmLabel}`,
+                description: meta.breakthroughDescription,
+                buttonLabel: meta.breakthroughButton,
+              }
+            : {
+                kind: "ascend",
+                title: "渡劫成功",
+                subtitle: "五境圓滿 · 飛升在即",
+                description: meta.breakthroughDescription,
+                buttonLabel: "飛升",
+                convertSpirit: Math.floor(nextRunSpirit * 0.5),
+              };
+
+        const clearScene =
+          character.id === "baiye" &&
+          chapterIndex === 0 &&
+          !hasSeenStory("baiye_qi_clear")
+            ? getStoryScene("baiye_qi_clear")
+            : undefined;
+
+        if (clearScene) {
+          pendingStageClearAfterStoryRef.current = stageInfo;
+          // 離開 REWARD，讓 StoryOverlay 可顯示；StageClear 等劇情結束
+          setBattlePhase("IN_BATTLE");
+          queueStoryScenes([clearScene]);
           return;
         }
 
-        const convert = Math.floor(nextRunSpirit * 0.5);
-        setStageClearInfo({
-          kind: "ascend",
-          title: "渡劫成功",
-          subtitle: "五境圓滿 · 飛升在即",
-          description: meta.breakthroughDescription,
-          buttonLabel: "飛升",
-          convertSpirit: convert,
-        });
+        setStageClearInfo(stageInfo);
         setBattlePhase("STAGE_CLEAR");
         return;
       }
@@ -2243,7 +2335,9 @@ export default function GamePage() {
       pendingTierComplete,
       runSpirit,
       chapterIndex,
+      character.id,
       returnToPath,
+      queueStoryScenes,
     ]
   );
 

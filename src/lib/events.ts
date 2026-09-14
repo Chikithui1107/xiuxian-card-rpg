@@ -1,6 +1,14 @@
-import { STORY_EVENTS, type EventChoice, type EventEffect, type StoryEvent } from "@/data/events";
+import {
+  BAIYE_QI_SWORD_TRACE_EVENT,
+  BAIYE_QI_SWORD_TRACE_SEEN_ID,
+  STORY_EVENTS,
+  type EventChoice,
+  type EventEffect,
+  type StoryEvent,
+} from "@/data/events";
 
 export type { EventChoice, EventEffect, StoryEvent };
+export { BAIYE_QI_SWORD_TRACE_EVENT, BAIYE_QI_SWORD_TRACE_SEEN_ID };
 
 export function pickStoryEvent(nodeTitle: string): StoryEvent {
   const matched = STORY_EVENTS.find(
@@ -11,6 +19,29 @@ export function pickStoryEvent(nodeTitle: string): StoryEvent {
   const pool = STORY_EVENTS.filter((event) => !event.matchTitle);
   if (pool.length === 0) return STORY_EVENTS[0];
   return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/** 依角色／章節優先專屬奇遇；否則走 generic pickStoryEvent */
+export function pickEventForRunContext(opts: {
+  nodeTitle: string;
+  characterId: string;
+  chapterIndex: number;
+  seenStoryIds: ReadonlySet<string> | string[];
+}): StoryEvent {
+  const seen =
+    opts.seenStoryIds instanceof Set
+      ? opts.seenStoryIds
+      : new Set(opts.seenStoryIds);
+
+  if (
+    opts.characterId === "baiye" &&
+    opts.chapterIndex === 0 &&
+    !seen.has(BAIYE_QI_SWORD_TRACE_SEEN_ID)
+  ) {
+    return BAIYE_QI_SWORD_TRACE_EVENT;
+  }
+
+  return pickStoryEvent(opts.nodeTitle);
 }
 
 export interface EventResolveContext {
