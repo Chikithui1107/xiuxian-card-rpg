@@ -46,139 +46,38 @@ export const STORY_SCENES: StoryScene[] = [
     once: true,
     title: "序章 · 重來一世",
     lines: [
-      { speaker: "narrator", text: "上一世，我叫白夜。" },
       {
         speaker: "narrator",
-        text: "我生來劍骨通明，自幼修行便遠勝同輩。",
-      },
-      {
-        speaker: "narrator",
-        text: "十六歲那年，我通過天樞聖宗的入門試煉，拜入這座號稱「天下正道之首」的仙門。",
-      },
-      { speaker: "narrator", text: "宗門鐘鳴九響。" },
-      {
-        speaker: "narrator",
-        text: "天樞聖宗宗主親自現身，並在數千弟子面前將我收入親傳。",
+        text: "上一世，我叫白夜。\n\n十六歲那年，我拜入天下正道之首——天樞聖宗。\n\n宗主親自收我為第九位親傳。\n\n師兄師姐都叫我——\n\n「小九。」",
       },
       {
         speaker: "narrator",
-        text: "從那以後，我是天樞聖宗第九位親傳弟子。",
+        text: "大師兄教我御劍，\n二師姐替我煉丹。\n\n三師兄嘴上嫌我修煉太慢，\n卻總會替我守著洞府。\n\n那時我以為，\n\n只要他們還在，\n\n仙途再長，也不會孤單。\n\n可後來……\n\n大師兄死在秘境。\n二師姐突破失敗。\n三師兄失蹤。\n四師姐遭魔修伏擊。\n\n一個又一個。\n\n曾經熱鬧的親傳峰，\n漸漸安靜下來。",
       },
       {
         speaker: "narrator",
-        text: "也是師兄師姐口中的——「小九」。",
-      },
-      { speaker: "narrator", text: "大師兄教我御劍。" },
-      { speaker: "narrator", text: "二師姐替我煉丹。" },
-      {
-        speaker: "narrator",
-        text: "三師兄嘴上嫌我修煉太慢，卻總會在我閉關時替我守著洞府。",
+        text: "直到很多年後，\n\n我才發現那些「意外」，\n都留下了相同的靈力痕跡。\n\n而那道氣息……\n\n來自天樞聖宗內部。\n\n所有線索最後，\n都指向宗門最深處的一座禁地。\n\n只有一個人能進入那裡。\n\n——宗主。\n\n我的師尊。",
       },
       {
         speaker: "narrator",
-        text: "那時候我以為，仙途漫長，但只要他們還在，這條路便不會太孤單。",
-      },
-      { speaker: "narrator", text: "後來——" },
-      { speaker: "narrator", text: "大師兄死在秘境。" },
-      { speaker: "narrator", text: "二師姐突破失敗。" },
-      { speaker: "narrator", text: "三師兄外出失蹤。" },
-      { speaker: "narrator", text: "四師姐遭魔修伏擊。" },
-      { speaker: "narrator", text: "一個又一個。" },
-      {
-        speaker: "narrator",
-        text: "曾經熱鬧的親傳峰，漸漸安靜下來。",
-      },
-      {
-        speaker: "master",
-        text: "仙途本就是逆天而行。生死無常。若不想再失去身邊之人，便讓自己變得更強。",
-      },
-      { speaker: "narrator", text: "於是我繼續練劍。" },
-      {
-        speaker: "narrator",
-        text: "直到有一天，我發現大師兄隕落之地，殘留著一道異常的靈力痕跡。",
+        text: "我還沒來得及查清真相，\n\n魔族便大舉入侵。\n\n天下萬宗組成聯軍。\n\n而統領聯軍的人——\n\n正是師尊。\n\n決戰那天，\n\n我卻在魔族大軍之中看見了他。\n\n我提劍衝了過去。\n\n那是我一生最快的一劍，\n\n也是最無力的一劍。\n\n他只抬起手，\n\n我便再也無法向前。\n\n「小九。」\n\n「你還是發現了。」",
       },
       {
         speaker: "narrator",
-        text: "二師姐出事的洞府外也有。三師兄最後出現的地方……同樣存在。",
+        text: "那一天，\n\n聯軍敗了。\n\n我也死了。\n\n臨死之前，\n\n我只剩下一個念頭。\n\n如果我能早一點發現……\n\n如果我能救下他們……\n\n一切，\n\n會不會不同？",
       },
-      {
-        speaker: "narrator",
-        text: "而那道氣息，來自天樞聖宗內部。",
-      },
-      {
-        speaker: "narrator",
-        text: "我開始重新調查那些所謂的「意外」。最後所有線索，都指向宗門最深處的一座禁地。",
-      },
-      {
-        speaker: "narrator",
-        text: "只有一個人能進入那裡。——宗主。我的師尊。",
-      },
-      {
-        speaker: "narrator",
-        text: "我沒有得到答案。因為魔族戰爭先一步爆發。",
-      },
-      {
-        speaker: "narrator",
-        text: "天下萬宗聯合討伐魔族。而統領正道聯軍的人，正是師尊。",
-      },
-      {
-        speaker: "narrator",
-        text: "決戰那天，聯軍大陣失效。數位掌教遭到伏擊。",
-      },
-      {
-        speaker: "narrator",
-        text: "我在漫天魔氣中，看到了一個不應該站在那裡的人。師尊。他站在魔族一方。",
-      },
-      {
-        speaker: "narrator",
-        text: "我提劍衝向他。可那是我一生最快的一劍，也是最無力的一劍。",
-      },
-      {
-        speaker: "narrator",
-        text: "師尊只抬起手，我的劍便再也無法向前。",
-      },
-      { speaker: "master", text: "小九。你還是發現了。" },
-      {
-        speaker: "narrator",
-        text: "那一天，正道聯軍敗了。我也死在了那場戰爭裡。",
-      },
-      {
-        speaker: "narrator",
-        text: "臨死之前，我只剩下一個念頭。如果我能早一點發現。如果我能救下大師兄。如果我能阻止二師姐那一次突破……",
-      },
-      { speaker: "narrator", text: "一切……會不會不同？" },
-      { speaker: "senior3", text: "白夜？白夜！" },
       {
         speaker: "senior3",
-        text: "今日可是拜師大典，你怎麼還在這裡發呆？",
+        text: "「白夜？」\n\n「今日可是拜師大典，\n你還在發什麼呆？」",
       },
       {
         speaker: "narrator",
-        text: "我猛地睜開眼。晨霧。山門。漢白玉長階。還有一雙年輕得陌生的手。沒有舊傷。沒有劍繭。",
+        text: "我猛地睜開眼。\n\n山門。\n\n晨霧。\n\n熟悉的長階。\n\n還有——\n\n本該早已死去的師兄師姐。\n\n遠處，\n\n師尊正站在天樞大殿前，\n\n看著我微笑。",
       },
       {
-        speaker: "narrator",
-        text: "我抬起頭。大師兄還活著。二師姐還活著。三師兄正站在我面前。",
+        speaker: "baiye",
+        text: "「弟子白夜。」\n\n「拜見師尊。」\n\n……\n\n上一世，\n\n我明白得太晚。\n\n這一世——\n\n我不會再讓一切重演。",
       },
-      {
-        speaker: "narrator",
-        text: "遠處，天樞大殿緩緩開啟。那道熟悉的白衣身影走了出來。",
-      },
-      { speaker: "master", text: "白夜。過來。" },
-      { speaker: "baiye", text: "弟子白夜……拜見師尊。" },
-      {
-        speaker: "narrator",
-        text: "沒有人看見。袖袍之下，我的手已經緩緩握緊。",
-      },
-      {
-        speaker: "narrator",
-        text: "上一世，我用了數百年才看清這一切。這一世——我還有時間。",
-      },
-      {
-        speaker: "narrator",
-        text: "救下他們。查清真相。還有弄明白……",
-      },
-      { speaker: "baiye", text: "師尊。你究竟在謀劃什麼。" },
     ],
   },
   {
@@ -188,34 +87,14 @@ export const STORY_SCENES: StoryScene[] = [
     title: "第一境 · 引氣入道",
     subtitle: "青嵐谷",
     lines: [
-      { speaker: "narrator", text: "青嵐谷。" },
       {
         speaker: "narrator",
-        text: "上一世，我第一次真正踏上修行之路的地方。",
+        text: "青嵐谷。\n\n上一世，\n\n我第一次真正踏上修行之路的地方。\n\n也是這一世，\n\n第一個本不該改變的地方。",
       },
       {
         speaker: "narrator",
-        text: "也是這一世，第一個本不該改變的地方。",
+        text: "山風吹過林間。\n\n白夜卻忽然停下腳步。\n\n空氣中，\n\n漂著一絲極淡的魔氣。\n\n他不會認錯。\n\n上一世的青嵐谷，\n\n絕對沒有這種東西。\n\n未來……\n\n已經改變了。",
       },
-      {
-        speaker: "narrator",
-        text: "山風穿過林間。白夜卻忽然停下腳步。",
-      },
-      { speaker: "baiye", text: "……" },
-      {
-        speaker: "narrator",
-        text: "空氣裡，漂著一絲極淡的氣息。白夜不會認錯。那是——魔氣。",
-      },
-      { speaker: "baiye", text: "不對。" },
-      {
-        speaker: "narrator",
-        text: "上一世的青嵐谷，絕對沒有這種東西。",
-      },
-      {
-        speaker: "narrator",
-        text: "白夜抬頭望向雲霧深處。",
-      },
-      { speaker: "baiye", text: "未來……已經改變了嗎？" },
     ],
   },
 ];
