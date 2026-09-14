@@ -7,8 +7,6 @@ import {
   type StorySpeaker,
 } from "@/data/story";
 
-const AUTO_PAGE_MS = 4000;
-
 interface StoryOverlayProps {
   scene: StoryScene;
   onComplete: () => void;
@@ -24,6 +22,13 @@ function resolveSpeakerName(
   return STORY_SPEAKER_NAMES[speaker] ?? null;
 }
 
+function autoDelayMs(text: string): number {
+  const chars = text.replace(/\s/g, "").length;
+  if (chars < 30) return 2600;
+  if (chars < 60) return 3200;
+  return 3800;
+}
+
 export function StoryOverlay({ scene, onComplete, onSkip }: StoryOverlayProps) {
   const [lineIndex, setLineIndex] = useState(0);
   const [autoPlay, setAutoPlay] = useState(false);
@@ -31,7 +36,6 @@ export function StoryOverlay({ scene, onComplete, onSkip }: StoryOverlayProps) {
   const lines = scene.lines;
   const safeIndex = Math.min(lineIndex, Math.max(0, lines.length - 1));
   const line = lines[safeIndex];
-  const isLast = safeIndex >= lines.length - 1;
   const speakerName = line
     ? resolveSpeakerName(line.speaker, line.speakerName)
     : null;
@@ -45,9 +49,7 @@ export function StoryOverlay({ scene, onComplete, onSkip }: StoryOverlayProps) {
 
   const advance = useCallback(() => {
     setLineIndex((i) => {
-      const last = i >= lines.length - 1;
-      if (last) {
-        // defer complete so setState finishes cleanly
+      if (i >= lines.length - 1) {
         queueMicrotask(() => onComplete());
         return i;
       }
@@ -63,15 +65,15 @@ export function StoryOverlay({ scene, onComplete, onSkip }: StoryOverlayProps) {
 
   useEffect(() => {
     clearAutoTimer();
-    if (!autoPlay || lines.length === 0) return;
+    if (!autoPlay || !line) return;
 
     autoTimerRef.current = setTimeout(() => {
       autoTimerRef.current = null;
       advance();
-    }, AUTO_PAGE_MS);
+    }, autoDelayMs(line.text));
 
     return clearAutoTimer;
-  }, [autoPlay, lineIndex, scene.id, lines.length, advance, clearAutoTimer]);
+  }, [autoPlay, lineIndex, scene.id, line, advance, clearAutoTimer]);
 
   useEffect(() => {
     return () => clearAutoTimer();
@@ -154,8 +156,8 @@ export function StoryOverlay({ scene, onComplete, onSkip }: StoryOverlayProps) {
                 {speakerName}
               </p>
             )}
-            <div className="max-h-[45vh] overflow-y-auto">
-              <p className="whitespace-pre-line text-[14px] leading-[1.75] tracking-wide text-[#e8e0d4]">
+            <div className="flex min-h-[140px] max-h-[35vh] items-start">
+              <p className="whitespace-pre-line text-[14.5px] leading-[1.75] tracking-wide text-[#e8e0d4]">
                 {line.text}
               </p>
             </div>
