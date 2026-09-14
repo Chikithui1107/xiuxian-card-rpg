@@ -2513,6 +2513,14 @@ export default function GamePage() {
       combatScreen === "battle" ||
       isInCombat);
 
+  const storyActive = Boolean(
+    storyQueue[0] &&
+      phase !== "defeat" &&
+      battlePhase !== "REWARD" &&
+      battlePhase !== "STAGE_CLEAR" &&
+      battlePhase !== "VICTORY_ANIM"
+  );
+
   if (!ready) {
     return (
       <div className="mobile-shell flex items-center justify-center">
@@ -2539,6 +2547,7 @@ export default function GamePage() {
       immersive={activeTab === "lobby" && !isInCombat}
       compactHeader={isInCombat}
       bgmScene={isInCombat ? "combat" : "lobby"}
+      storyMode={storyActive}
       inGameMenu={
         showRunMenu ? <InGameMenu onQuit={quitRun} /> : null
       }
@@ -2636,11 +2645,7 @@ export default function GamePage() {
         />
       )}
 
-      {storyQueue[0] &&
-        phase !== "defeat" &&
-        battlePhase !== "REWARD" &&
-        battlePhase !== "STAGE_CLEAR" &&
-        battlePhase !== "VICTORY_ANIM" && (
+      {storyActive && storyQueue[0] && (
           <StoryOverlay
             scene={storyQueue[0]}
             onComplete={() => finishCurrentStory(storyQueue[0])}

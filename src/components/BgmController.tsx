@@ -17,11 +17,14 @@ interface BgmControllerProps {
   scene?: BgmScene;
   /** @deprecated 改用 scene；true=lobby false=combat */
   enabled?: boolean;
+  /** 劇情模式：隱藏右上角音訊鈕，仍維持場景切換 */
+  hideToggle?: boolean;
 }
 
 export function BgmController({
   scene,
   enabled = true,
+  hideToggle = false,
 }: BgmControllerProps) {
   const activeScene: BgmScene = scene ?? (enabled ? "lobby" : "combat");
   const [muted, setMuted] = useState(false);
@@ -72,46 +75,48 @@ export function BgmController({
 
   return (
     <>
-      <button
-        type="button"
-        className="bgm-toggle-btn"
-        onClick={onToggle}
-        aria-label={muted ? "開啟背景音樂" : "關閉背景音樂"}
-        title={muted ? "開音樂" : "關音樂"}
-      >
-        {muted ? (
-          <svg
-            className="bgm-toggle-icon"
-            viewBox="0 0 24 24"
-            aria-hidden
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M11 5 6 9H3v6h3l5 4V5z" />
-            <path d="m22 9-6 6" />
-            <path d="m16 9 6 6" />
-          </svg>
-        ) : (
-          <svg
-            className="bgm-toggle-icon"
-            viewBox="0 0 24 24"
-            aria-hidden
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M11 5 6 9H3v6h3l5 4V5z" />
-            <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-            <path d="M18.5 5.5a9 9 0 0 1 0 13" />
-          </svg>
-        )}
-      </button>
-      {needsTap && !muted && (
+      {!hideToggle && (
+        <button
+          type="button"
+          className="bgm-toggle-btn"
+          onClick={onToggle}
+          aria-label={muted ? "開啟背景音樂" : "關閉背景音樂"}
+          title={muted ? "開音樂" : "關音樂"}
+        >
+          {muted ? (
+            <svg
+              className="bgm-toggle-icon"
+              viewBox="0 0 24 24"
+              aria-hidden
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M11 5 6 9H3v6h3l5 4V5z" />
+              <path d="m22 9-6 6" />
+              <path d="m16 9 6 6" />
+            </svg>
+          ) : (
+            <svg
+              className="bgm-toggle-icon"
+              viewBox="0 0 24 24"
+              aria-hidden
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M11 5 6 9H3v6h3l5 4V5z" />
+              <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+              <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+            </svg>
+          )}
+        </button>
+      )}
+      {!hideToggle && needsTap && !muted && (
         <p className="bgm-tap-hint" role="status">
           輕觸畫面開啟音樂
         </p>

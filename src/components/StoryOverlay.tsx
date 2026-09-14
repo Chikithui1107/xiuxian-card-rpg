@@ -97,38 +97,42 @@ export function StoryOverlay({ scene, onComplete, onSkip }: StoryOverlayProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex flex-col bg-black/88 backdrop-blur-sm"
+      className="fixed inset-0 z-[60] flex flex-col bg-black/92"
       role="dialog"
       aria-modal="true"
       aria-labelledby="story-overlay-title"
     >
       <div
-        className="flex shrink-0 items-center justify-between gap-2 px-3 pb-2 pt-[max(0.75rem,env(safe-area-inset-top))]"
+        className="flex shrink-0 items-start justify-between gap-3 pt-[max(0.85rem,env(safe-area-inset-top))]"
+        style={{
+          paddingLeft: "max(20px, env(safe-area-inset-left))",
+          paddingRight: "max(20px, env(safe-area-inset-right))",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="min-w-0 pr-2">
+        <div className="min-w-0 flex-1 pr-1">
           {scene.title && (
             <h2
               id="story-overlay-title"
-              className="truncate text-[13px] font-semibold tracking-[0.22em] text-[#c9a84c]"
+              className="truncate text-[13px] font-semibold tracking-[0.18em] text-[#c9a84c]"
             >
               {scene.title}
             </h2>
           )}
           {scene.subtitle && (
-            <p className="mt-0.5 text-[10px] tracking-[0.16em] text-stone-500">
+            <p className="mt-0.5 truncate text-[10px] tracking-[0.14em] text-stone-500">
               {scene.subtitle}
             </p>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={handleToggleAuto}
-            className={`rounded border px-2.5 py-1 text-[10px] tracking-[0.14em] transition ${
+            className={`rounded border px-2.5 py-1.5 text-[10px] tracking-[0.12em] transition ${
               autoPlay
                 ? "border-[#c9a84c]/55 bg-[#c9a84c]/15 text-[#c9a84c]"
-                : "border-stone-700/50 bg-stone-950/60 text-stone-400 hover:border-[#8a7340]/50 hover:text-[#c9a84c]"
+                : "border-stone-700/50 bg-stone-950/70 text-stone-400"
             }`}
           >
             {autoPlay ? "自動 · 開" : "自動"}
@@ -136,7 +140,7 @@ export function StoryOverlay({ scene, onComplete, onSkip }: StoryOverlayProps) {
           <button
             type="button"
             onClick={handleSkip}
-            className="rounded border border-stone-700/50 bg-stone-950/60 px-2.5 py-1 text-[10px] tracking-[0.14em] text-stone-400 transition hover:border-[#8a7340]/50 hover:text-[#c9a84c]"
+            className="rounded border border-stone-700/50 bg-stone-950/70 px-2.5 py-1.5 text-[10px] tracking-[0.12em] text-stone-400"
           >
             跳過
           </button>
@@ -145,7 +149,12 @@ export function StoryOverlay({ scene, onComplete, onSkip }: StoryOverlayProps) {
 
       <button
         type="button"
-        className="flex min-h-0 flex-1 cursor-pointer flex-col px-3 pb-[max(1rem,env(safe-area-inset-bottom))] text-left"
+        className="flex min-h-0 flex-1 cursor-pointer flex-col text-left"
+        style={{
+          paddingLeft: "max(20px, env(safe-area-inset-left))",
+          paddingRight: "max(20px, env(safe-area-inset-right))",
+          paddingBottom: "max(80px, calc(env(safe-area-inset-bottom) + 72px))",
+        }}
         onClick={advance}
         aria-label="點擊繼續"
       >
@@ -156,12 +165,12 @@ export function StoryOverlay({ scene, onComplete, onSkip }: StoryOverlayProps) {
                 {speakerName}
               </p>
             )}
-            <div className="flex min-h-[140px] max-h-[35vh] items-start">
-              <p className="whitespace-pre-line text-[14.5px] leading-[1.75] tracking-wide text-[#e8e0d4]">
+            <div className="flex min-h-[140px] items-start">
+              <p className="whitespace-pre-line text-[15px] leading-[1.7] tracking-wide text-[#e8e0d4]">
                 {line.text}
               </p>
             </div>
-            <div className="mt-4 flex items-center justify-between gap-3">
+            <div className="mt-3 flex items-center justify-between gap-3">
               <p className="text-[9px] text-stone-600">
                 {safeIndex + 1} / {lines.length}
               </p>

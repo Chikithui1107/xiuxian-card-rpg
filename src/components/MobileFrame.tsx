@@ -15,6 +15,8 @@ interface MobileFrameProps {
   immersive?: boolean;
   /** 戰鬥：壓扁 Header，把空間留給敵人 */
   compactHeader?: boolean;
+  /** 主線劇情：隱藏 Header / 選單 / 音訊鈕 / 底欄 */
+  storyMode?: boolean;
 }
 
 export function MobileFrame({
@@ -26,15 +28,18 @@ export function MobileFrame({
   bgmScene = "lobby",
   immersive = false,
   compactHeader = false,
+  storyMode = false,
 }: MobileFrameProps) {
-  const showHeader = Boolean(title || subtitle);
+  const showHeader = !storyMode && Boolean(title || subtitle);
+  const showMenu = !storyMode && inGameMenu;
+  const showNav = !storyMode && bottomNav;
 
   return (
     <div className="mobile-shell">
       <div className="mobile-shell-mist pointer-events-none" aria-hidden />
-      <div className={`mobile-frame${immersive ? " mobile-frame-immersive" : ""}`}>
-        <BgmController scene={bgmScene} />
-        {inGameMenu}
+      <div className={`mobile-frame${immersive && !storyMode ? " mobile-frame-immersive" : ""}`}>
+        <BgmController scene={bgmScene} hideToggle={storyMode} />
+        {showMenu}
         {showHeader && (
           <header
             className={[
@@ -42,7 +47,7 @@ export function MobileFrame({
               "mobile-header-overlay",
               immersive ? "mobile-header-immersive" : "",
               compactHeader ? "mobile-header-compact" : "",
-              inGameMenu ? "has-in-game-menu" : "has-bgm-toggle",
+              showMenu ? "has-in-game-menu" : "has-bgm-toggle",
             ]
               .filter(Boolean)
               .join(" ")}
@@ -59,16 +64,16 @@ export function MobileFrame({
           className={[
             "mobile-content flex min-h-0 flex-1 flex-col",
             showHeader ? "has-overlay-header" : "",
-            compactHeader ? "has-compact-header" : "",
-            immersive ? "is-immersive" : "",
-            bottomNav ? "has-bottom-nav" : "combat-lock-scroll",
+            compactHeader && !storyMode ? "has-compact-header" : "",
+            immersive && !storyMode ? "is-immersive" : "",
+            showNav ? "has-bottom-nav" : "combat-lock-scroll",
           ]
             .filter(Boolean)
             .join(" ")}
         >
           {children}
         </div>
-        {bottomNav}
+        {showNav}
       </div>
     </div>
   );
