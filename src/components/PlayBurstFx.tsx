@@ -167,17 +167,26 @@ function YijianBurst() {
 function BurstBody({ kind }: { kind: PlayFxKind }) {
   switch (kind) {
     case "fuxue":
+    case "shuangren":
       return <FuxueBurst />;
-    case "tuxu":
+    case "jiangang":
+    case "yangjian":
+    case "baojian":
       return <TuxuBurst />;
     case "lingtai":
+    case "xunshuang":
+    case "guishao":
       return <LingtaiBurst />;
     case "cangfeng":
+    case "shuangjian":
+    case "jianxin":
       return <CangfengBurst />;
     case "ningshuang":
       return <NingshuangBurst />;
     case "yijian":
       return <YijianBurst />;
+    default:
+      return <LingtaiBurst />;
   }
 }
 

@@ -6,23 +6,35 @@ import {
 
 export type SwordCardTemplateId =
   | "fuxue"
-  | "tuxu"
+  | "shuangren"
   | "lingtai"
-  | "cangfeng"
+  | "jiangang"
   | "ningshuang"
+  | "guishao"
+  | "xunshuang"
+  | "yangjian"
+  | "cangfeng"
+  | "shuangjian"
+  | "jianxin"
+  | "baojian"
   | "yijian";
 
 export type CardTemplateId = SwordCardTemplateId | KarmaCardTemplateId;
 
 export type CardEffect =
   | { kind: "damage"; amount: number }
-  | { kind: "damage_consume_intent"; base: number; perStack: number }
+  | { kind: "multi_damage"; amount: number; hits: number }
+  | { kind: "damage_yijian"; base: number; perIntent: number }
   | { kind: "gain_intent"; amount: number }
-  | { kind: "gain_dodge"; amount: number }
+  | { kind: "gain_sword_guard"; amount: number }
+  | { kind: "gain_nurture"; amount: number }
   | { kind: "draw"; amount: number }
   | { kind: "gain_energy"; amount: number }
-  | { kind: "refund_if_intent_gte"; threshold: number; amount: number }
-  | { kind: "buff_next_sword"; percent: number }
+  | { kind: "apply_vulnerability" }
+  | { kind: "find_yijian" }
+  | { kind: "power_cangfeng" }
+  | { kind: "power_shuangjian" }
+  | { kind: "power_jianxin" }
   | { kind: "karma" };
 
 export interface CardTemplate {
@@ -36,8 +48,12 @@ export interface CardTemplate {
   /** 小型技能圖標；缺省可不顯示 */
   icon?: string;
   isExhaust?: boolean;
+  /** 能力牌 */
+  isPower?: boolean;
   /** 回合結束不棄置（保留） */
   isRetain?: boolean;
+  /** 攻擊牌（觸發破綻） */
+  isAttack?: boolean;
   sword?: boolean;
   effects: CardEffect[];
 }
@@ -57,68 +73,143 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
   fuxue: {
     id: "fuxue",
     name: "拂雪流光",
-    type: "基礎劍招",
+    type: "攻擊",
     cost: 1,
-    description: "造成 6 點劍氣傷害。獲得 1 層【劍意】。",
+    description: "造成 7 點傷害。\n獲得 2 點【劍意】。",
+    isAttack: true,
     sword: true,
     effects: [
-      { kind: "damage", amount: 6 },
-      { kind: "gain_intent", amount: 1 },
+      { kind: "damage", amount: 7 },
+      { kind: "gain_intent", amount: 2 },
     ],
   },
-  tuxu: {
-    id: "tuxu",
-    name: "踏虛掠影",
-    type: "劍步身法",
-    cost: 1,
-    description: "獲得 1 層【閃避】（1 層 50%、2 層 100% 免疫下次攻擊）。",
-    effects: [{ kind: "gain_dodge", amount: 1 }],
+  shuangren: {
+    id: "shuangren",
+    name: "霜刃連斬",
+    type: "攻擊",
+    cost: 2,
+    description: "造成 6 點傷害 3 次。\n賦予【破綻】。",
+    isAttack: true,
+    sword: true,
+    effects: [
+      { kind: "multi_damage", amount: 6, hits: 3 },
+      { kind: "apply_vulnerability" },
+    ],
   },
   lingtai: {
     id: "lingtai",
     name: "靈台觀劍",
-    type: "劍道悟性",
+    type: "技能",
     cost: 1,
-    description: "抽 2 張牌。若【劍意】≥2，返還 1 點真元。",
+    description: "獲得 1 點【劍意】。\n抽 2 張牌。",
     effects: [
+      { kind: "gain_intent", amount: 1 },
       { kind: "draw", amount: 2 },
-      { kind: "refund_if_intent_gte", threshold: 2, amount: 1 },
     ],
   },
-  cangfeng: {
-    id: "cangfeng",
-    name: "藏鋒蘊雷",
-    type: "劍道蓄勢",
-    cost: 0,
-    description: "獲得 1 點真元。打出後【消耗】（本場不再出現）。",
-    isExhaust: true,
-    effects: [{ kind: "gain_energy", amount: 1 }],
+  jiangang: {
+    id: "jiangang",
+    name: "劍罡護體",
+    type: "技能",
+    cost: 1,
+    description: "獲得 7 點【劍罡】。",
+    effects: [{ kind: "gain_sword_guard", amount: 7 }],
   },
   ningshuang: {
     id: "ningshuang",
-    name: "凝霜養魂",
-    type: "劍意增幅",
+    name: "凝霜入鞘",
+    type: "技能",
     cost: 1,
-    description: "獲得 2 層【劍意】，下一張劍法傷害 +50%。",
+    description: "獲得 4 點【劍意】。",
+    effects: [{ kind: "gain_intent", amount: 4 }],
+  },
+  guishao: {
+    id: "guishao",
+    name: "歸鞘",
+    type: "技能",
+    cost: 0,
+    description: "獲得 1 點真元。\n抽 1 張牌。\n【消耗】",
+    isExhaust: true,
     effects: [
-      { kind: "gain_intent", amount: 2 },
-      { kind: "buff_next_sword", percent: 0.5 },
+      { kind: "gain_energy", amount: 1 },
+      { kind: "draw", amount: 1 },
+    ],
+  },
+  xunshuang: {
+    id: "xunshuang",
+    name: "尋霜",
+    type: "技能",
+    cost: 1,
+    description:
+      "將【一劍霜寒】從抽牌堆或棄牌堆加入手牌。\n並獲得 3 點【劍意】。",
+    effects: [
+      { kind: "find_yijian" },
+      { kind: "gain_intent", amount: 3 },
+    ],
+  },
+  yangjian: {
+    id: "yangjian",
+    name: "養劍訣",
+    type: "技能",
+    cost: 1,
+    description:
+      "獲得 1 層【養劍】。\n只要至少有 1 層，【一劍霜寒】傷害 ×2。\n每個玩家回合結束時失去 1 層。",
+    effects: [{ kind: "gain_nurture", amount: 1 }],
+  },
+  cangfeng: {
+    id: "cangfeng",
+    name: "藏鋒待發",
+    type: "能力",
+    cost: 1,
+    description: "本場戰鬥中：【一劍霜寒】費用 -1。\n可疊加，最低費用為 0。\n【能力】",
+    isPower: true,
+    effects: [{ kind: "power_cangfeng" }],
+  },
+  shuangjian: {
+    id: "shuangjian",
+    name: "霜劍護主",
+    type: "能力",
+    cost: 1,
+    description:
+      "本場戰鬥中：每當打出【一劍霜寒】後，獲得 8 點【劍罡】。\n可疊加。\n【能力】",
+    isPower: true,
+    effects: [{ kind: "power_shuangjian" }],
+  },
+  jianxin: {
+    id: "jianxin",
+    name: "劍心澄明",
+    type: "能力",
+    cost: 1,
+    description:
+      "本場戰鬥中：每當你「獲得一次【劍意】」時，抽 1 張牌。\n按獲得事件計次，可疊加。\n【能力】",
+    isPower: true,
+    effects: [{ kind: "power_jianxin" }],
+  },
+  baojian: {
+    id: "baojian",
+    name: "抱劍守心",
+    type: "技能",
+    cost: 2,
+    description: "獲得 3 點【劍意】。\n獲得 12 點【劍罡】。",
+    effects: [
+      { kind: "gain_intent", amount: 3 },
+      { kind: "gain_sword_guard", amount: 12 },
     ],
   },
   yijian: {
     id: "yijian",
     name: "一劍霜寒",
-    type: "絕技終結",
+    type: "攻擊／絕技",
     cost: 2,
-    description: "造成 15 點傷害。清空【劍意】，每層額外 +6 傷害。",
+    description:
+      "造成 15＋（當前【劍意】×3）點傷害。\n不消耗劍意。\n有【養劍】時傷害 ×2。",
+    isAttack: true,
     sword: true,
-    effects: [{ kind: "damage_consume_intent", base: 15, perStack: 6 }],
+    effects: [{ kind: "damage_yijian", base: 15, perIntent: 3 }],
   },
 };
 
-function karmaToCardTemplate(
-  id: KarmaCardTemplateId
-): CardTemplate {
+function karmaToCardTemplate(id: KarmaCardTemplateId): CardTemplate {
   const k = KARMA_TEMPLATES[id];
   return {
     id: k.id,
@@ -163,6 +254,7 @@ export function createCard(templateId: CardTemplateId): Card {
     name: template.name,
     cost: template.cost,
     isExhaust: template.isExhaust,
+    isPower: template.isPower,
     isRetain: template.isRetain,
   };
 }
@@ -187,7 +279,13 @@ export function createBattleDeck(
   resetCardInstanceCounters();
   const drawPile = shuffle(templateIds.map(createCard));
   const hand = drawPile.splice(0, handSize);
-  return { drawPile, hand, discardPile: [], exhaustPile: [] };
+  return {
+    drawPile,
+    hand,
+    discardPile: [],
+    exhaustPile: [],
+    powerPile: [],
+  };
 }
 
 export const MAX_HAND_SIZE = 10;
@@ -214,7 +312,12 @@ export const drawCards = (
     }
   }
 
-  return { ...state, drawPile: newDraw, hand: newHand, discardPile: newDiscard };
+  return {
+    ...state,
+    drawPile: newDraw,
+    hand: newHand,
+    discardPile: newDiscard,
+  };
 };
 
 export function playCardFromHand(
@@ -226,10 +329,28 @@ export function playCardFromHand(
 
   const played = deck.hand[index];
   const hand = deck.hand.filter((_, i) => i !== index);
+  const template = getCardTemplate(played);
+  const isPower = played.isPower || template?.isPower;
+  const isExhaust = played.isExhaust || template?.isExhaust;
 
-  if (played.isExhaust) {
+  if (isPower) {
     return {
-      deck: { ...deck, hand, exhaustPile: [...deck.exhaustPile, played] },
+      deck: {
+        ...deck,
+        hand,
+        powerPile: [...(deck.powerPile ?? []), played],
+      },
+      played,
+    };
+  }
+
+  if (isExhaust) {
+    return {
+      deck: {
+        ...deck,
+        hand,
+        exhaustPile: [...deck.exhaustPile, played],
+      },
       played,
     };
   }
@@ -284,6 +405,98 @@ export function discardHand(deck: BattleDeckState): BattleDeckState {
   };
 }
 
+/** 依藏鋒層數同步手牌／牌堆中一劍霜寒的費用修正 */
+export function syncYijianCostModifier(
+  deck: BattleDeckState,
+  cangfengStacks: number
+): BattleDeckState {
+  const reduction = Math.max(0, cangfengStacks);
+  const map = (c: Card): Card =>
+    c.id === "yijian" ? { ...c, costModifier: -reduction } : c;
+  return {
+    ...deck,
+    hand: deck.hand.map(map),
+    drawPile: deck.drawPile.map(map),
+    discardPile: deck.discardPile.map(map),
+    exhaustPile: deck.exhaustPile.map(map),
+    powerPile: (deck.powerPile ?? []).map(map),
+  };
+}
+
+/**
+ * 尋霜：優先抽牌堆 → 棄牌堆，將既有一劍霜寒移到手牌。
+ * 已在手牌則不複製，回傳 alreadyInHand。
+ */
+export function moveYijianToHand(deck: BattleDeckState): {
+  deck: BattleDeckState;
+  moved: boolean;
+  alreadyInHand: boolean;
+} {
+  if (deck.hand.some((c) => c.id === "yijian")) {
+    return { deck, moved: false, alreadyInHand: true };
+  }
+
+  const takeFrom = (
+    pile: Card[]
+  ): { card: Card; rest: Card[] } | null => {
+    const idx = pile.findIndex((c) => c.id === "yijian");
+    if (idx < 0) return null;
+    const card = pile[idx];
+    const rest = [...pile.slice(0, idx), ...pile.slice(idx + 1)];
+    return { card, rest };
+  };
+
+  const fromDraw = takeFrom(deck.drawPile);
+  if (fromDraw) {
+    if (deck.hand.length >= MAX_HAND_SIZE) {
+      return {
+        deck: {
+          ...deck,
+          drawPile: fromDraw.rest,
+          discardPile: [...deck.discardPile, fromDraw.card],
+        },
+        moved: false,
+        alreadyInHand: false,
+      };
+    }
+    return {
+      deck: {
+        ...deck,
+        drawPile: fromDraw.rest,
+        hand: [...deck.hand, fromDraw.card],
+      },
+      moved: true,
+      alreadyInHand: false,
+    };
+  }
+
+  const fromDiscard = takeFrom(deck.discardPile);
+  if (fromDiscard) {
+    if (deck.hand.length >= MAX_HAND_SIZE) {
+      return { deck, moved: false, alreadyInHand: false };
+    }
+    return {
+      deck: {
+        ...deck,
+        discardPile: fromDiscard.rest,
+        hand: [...deck.hand, fromDiscard.card],
+      },
+      moved: true,
+      alreadyInHand: false,
+    };
+  }
+
+  return { deck, moved: false, alreadyInHand: false };
+}
+
+export function getCardHitCount(template?: CardTemplate): number {
+  if (!template) return 1;
+  for (const fx of template.effects) {
+    if (fx.kind === "multi_damage") return Math.max(1, fx.hits);
+  }
+  return 1;
+}
+
 export const SWORD_TEMPLATE_IDS = Object.keys(
   SWORD_TEMPLATES
 ) as SwordCardTemplateId[];
@@ -310,4 +523,11 @@ export function pickRandomTemplateIds(
     picked.push(list[i % list.length]);
   }
   return picked;
+}
+
+/** 過濾舊存檔中已移除的劍牌 id */
+export function sanitizeSwordDeckIds(
+  ids: CardTemplateId[]
+): CardTemplateId[] {
+  return ids.filter((id) => Boolean(CARD_TEMPLATES[id]));
 }

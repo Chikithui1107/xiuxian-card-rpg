@@ -47,9 +47,11 @@ import {
   discardHand,
   drawCards,
   MAX_ENERGY,
+  moveYijianToHand,
   pickRandomTemplateIds,
   playCardFromHand,
   getCardTemplate,
+  syncYijianCostModifier,
   SWORD_TEMPLATE_IDS,
   type CardTemplateId,
 } from "@/lib/battle-deck";
@@ -104,8 +106,9 @@ import {
 import { generateMoonNightMap } from "@/utils/mapGenerator";
 import {
   INITIAL_COMBAT_BUFFS,
+  clearSwordGuard,
   resolveCardEffects,
-  rollStackDodge,
+  tickNurtureSword,
   type CombatBuffs,
 } from "@/lib/battle-resolve";
 import { playStartCultivationSfx, playCardDrawSfx, playBattleWinSfx, playGameOverSfx } from "@/lib/combat-audio";
@@ -144,6 +147,7 @@ const EMPTY_DECK: BattleDeckState = {
   hand: [],
   discardPile: [],
   exhaustPile: [],
+  powerPile: [],
 };
 const PLAYABLE = listPlayableCharacters();
 const ACTIVE_CHAR_KEY = "xiuxian_active_character_v1";
@@ -499,7 +503,7 @@ export default function GamePage() {
   const [enemyTurnPlan, setEnemyTurnPlan] = useState<EnemyTurnPlan | null>(
     null
   );
-  const pendingPlayerHitRef = useRef<{ damage: number } | null>(null);
+  const pendingPlayerHitRef = useRef<{ hits: number[] } | null>(null);
   const impactIdRef = useRef(0);
   const playerImpactIdRef = useRef(0);
   const [isShaking, setIsShaking] = useState(false);
@@ -1417,10 +1421,13 @@ export default function GamePage() {
     }, DAMAGE_NUMBER_MS);
   }, []);
 
-  const queuePendingPlayerHit = useCallback((damage: number) => {
-    if (damage <= 0) return;
-    pendingPlayerHitRef.current = { damage };
-    setLastDamage(damage);
+  const queuePendingPlayerHit = useCallback((damage: number | number[]) => {
+    const hits = (Array.isArray(damage) ? damage : [damage]).filter(
+      (d) => d > 0
+    );
+    if (hits.length === 0) return;
+    pendingPlayerHitRef.current = { hits: [...hits] };
+    setLastDamage(hits.reduce((a, b) => a + b, 0));
   }, []);
 
   const beginVictorySequence = useCallback(
@@ -1494,10 +1501,21 @@ export default function GamePage() {
       playImpact(fx);
 
       const pending = pendingPlayerHitRef.current;
-      pendingPlayerHitRef.current = null;
-      if (!pending || pending.damage <= 0) return;
+      if (!pending || pending.hits.length === 0) return;
 
-      const dmg = pending.damage;
+      const dmg = pending.hits.shift()!;
+      if (pending.hits.length === 0) {
+        pendingPlayerHitRef.current = null;
+      }
+      if (dmg <= 0) {
+        if (!pendingPlayerHitRef.current) {
+          queueMicrotask(() => {
+            if (!victoryStartedRef.current) playLockRef.current = false;
+          });
+        }
+        return;
+      }
+
       let displayHp = 0;
 
       setEnemy((prev) => {
@@ -1524,9 +1542,11 @@ export default function GamePage() {
         frostSlash: character.combatPath === "sword",
       });
 
-      queueMicrotask(() => {
-        if (!victoryStartedRef.current) playLockRef.current = false;
-      });
+      if (!pendingPlayerHitRef.current) {
+        queueMicrotask(() => {
+          if (!victoryStartedRef.current) playLockRef.current = false;
+        });
+      }
     },
     [
       checkVictory,
@@ -1831,38 +1851,67 @@ export default function GamePage() {
 
       playLockRef.current = true;
 
-      const { player: nextPlayer, damage, draw, energyDelta } =
-        resolveCardEffects(template, {
+      const resolved = resolveCardEffects(
+        template,
+        {
           hp: playerHp,
           energy,
           swordIntent: combatBuffs.swordIntent,
-          dodge: combatBuffs.dodge,
-          nextSwordBonus: combatBuffs.nextSwordBonus,
-        });
+          swordGuard: combatBuffs.swordGuard,
+          nurtureSword: combatBuffs.nurtureSword,
+          cangfengStacks: combatBuffs.cangfengStacks,
+          shuangjianStacks: combatBuffs.shuangjianStacks,
+          jianxinStacks: combatBuffs.jianxinStacks,
+        },
+        { enemyVulnerable: Boolean(enemy.vulnerability) }
+      );
 
-      // 以實際支付費用覆寫模板費用差（通常相同）；允許加真元突破 3
-      const gainPart = energyDelta + template.cost;
+      let nextDeck = afterPlay;
+      if (resolved.findYijian) {
+        nextDeck = moveYijianToHand(nextDeck).deck;
+      }
+      nextDeck = syncYijianCostModifier(
+        nextDeck,
+        resolved.player.cangfengStacks
+      );
+
+      const gainPart = resolved.energyDelta + template.cost;
       setCombatBuffs({
-        swordIntent: nextPlayer.swordIntent,
-        dodge: nextPlayer.dodge,
-        nextSwordBonus: nextPlayer.nextSwordBonus,
+        swordIntent: resolved.player.swordIntent,
+        swordGuard: resolved.player.swordGuard,
+        nurtureSword: resolved.player.nurtureSword,
+        cangfengStacks: resolved.player.cangfengStacks,
+        shuangjianStacks: resolved.player.shuangjianStacks,
+        jianxinStacks: resolved.player.jianxinStacks,
       });
       setEnergy(energy - paid + gainPart);
 
-      const newDeck = drawCards(afterPlay, draw);
-      if (draw > 0) {
-        playCardDrawSfx(draw);
+      setEnemy((prev) => {
+        let next = { ...prev };
+        if (resolved.isAttack) next = { ...next, vulnerability: false };
+        if (resolved.applyVulnerability) {
+          next = { ...next, vulnerability: true };
+        }
+        return next;
+      });
+
+      const newDeck = drawCards(nextDeck, resolved.draw);
+      const syncedDeck = syncYijianCostModifier(
+        newDeck,
+        resolved.player.cangfengStacks
+      );
+      if (resolved.draw > 0) {
+        playCardDrawSfx(resolved.draw);
       }
 
-      if (damage > 0) {
-        queuePendingPlayerHit(damage);
-        setDeckState(newDeck);
-        // 解鎖與 HP 結算改由 resolveCombatImpact（命中幀）處理
+      if (resolved.damageHits.length > 0) {
+        queuePendingPlayerHit(resolved.damageHits);
+        setDeckState(syncedDeck);
         return true;
       }
 
       setLastDamage(null);
-      setDeckState(newDeck);
+      setDeckState(syncedDeck);
       queueMicrotask(() => {
         playLockRef.current = false;
       });
@@ -2048,24 +2097,18 @@ export default function GamePage() {
     setLastPassiveHeal(null);
     setLastDamage(null);
 
+    if (character.combatPath === "sword") {
+      setCombatBuffs((prev) => tickNurtureSword(prev));
+    }
+
     const intent = getEnemyIntent(enemy);
     const isAttack =
       intent.type === "attack" || intent.type === "multiAttack";
     const hitCount =
       intent.type === "multiAttack" ? Math.max(1, intent.hits ?? 1) : 1;
 
-    let anyDodge = false;
-    if (
-      character.combatPath === "sword" &&
-      isAttack &&
-      combatBuffs.dodge > 0
-    ) {
-      anyDodge = rollStackDodge(combatBuffs.dodge);
-      setCombatBuffs((prev) => ({ ...prev, dodge: 0 }));
-    }
-
     const hits: number[] = [];
-    if (isAttack && !anyDodge) {
+    if (isAttack) {
       const perHit = intent.value;
       for (let i = 0; i < hitCount; i++) hits.push(perHit);
     }
@@ -2080,14 +2123,14 @@ export default function GamePage() {
     const plan: EnemyTurnPlan = {
       intentType: intent.type,
       label: intent.label,
-      dodged: anyDodge,
+      dodged: false,
       hits,
       defendValue: intent.type === "defend" ? intent.value : 0,
       kind,
     };
 
     setEnemyTurnPlan(plan);
-    setLastDodge(anyDodge);
+    setLastDodge(false);
     setLastEnemyDamage(null);
 
     setDeckState(newDeck);
@@ -2112,12 +2155,16 @@ export default function GamePage() {
 
   const playerHpRef = useRef(playerHp);
   const karmaBlockRef = useRef(karmaState.block);
+  const swordGuardRef = useRef(combatBuffs.swordGuard);
   useEffect(() => {
     playerHpRef.current = playerHp;
   }, [playerHp]);
   useEffect(() => {
     karmaBlockRef.current = karmaState.block;
   }, [karmaState.block]);
+  useEffect(() => {
+    swordGuardRef.current = combatBuffs.swordGuard;
+  }, [combatBuffs.swordGuard]);
 
   /**
    * 敵人單段命中 → 可能拆成護盾／破盾／HP 多步；
@@ -2126,7 +2173,11 @@ export default function GamePage() {
   const takeEnemyHitSteps = useCallback(
     (rawDamage: number) => {
       const block =
-        character.combatPath === "karma" ? karmaBlockRef.current : 0;
+        character.combatPath === "karma"
+          ? karmaBlockRef.current
+          : character.combatPath === "sword"
+            ? swordGuardRef.current
+            : 0;
       return planPlayerHitSteps(block, rawDamage);
     },
     [character.combatPath]
@@ -2138,18 +2189,30 @@ export default function GamePage() {
       const amount = Math.max(0, Math.floor(step.amount));
       let displayHp = playerHpRef.current;
       let displayBlock =
-        character.combatPath === "karma" ? karmaBlockRef.current : 0;
+        character.combatPath === "karma"
+          ? karmaBlockRef.current
+          : character.combatPath === "sword"
+            ? swordGuardRef.current
+            : 0;
 
       if (step.kind === "shield" || step.kind === "shieldBreak") {
         playShieldHitSfx();
-        if (character.combatPath === "karma" && amount > 0) {
+        if (amount > 0) {
           displayBlock = Math.max(0, displayBlock - amount);
-          karmaBlockRef.current = displayBlock;
-          setKarmaState((prev) => ({
-            ...prev,
-            block: displayBlock,
-            damageTakenThisTurn: prev.damageTakenThisTurn + amount,
-          }));
+          if (character.combatPath === "karma") {
+            karmaBlockRef.current = displayBlock;
+            setKarmaState((prev) => ({
+              ...prev,
+              block: displayBlock,
+              damageTakenThisTurn: prev.damageTakenThisTurn + amount,
+            }));
+          } else if (character.combatPath === "sword") {
+            swordGuardRef.current = displayBlock;
+            setCombatBuffs((prev) => ({
+              ...prev,
+              swordGuard: displayBlock,
+            }));
+          }
         }
       } else {
         playPlayerHitSfx();
@@ -2230,13 +2293,21 @@ export default function GamePage() {
       return;
     }
 
-    setDeckState((prev) => drawCards(prev, COMBAT_HAND_SIZE));
+    setDeckState((prev) => {
+      const drawn = drawCards(prev, COMBAT_HAND_SIZE);
+      return character.combatPath === "sword"
+        ? syncYijianCostModifier(drawn, combatBuffs.cangfengStacks)
+        : drawn;
+    });
     playCardDrawSfx(COMBAT_HAND_SIZE);
 
     if (character.combatPath === "karma") {
       setKarmaState((prev) => beginKarmaPlayerTurn(prev));
     }
-  }, [phase, character.combatPath]);
+    if (character.combatPath === "sword") {
+      setCombatBuffs((prev) => clearSwordGuard(prev));
+    }
+  }, [phase, character.combatPath, combatBuffs.cangfengStacks]);
 
   const finishEndTurnSequence = useCallback(() => {
     playLockRef.current = false;
@@ -2567,7 +2638,11 @@ export default function GamePage() {
             onEndTurnDraw={completeEndTurnDraw}
             onEndTurnSequenceDone={finishEndTurnSequence}
             karmaMarks={karmaState.karmaMarks}
-            block={karmaState.block}
+            block={
+              character.combatPath === "karma"
+                ? karmaState.block
+                : combatBuffs.swordGuard
+            }
             karmaMode={character.combatPath === "karma"}
             frostSlash={character.combatPath === "sword"}
             yinPullUsed={karmaState.yinPullUsedThisTurn}

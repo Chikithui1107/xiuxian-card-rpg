@@ -37,7 +37,7 @@ export interface PlayableCharacter extends Hero {
 const BAIYE_DECK: CardTemplateId[] = [
   "fuxue",
   "fuxue",
-  "tuxu",
+  "jiangang",
   "lingtai",
 ];
 
@@ -48,7 +48,7 @@ export const PLAYABLE_CHARACTERS: PlayableCharacter[] = [
     title: "劍修",
     realm: "築基中期",
     description:
-      "以劍意為核，擅長閃避、蓄勢與爆發。戰鬥採用劍修牌組與劍意機制。",
+      "以養劍為核，積蓄劍意、凝結劍罡，最終以一劍霜寒破敵。",
     baseAttack: 120,
     critRate: 0.15,
     critMultiplier: 2.0,
@@ -59,7 +59,7 @@ export const PLAYABLE_CHARACTERS: PlayableCharacter[] = [
     lobbyPortrait: "/images/baiye/baiye-character.png",
     lobbyBackground: "/images/baiye/baiye-bg.png",
     startingDeck: [...BAIYE_DECK],
-    skillLabels: ["拂雪流光", "踏虛掠影", "靈台觀劍"],
+    skillLabels: ["拂雪流光", "劍罡護體", "靈台觀劍", "一劍霜寒"],
     combatPath: "sword",
     passiveId: "sword_intent",
     mechanicId: "sword",

@@ -28,6 +28,7 @@ import {
 import {
   CARD_TEMPLATES,
   cardIsRetain,
+  getCardHitCount,
   type CardTemplateId,
 } from "@/lib/battle-deck";
 import type { Card } from "@/types/battle";
@@ -979,22 +980,29 @@ export function CombatView({
         }, playFxDurationMs(fx));
       }, ATTACK_WINDUP_MS);
 
-      // ★ 統一 impact：音效 + HP + 數字 + shake（同一回呼）
-      window.setTimeout(() => {
-        onCombatImpact?.(fx);
-        if (shouldScreenFlash(fx)) {
-          setScreenFlash(true);
-          window.setTimeout(() => setScreenFlash(false), 480);
-        }
-        if (damage) {
-          setHitFlash(true);
-          window.setTimeout(
-            () => setHitFlash(false),
-            fx === "yijian" ? 320 : 220
-          );
-        }
-        setFlights((prev) => prev.filter((f) => f.key !== key));
-      }, IMPACT_AT_MS);
+      const hitCount = damage ? getCardHitCount(template) : 1;
+
+      // ★ 統一 impact：可多段（霜刃連斬）
+      for (let hit = 0; hit < hitCount; hit++) {
+        const at = IMPACT_AT_MS + hit * ENEMY_MULTI_HIT_GAP_MS;
+        window.setTimeout(() => {
+          onCombatImpact?.(fx);
+          if (hit === 0 && shouldScreenFlash(fx)) {
+            setScreenFlash(true);
+            window.setTimeout(() => setScreenFlash(false), 480);
+          }
+          if (damage) {
+            setHitFlash(true);
+            window.setTimeout(
+              () => setHitFlash(false),
+              fx === "yijian" ? 320 : 220
+            );
+          }
+          if (hit === hitCount - 1) {
+            setFlights((prev) => prev.filter((f) => f.key !== key));
+          }
+        }, at);
+      }
 
       window.setTimeout(() => {
         logHandLayerRects("during-play-flight");

@@ -239,7 +239,7 @@ export function CardFace({
             </p>
           ))
         ) : (
-          <p className="ink-card-face__line">{description}</p>
+          <p className="ink-card-face__line whitespace-pre-line">{description}</p>
         )}
       </div>
 

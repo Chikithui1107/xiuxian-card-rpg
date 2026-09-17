@@ -1,4 +1,8 @@
-import type { CardTemplate, CardTemplateId } from "@/lib/battle-deck";
+import {
+  CARD_TEMPLATES,
+  type CardTemplate,
+  type CardTemplateId,
+} from "@/lib/battle-deck";
 
 /** 每張牌獨立特效身份 */
 export type PlayFxKind = CardTemplateId;
@@ -7,15 +11,18 @@ export function getPlayFxKind(template?: CardTemplate): PlayFxKind {
   return template?.id ?? "fuxue";
 }
 
-export function isDamagePlayFx(kind: PlayFxKind): boolean {
-  return (
-    kind === "fuxue" ||
-    kind === "yijian" ||
-    kind === "qiandhen" ||
-    kind === "zhongyin" ||
-    kind === "suye" ||
-    kind === "yinian"
+function templateHasDamage(template?: CardTemplate): boolean {
+  if (!template) return false;
+  return template.effects.some(
+    (fx) =>
+      fx.kind === "damage" ||
+      fx.kind === "multi_damage" ||
+      fx.kind === "damage_yijian"
   );
+}
+
+export function isDamagePlayFx(kind: PlayFxKind): boolean {
+  return templateHasDamage(CARD_TEMPLATES[kind]);
 }
 
 export function shouldScreenFlash(kind: PlayFxKind): boolean {
@@ -27,8 +34,11 @@ export function playFxDurationMs(kind: PlayFxKind): number {
     case "yijian":
       return 780;
     case "fuxue":
+    case "shuangren":
       return 680;
     case "cangfeng":
+    case "shuangjian":
+    case "jianxin":
       return 640;
     default:
       return 560;

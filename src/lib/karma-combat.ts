@@ -106,6 +106,7 @@ export function endKarmaPlayerTurn(
     hand: deck.hand.map(clearTurnTemporaryState),
     discardPile: deck.discardPile.map(clearTurnTemporaryState),
     exhaustPile: deck.exhaustPile.map(clearTurnTemporaryState),
+    powerPile: (deck.powerPile ?? []).map(clearTurnTemporaryState),
   };
 
   return {

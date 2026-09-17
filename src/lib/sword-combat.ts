@@ -1,33 +1,15 @@
 import type { Card, CardPlayResult, CombatBuffs } from "@/types/card";
 
+/** 舊 MVP 路徑保留；正式白夜戰鬥改走 battle-resolve */
 export function createEmptyBuffs(): CombatBuffs {
   return { swordIntent: 0, dodgeStacks: 0, nextSwordDamageBonus: 0 };
 }
 
-/** 層數閃避：1 層 50%、2 層及以上 100%，觸發後清零 */
-export function rollStackDodge(stacks: number): boolean {
-  if (stacks <= 0) return false;
-  const chance = Math.min(1, stacks * 0.5);
-  return Math.random() < chance;
-}
-
-export function getStackDodgeChance(stacks: number): number {
-  if (stacks <= 0) return 0;
-  return Math.min(1, stacks * 0.5);
-}
-
-function isSwordTechnique(card: Card): boolean {
-  return card.tags?.includes("劍法") ?? false;
-}
-
 function applySwordDamageBonus(
   damage: number,
-  card: Card,
   buffs: CombatBuffs
 ): { damage: number; buffs: CombatBuffs } {
-  if (!isSwordTechnique(card) || buffs.nextSwordDamageBonus <= 0) {
-    return { damage, buffs };
-  }
+  if (buffs.nextSwordDamageBonus <= 0) return { damage, buffs };
   return {
     damage: Math.floor(damage * (1 + buffs.nextSwordDamageBonus)),
     buffs: { ...buffs, nextSwordDamageBonus: 0 },
@@ -43,17 +25,19 @@ export function resolveCardPlay(card: Card, buffs: CombatBuffs): CardPlayResult 
   for (const effect of card.effects) {
     switch (effect.kind) {
       case "damage": {
-        let applied = applySwordDamageBonus(effect.amount, card, nextBuffs);
-        nextBuffs = applied.buffs;
+        const applied = applySwordDamageBonus(effect.amount, nextBuffs);
         totalDamage += applied.damage;
+        nextBuffs = applied.buffs;
         break;
       }
       case "damage_consume_sword_intent": {
         const stacks = nextBuffs.swordIntent;
-        let raw = effect.base + stacks * effect.perStack;
-        let applied = applySwordDamageBonus(raw, card, nextBuffs);
-        nextBuffs = { ...applied.buffs, swordIntent: 0 };
+        const applied = applySwordDamageBonus(
+          effect.base + stacks * effect.perStack,
+          nextBuffs
+        );
         totalDamage += applied.damage;
+        nextBuffs = { ...applied.buffs, swordIntent: 0 };
         break;
       }
       case "gain_sword_intent":
@@ -80,10 +64,7 @@ export function resolveCardPlay(card: Card, buffs: CombatBuffs): CardPlayResult 
         }
         break;
       case "buff_next_sword":
-        nextBuffs = {
-          ...nextBuffs,
-          nextSwordDamageBonus: effect.percent,
-        };
+        nextBuffs = { ...nextBuffs, nextSwordDamageBonus: effect.percent };
         break;
     }
   }

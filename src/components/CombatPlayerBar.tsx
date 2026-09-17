@@ -4,7 +4,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Hero, HeroStats } from "@/lib/stats";
 import { formatNumber } from "@/lib/stats";
 import type { CombatBuffs } from "@/lib/battle-resolve";
-import { getStackDodgeChance } from "@/lib/battle-resolve";
 import { publicAsset } from "@/lib/paths";
 import {
   DAMAGE_NUMBER_MS,
@@ -42,12 +41,14 @@ export function CombatPlayerBar({
   yangPullUsed = false,
   playerImpact = null,
 }: CombatPlayerBarProps) {
-  const dodgeChance = getStackDodgeChance(combatBuffs.dodge);
   const avatarSrc = hero.avatar ? publicAsset(hero.avatar) : null;
   const orbCount = Math.min(8, Math.max(maxEnergy, energy));
+  const swordGuard = combatBuffs.swordGuard ?? 0;
 
   const [displayHp, setDisplayHp] = useState(currentHp);
-  const [displayBlock, setDisplayBlock] = useState(block);
+  const [displayBlock, setDisplayBlock] = useState(
+    karmaMode ? block : swordGuard
+  );
   const [hitShake, setHitShake] = useState(false);
   const [hitFlash, setHitFlash] = useState(false);
   const [shieldHit, setShieldHit] = useState(false);
@@ -59,10 +60,10 @@ export function CombatPlayerBar({
   const [blockPulse, setBlockPulse] = useState(false);
   const [shieldAura, setShieldAura] = useState(false);
   const [intentPulse, setIntentPulse] = useState(false);
-  const [dodgePulse, setDodgePulse] = useState(false);
-  const prevBlock = useRef(block);
+  const [guardPulse, setGuardPulse] = useState(false);
+  const prevBlock = useRef(karmaMode ? block : swordGuard);
   const prevIntent = useRef(combatBuffs.swordIntent);
-  const prevDodge = useRef(combatBuffs.dodge);
+  const prevGuard = useRef(swordGuard);
   const lastImpactId = useRef(0);
   const timersRef = useRef<number[]>([]);
 
@@ -120,23 +121,24 @@ export function CombatPlayerBar({
 
   useEffect(() => {
     if (playerImpact) return;
-    setDisplayBlock(block);
-  }, [block, playerImpact]);
+    setDisplayBlock(karmaMode ? block : swordGuard);
+  }, [block, swordGuard, karmaMode, playerImpact]);
 
+  const trackedBlock = karmaMode ? block : swordGuard;
   useEffect(() => {
-    if (block > prevBlock.current) {
+    if (trackedBlock > prevBlock.current) {
       setBlockPulse(true);
       setShieldAura(true);
       const tPulse = window.setTimeout(() => setBlockPulse(false), STAT_PULSE_MS);
       const tAura = window.setTimeout(() => setShieldAura(false), SHIELD_AURA_MS);
-      prevBlock.current = block;
+      prevBlock.current = trackedBlock;
       return () => {
         window.clearTimeout(tPulse);
         window.clearTimeout(tAura);
       };
     }
-    prevBlock.current = block;
-  }, [block]);
+    prevBlock.current = trackedBlock;
+  }, [trackedBlock]);
 
   useEffect(() => {
     if (combatBuffs.swordIntent > prevIntent.current) {
@@ -149,17 +151,30 @@ export function CombatPlayerBar({
   }, [combatBuffs.swordIntent]);
 
   useEffect(() => {
-    if (combatBuffs.dodge > prevDodge.current) {
-      setDodgePulse(true);
-      const t = window.setTimeout(() => setDodgePulse(false), STAT_PULSE_MS);
-      prevDodge.current = combatBuffs.dodge;
+    if (swordGuard > prevGuard.current) {
+      setGuardPulse(true);
+      const t = window.setTimeout(() => setGuardPulse(false), STAT_PULSE_MS);
+      prevGuard.current = swordGuard;
       return () => window.clearTimeout(t);
     }
-    prevDodge.current = combatBuffs.dodge;
-  }, [combatBuffs.dodge]);
+    prevGuard.current = swordGuard;
+  }, [swordGuard]);
 
   const hpPercent = Math.max(0, (displayHp / stats.maxHp) * 100);
-  const showBlock = karmaMode ? displayBlock : block;
+  const showBlock = displayBlock;
+
+  const powerBits: string[] = [];
+  if (!karmaMode) {
+    if (combatBuffs.cangfengStacks > 0) {
+      powerBits.push(`藏鋒×${combatBuffs.cangfengStacks}`);
+    }
+    if (combatBuffs.shuangjianStacks > 0) {
+      powerBits.push(`霜劍×${combatBuffs.shuangjianStacks}`);
+    }
+    if (combatBuffs.jianxinStacks > 0) {
+      powerBits.push(`劍心×${combatBuffs.jianxinStacks}`);
+    }
+  }
 
   return (
     <div
@@ -253,47 +268,44 @@ export function CombatPlayerBar({
                   {combatBuffs.swordIntent}
                 </span>
               </span>
-              <span className={dodgePulse ? "hud-stat-pulse" : undefined}>
-                閃避{" "}
+              <span
+                className={
+                  guardPulse || blockPulse ? "hud-stat-pulse" : undefined
+                }
+              >
+                劍罡{" "}
                 <span
                   className={
-                    combatBuffs.dodge > 0
-                      ? "font-semibold text-[#9fd0c0]"
+                    swordGuard > 0
+                      ? "font-semibold text-[#9ab8aa]"
                       : "tabular-nums"
                   }
                 >
-                  {combatBuffs.dodge > 0
-                    ? `${combatBuffs.dodge}·${Math.round(dodgeChance * 100)}%`
-                    : "0"}
+                  {swordGuard}
                 </span>
               </span>
-              {combatBuffs.nextSwordBonus > 0 && (
+              {combatBuffs.nurtureSword > 0 && (
                 <span className="font-semibold text-[#e0a0a0]">
-                  養劍 +{Math.round(combatBuffs.nextSwordBonus * 100)}%
+                  養劍 {combatBuffs.nurtureSword}
                 </span>
               )}
             </>
           )}
         </div>
+        {!karmaMode && powerBits.length > 0 && (
+          <p className="mt-0.5 truncate text-[9px] tracking-wide text-stone-500">
+            {powerBits.join(" · ")}
+          </p>
+        )}
       </div>
 
       {dmgFloat && (
-        <div
+        <span
           key={dmgFloat.id}
-          className={`player-dmg-float ${
-            dmgFloat.kind === "hp"
-              ? "player-dmg-float--hp"
-              : dmgFloat.kind === "shieldBreak"
-                ? "player-dmg-float--break"
-                : "player-dmg-float--shield"
-          }`}
+          className={`player-dmg-float player-dmg-float--${dmgFloat.kind}`}
         >
-          {dmgFloat.kind === "hp"
-            ? `-${dmgFloat.amount}`
-            : dmgFloat.kind === "shieldBreak"
-              ? `護盾破裂 -${dmgFloat.amount}`
-              : `護盾 -${dmgFloat.amount}`}
-        </div>
+          -{dmgFloat.amount}
+        </span>
       )}
     </div>
   );

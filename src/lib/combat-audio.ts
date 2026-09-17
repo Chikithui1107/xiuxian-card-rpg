@@ -110,7 +110,9 @@ async function playSample(
 
 function whooshKey(kind?: PlayFxKind): string | null {
   switch (kind) {
-    case "tuxu":
+    case "jiangang":
+    case "yangjian":
+    case "baojian":
       return "tuxu_whoosh";
     default:
       return null;
@@ -120,6 +122,8 @@ function whooshKey(kind?: PlayFxKind): string | null {
 function impactKey(kind: PlayFxKind): string | null {
   switch (kind) {
     case "fuxue":
+    case "shuangren":
+    case "yijian":
       return "fuxue_slash";
     default:
       return null;
@@ -148,7 +152,9 @@ function playSampleSync(
 /** 出牌離手：輕「唰」，不是命中 */
 export function playCardCommitWhoosh(kind?: PlayFxKind): void {
   const key = whooshKey(kind) ?? "tuxu_whoosh";
-  playSampleSync(key, kind === "tuxu" ? 0.85 : 0.32);
+  const heavy =
+    kind === "jiangang" || kind === "yangjian" || kind === "baojian";
+  playSampleSync(key, heavy ? 0.85 : 0.32);
 }
 
 export function playWhoosh(kind?: PlayFxKind): void {
