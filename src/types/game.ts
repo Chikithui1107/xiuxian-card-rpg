@@ -130,6 +130,11 @@ export interface CombatEnemy extends Enemy {
   block?: number;
   /** 破綻層數：≥1 時攻擊牌傷害 +50%；該敵人自己的回合結束時 -1 */
   vulnerabilityStacks?: number;
+  /**
+   * flat intent 數值倍率（凡途／劫數 0＝1）。
+   * 與 getEnemyForMapNode 的 attack 縮放一致：tier.attackMultiplier × calamity。
+   */
+  intentScale?: number;
   /** 僅特定遭遇（如「遭遇野狼」）顯示立繪 */
   monsterSprite?: string;
 }

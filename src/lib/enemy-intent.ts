@@ -4,59 +4,60 @@ export type { EnemyIntent, EnemyIntentType };
 
 interface IntentTemplate {
   type: EnemyIntentType;
-  /** 相對 attackDamage 的倍率；defend 等可改用 flat */
+  /** 相對 attackDamage 的倍率；defend／固定傷害可改用 flat */
   valueScale?: number;
+  /** 凡途／劫數 0 的絕對數值（會乘 intentScale） */
   flatValue?: number;
   hits?: number;
   label: string;
 }
 
-/** 妖狼：普通攻擊 → 普通攻擊 → 連擊 */
+/** 妖狼：撕咬 → 撲擊 → 連爪 4×3 */
 const WOLF_SCHEDULE: IntentTemplate[] = [
-  { type: "attack", valueScale: 1, label: "撕咬" },
-  { type: "attack", valueScale: 1, label: "撕咬" },
-  { type: "multiAttack", valueScale: 0.75, hits: 2, label: "連撲" },
+  { type: "attack", flatValue: 6, label: "撕咬" },
+  { type: "attack", flatValue: 7, label: "撲擊" },
+  { type: "multiAttack", flatValue: 4, hits: 3, label: "連爪" },
 ];
 
-/** 劫修：攻擊 → 防禦 → 重擊 */
+/** 劫修：橫斬 → 護體靈氣 +8 → 重斬 */
 const BANDIT_SCHEDULE: IntentTemplate[] = [
-  { type: "attack", valueScale: 1, label: "斬擊" },
-  { type: "defend", flatValue: 8, label: "守勢" },
-  { type: "attack", valueScale: 1.65, label: "重擊" },
+  { type: "attack", flatValue: 7, label: "橫斬" },
+  { type: "defend", flatValue: 8, label: "護體靈氣" },
+  { type: "attack", flatValue: 12, label: "重斬" },
 ];
 
-/** 青鱗靈蛇：纏身 → 毒牙 → 雙噬 */
+/** 青鱗靈蛇：雙噬 4×2 → 毒牙 → 亂噬 4×3 */
 const SPIRIT_SNAKE_SCHEDULE: IntentTemplate[] = [
-  { type: "defend", flatValue: 6, label: "纏身" },
-  { type: "attack", valueScale: 1.25, label: "毒牙" },
-  { type: "multiAttack", valueScale: 0.7, hits: 2, label: "雙噬" },
+  { type: "multiAttack", flatValue: 4, hits: 2, label: "雙噬" },
+  { type: "attack", flatValue: 8, label: "毒牙" },
+  { type: "multiAttack", flatValue: 4, hits: 3, label: "亂噬" },
 ];
 
-/** 叛劍客（精英）：試探 → 架劍 → 三連斬 */
+/** 叛劍客：劍斬 → 護身劍罡 +10 → 三連劍 5×3 */
 const TRAITOR_SCHEDULE: IntentTemplate[] = [
-  { type: "attack", valueScale: 1, label: "試探" },
-  { type: "defend", flatValue: 10, label: "架劍" },
-  { type: "multiAttack", valueScale: 0.85, hits: 3, label: "三連斬" },
+  { type: "attack", flatValue: 9, label: "劍斬" },
+  { type: "defend", flatValue: 10, label: "護身劍罡" },
+  { type: "multiAttack", flatValue: 5, hits: 3, label: "三連劍" },
 ];
 
-/** 裂石猿：護身 → 碎岩拳 → 蓄勢 → 崩山 */
+/** 裂石猿：石甲 → 碎岩拳 → 蓄勢 → 崩山 */
 const STONE_APE_SCHEDULE: IntentTemplate[] = [
-  { type: "defend", flatValue: 12, label: "護身" },
-  { type: "attack", valueScale: 1.15, label: "碎岩拳" },
+  { type: "defend", flatValue: 14, label: "石甲" },
+  { type: "attack", flatValue: 11, label: "碎岩拳" },
   { type: "special", flatValue: 0, label: "蓄勢" },
-  { type: "attack", valueScale: 2.0, label: "崩山" },
+  { type: "attack", flatValue: 22, label: "崩山" },
 ];
 
-/** 噬靈虎王：虎爪 → 護體 → 連撲 → 怒吼 → 噬靈撲殺 */
+/** 噬靈虎王：虎爪 → 連撲 → 妖氣護體 → 怒吼 · 蓄勢 → 噬靈撲殺 */
 const DEMONIC_TIGER_SCHEDULE: IntentTemplate[] = [
-  { type: "attack", valueScale: 1, label: "虎爪" },
-  { type: "defend", flatValue: 10, label: "妖風護體" },
-  { type: "multiAttack", valueScale: 0.65, hits: 3, label: "連撲" },
-  { type: "special", flatValue: 0, label: "怒吼" },
-  { type: "attack", valueScale: 2.1, label: "噬靈撲殺" },
+  { type: "attack", flatValue: 10, label: "虎爪" },
+  { type: "multiAttack", flatValue: 5, hits: 3, label: "連撲" },
+  { type: "defend", flatValue: 12, label: "妖氣護體" },
+  { type: "special", flatValue: 0, label: "怒吼 · 蓄勢" },
+  { type: "attack", flatValue: 24, label: "噬靈撲殺" },
 ];
 
-/** 血魔長老：血爪 → 蓄力 → 血爆 */
+/** 血魔長老：血爪 → 蓄力 → 血爆（後續境界，維持 scale） */
 const ELDER_SCHEDULE: IntentTemplate[] = [
   { type: "attack", valueScale: 1, label: "血爪" },
   { type: "special", flatValue: 0, label: "蓄力" },
@@ -114,13 +115,23 @@ function resolveTemplate(
   template: IntentTemplate,
   enemy: CombatEnemy
 ): EnemyIntent {
-  let value =
-    template.flatValue != null
-      ? template.flatValue
-      : Math.max(
-          1,
-          Math.floor(enemy.attackDamage * (template.valueScale ?? 1))
-        );
+  const intentScale = enemy.intentScale ?? 1;
+  let value: number;
+
+  if (template.flatValue != null) {
+    if (template.type === "special") {
+      value = 0;
+    } else if (template.type === "defend") {
+      value = Math.max(0, Math.floor(template.flatValue * intentScale));
+    } else {
+      value = Math.max(1, Math.floor(template.flatValue * intentScale));
+    }
+  } else {
+    value = Math.max(
+      1,
+      Math.floor(enemy.attackDamage * (template.valueScale ?? 1))
+    );
+  }
 
   // 灼燒被動寫進鎖定值，避免預告與結算不一致
   if (

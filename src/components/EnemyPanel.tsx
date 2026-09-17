@@ -62,7 +62,7 @@ function formatIntentText(intent: EnemyIntent): string {
     case "multiAttack":
       return `${intent.value}×${intent.hits ?? 2}`;
     case "defend":
-      return `${intent.label} +${intent.value}`;
+      return `+${intent.value} 護盾`;
     case "debuff":
     case "buff":
       return intent.label;

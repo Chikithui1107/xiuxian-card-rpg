@@ -80,6 +80,7 @@ export function createScaledEnemy(
   const floorScale = 1 + (floorInTier - 1) * 0.08;
   const calamityHp = 1 + Math.max(0, calamityLevel) * 0.08;
   const calamityAtk = 1 + Math.max(0, calamityLevel) * 0.05;
+  const intentScale = tier.attackMultiplier * calamityAtk;
   const maxHp = Math.floor(
     base.maxHp * tier.hpMultiplier * floorScale * calamityHp
   );
@@ -99,6 +100,7 @@ export function createScaledEnemy(
     passiveLabel: tier.passiveDescription,
     intentIndex: 0,
     block: 0,
+    intentScale,
     monsterSprite: ENEMY_SPRITE_ID[base.id],
   });
 }
@@ -139,6 +141,7 @@ export function getEnemyForMapNode(
   const stepScale = 1 + node.tier * 0.04;
   const calamityHp = 1 + Math.max(0, calamityLevel) * 0.08;
   const calamityAtk = 1 + Math.max(0, calamityLevel) * 0.05;
+  const intentScale = tier.attackMultiplier * calamityAtk;
   // 以敵人模板血攻為準（同類型節點也能有差異）；舊邏輯 NODE_BASE 僅作無模板時備援
   const baseHp = template.maxHp || NODE_BASE_HP[node.type];
   const baseAtk = template.attackDamage || NODE_BASE_ATTACK[node.type];
@@ -167,6 +170,7 @@ export function getEnemyForMapNode(
       : null,
     intentIndex: 0,
     block: 0,
+    intentScale,
     monsterSprite: ENEMY_SPRITE_ID[template.id],
   });
 }

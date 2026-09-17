@@ -4,54 +4,54 @@
     "name": "妖狼",
     "monsterId": "demon_wolf",
     "realm": "練氣圓滿",
-    "maxHp": 45,
+    "maxHp": 38,
     "attackDamage": 7,
-    "description": "盤踞山道的低階妖獸，適合熱身"
+    "description": "盤踞山道的低階妖獸，進攻型基礎敵人。"
   },
   {
     "id": "enemy_bandit",
     "name": "劫修",
     "monsterId": "bandit",
     "realm": "練氣後期",
-    "maxHp": 45,
+    "maxHp": 44,
     "attackDamage": 8,
-    "description": "散修惡徒，劍招粗淺但兇狠"
+    "description": "散修惡徒，會以護體靈氣爭取喘息。"
   },
   {
     "id": "enemy_spirit_snake",
     "name": "青鱗靈蛇",
     "monsterId": "spirit_snake",
     "realm": "練氣後期",
-    "maxHp": 38,
+    "maxHp": 34,
     "attackDamage": 8,
-    "description": "潛伏溪澗的靈蛇，動作迅捷，擅長連續撕咬。"
+    "description": "潛伏溪澗的靈蛇，低血量、擅長多段撕咬。"
   },
   {
     "id": "enemy_traitor",
     "name": "叛劍客",
     "monsterId": "traitor",
     "realm": "築基初期",
-    "maxHp": 80,
+    "maxHp": 78,
     "attackDamage": 11,
-    "description": "精英敵手，善使三連斬壓制對手"
+    "description": "精英敵手，攻防兼備，善使三連劍。"
   },
   {
     "id": "enemy_stone_ape",
     "name": "裂石猿",
     "monsterId": "stone_ape",
     "realm": "築基初期",
-    "maxHp": 95,
+    "maxHp": 96,
     "attackDamage": 12,
-    "description": "盤踞亂石谷的妖猿，皮堅如石，蓄力後的一擊極為兇猛。"
+    "description": "盤踞亂石谷的妖猿，石甲堅實，蓄勢後崩山一擊極兇。"
   },
   {
     "id": "enemy_demonic_tiger",
     "name": "噬靈虎王",
     "monsterId": "demonic_tiger",
     "realm": "築基圓滿",
-    "maxHp": 180,
+    "maxHp": 165,
     "attackDamage": 13,
-    "description": "青嵐谷深處的妖王，吞噬靈氣修行，攻勢兇猛且節奏多變。"
+    "description": "青嵐谷深處的妖王，攻勢多變，怒吼後必出噬靈撲殺。"
   },
   {
     "id": "enemy_elder",
