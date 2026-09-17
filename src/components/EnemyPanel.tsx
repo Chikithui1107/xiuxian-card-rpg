@@ -13,6 +13,7 @@ import {
   type CombatImpactFeedback,
 } from "@/lib/combat-feedback";
 import type { CombatEnemy, DamagePopup, EnemyIntent } from "@/types/game";
+import { SWORD_KEYWORD_TOOLTIPS } from "@/data/sword-keywords";
 
 interface EnemyPanelProps {
   enemy: CombatEnemy;
@@ -222,7 +223,10 @@ export function EnemyPanel({
       )}
       {enemy.vulnerabilityStacks != null &&
         enemy.vulnerabilityStacks > 0 && (
-        <p className="mt-0.5 text-[9px] font-semibold tracking-wide text-[#e09090]">
+        <p
+          className="mt-0.5 text-[9px] font-semibold tracking-wide text-[#e09090]"
+          title={SWORD_KEYWORD_TOOLTIPS.破綻}
+        >
           破綻 {enemy.vulnerabilityStacks}
         </p>
       )}

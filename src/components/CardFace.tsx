@@ -13,6 +13,27 @@ import {
 import { getKarmaTemplate, type KarmaAspect } from "@/lib/karma-deck";
 import { publicAsset } from "@/lib/paths";
 import { CARD_TYPE_ACCENT } from "@/types/game";
+import { getSwordKeywordTooltip } from "@/data/sword-keywords";
+
+function DescriptionWithKeywordTips({ text }: { text: string }) {
+  const parts = text.split(/(【[^】]+】)/g);
+  return (
+    <p className="ink-card-face__line whitespace-pre-line">
+      {parts.map((part, i) => {
+        const matched = /^【(.+)】$/.exec(part);
+        if (!matched) return <span key={i}>{part}</span>;
+        const tip = getSwordKeywordTooltip(matched[1]);
+        return tip ? (
+          <span key={i} title={tip}>
+            {part}
+          </span>
+        ) : (
+          <span key={i}>{part}</span>
+        );
+      })}
+    </p>
+  );
+}
 
 export interface CardFaceProps {
   name: string;
@@ -239,13 +260,15 @@ export function CardFace({
             </p>
           ))
         ) : (
-          <p className="ink-card-face__line whitespace-pre-line">{description}</p>
+          <DescriptionWithKeywordTips text={description} />
         )}
       </div>
 
       <footer className="ink-card-face__type">
         <p className={`ink-card-face__type-label ${typeAccent}`}>
-          <span>{type}</span>
+          <span title={type === "能力" ? getSwordKeywordTooltip("能力") : undefined}>
+            {type}
+          </span>
         </p>
         {pulledByKarma && (
           <p className="ink-card-face__meta ink-card-face__meta--pull">牽引</p>
@@ -254,7 +277,10 @@ export function CardFace({
           <p className="ink-card-face__meta ink-card-face__meta--retain">保留</p>
         )}
         {isExhaust && (
-          <p className="ink-card-face__meta ink-card-face__meta--exhaust">
+          <p
+            className="ink-card-face__meta ink-card-face__meta--exhaust"
+            title={getSwordKeywordTooltip("消耗")}
+          >
             消耗
           </p>
         )}

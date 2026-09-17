@@ -40,7 +40,7 @@ export function CardDetailPanel({
         <p className="mt-0.5 text-[9px] tracking-[0.2em] text-stone-500">
           {type}
         </p>
-        <p className="mt-1.5 text-[11px] leading-relaxed text-stone-300">
+        <p className="mt-1.5 whitespace-pre-line text-[11px] leading-relaxed text-stone-300">
           {detail}
         </p>
       </div>

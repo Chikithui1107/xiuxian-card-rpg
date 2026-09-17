@@ -101,7 +101,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     name: "靈台觀劍",
     type: "技能",
     cost: 1,
-    description: "獲得 1 點【劍意】。\n抽 2 張牌。",
+    description: "抽 2 張牌。\n獲得 1 點【劍意】。",
     effects: [
       { kind: "gain_intent", amount: 1 },
       { kind: "draw", amount: 2 },
@@ -128,7 +128,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     name: "歸鞘",
     type: "技能",
     cost: 0,
-    description: "獲得 1 點真元。\n抽 1 張牌。\n【消耗】",
+    description: "獲得 1 點真元，抽 1 張牌。\n【消耗】",
     isExhaust: true,
     effects: [
       { kind: "gain_energy", amount: 1 },
@@ -141,7 +141,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "技能",
     cost: 1,
     description:
-      "將【一劍霜寒】從抽牌堆或棄牌堆加入手牌。\n並獲得 3 點【劍意】。",
+      "將【一劍霜寒】從抽牌堆或棄牌堆加入手牌。\n獲得 3 點【劍意】。",
     effects: [
       { kind: "find_yijian" },
       { kind: "gain_intent", amount: 3 },
@@ -152,8 +152,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     name: "養劍訣",
     type: "技能",
     cost: 1,
-    description:
-      "獲得 1 層【養劍】。\n只要至少有 1 層，【一劍霜寒】傷害 ×2。\n每個玩家回合結束時失去 1 層。",
+    description: "獲得 1 層【養劍】。\n擁有【養劍】時，【一劍霜寒】傷害 ×2。",
     effects: [{ kind: "gain_nurture", amount: 1 }],
   },
   cangfeng: {
@@ -161,7 +160,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     name: "藏鋒待發",
     type: "能力",
     cost: 1,
-    description: "本場戰鬥中：【一劍霜寒】費用 -1。\n可疊加，最低費用為 0。\n【能力】",
+    description: "【一劍霜寒】費用 -1。\n可疊加。\n【能力】",
     isPower: true,
     effects: [{ kind: "power_cangfeng" }],
   },
@@ -170,8 +169,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     name: "霜劍護主",
     type: "能力",
     cost: 1,
-    description:
-      "本場戰鬥中：每當打出【一劍霜寒】後，獲得 8 點【劍罡】。\n可疊加。\n【能力】",
+    description: "打出【一劍霜寒】後，獲得 8 點【劍罡】。\n可疊加。\n【能力】",
     isPower: true,
     effects: [{ kind: "power_shuangjian" }],
   },
@@ -180,8 +178,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     name: "劍心澄明",
     type: "能力",
     cost: 1,
-    description:
-      "本場戰鬥中：每當你「獲得一次【劍意】」時，抽 1 張牌。\n按獲得事件計次，可疊加。\n【能力】",
+    description: "每當你獲得一次【劍意】，抽 1 張牌。\n可疊加。\n【能力】",
     isPower: true,
     effects: [{ kind: "power_jianxin" }],
   },
@@ -190,7 +187,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     name: "抱劍守心",
     type: "技能",
     cost: 2,
-    description: "獲得 3 點【劍意】。\n獲得 12 點【劍罡】。",
+    description: "獲得 12 點【劍罡】。\n獲得 3 點【劍意】。",
     effects: [
       { kind: "gain_intent", amount: 3 },
       { kind: "gain_sword_guard", amount: 12 },
@@ -202,7 +199,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "攻擊／絕技",
     cost: 2,
     description:
-      "造成 15＋（當前【劍意】×3）點傷害。\n不消耗劍意。\n有【養劍】時傷害 ×2。",
+      "造成 15＋當前【劍意】×3 點傷害。\n擁有【養劍】時，傷害 ×2。\n不消耗【劍意】。",
     isAttack: true,
     sword: true,
     effects: [{ kind: "damage_yijian", base: 15, perIntent: 3 }],

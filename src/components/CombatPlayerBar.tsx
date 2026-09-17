@@ -13,6 +13,7 @@ import {
   STAT_PULSE_MS,
   type PlayerImpactFeedback,
 } from "@/lib/combat-feedback";
+import { SWORD_KEYWORD_TOOLTIPS } from "@/data/sword-keywords";
 
 interface CombatPlayerBarProps {
   hero: Hero;
@@ -256,7 +257,10 @@ export function CombatPlayerBar({
             </>
           ) : (
             <>
-              <span className={intentPulse ? "hud-stat-pulse" : undefined}>
+              <span
+                className={intentPulse ? "hud-stat-pulse" : undefined}
+                title={SWORD_KEYWORD_TOOLTIPS.劍意}
+              >
                 劍意{" "}
                 <span
                   className={
@@ -272,6 +276,7 @@ export function CombatPlayerBar({
                 className={
                   guardPulse || blockPulse ? "hud-stat-pulse" : undefined
                 }
+                title={SWORD_KEYWORD_TOOLTIPS.劍罡}
               >
                 劍罡{" "}
                 <span
@@ -285,7 +290,10 @@ export function CombatPlayerBar({
                 </span>
               </span>
               {combatBuffs.nurtureSword > 0 && (
-                <span className="font-semibold text-[#e0a0a0]">
+                <span
+                  className="font-semibold text-[#e0a0a0]"
+                  title={SWORD_KEYWORD_TOOLTIPS.養劍}
+                >
                   養劍 {combatBuffs.nurtureSword}
                 </span>
               )}
