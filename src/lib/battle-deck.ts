@@ -17,6 +17,7 @@ export type SwordCardTemplateId =
   | "shuangjian"
   | "jianxin"
   | "baojian"
+  | "poshizhan"
   | "yijian";
 
 export type CardTemplateId = SwordCardTemplateId | KarmaCardTemplateId;
@@ -191,6 +192,19 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     effects: [
       { kind: "gain_intent", amount: 3 },
       { kind: "gain_sword_guard", amount: 12 },
+    ],
+  },
+  poshizhan: {
+    id: "poshizhan",
+    name: "破勢斬",
+    type: "攻擊",
+    cost: 2,
+    description: "造成 12 點傷害。\n賦予 2 層【破綻】。",
+    isAttack: true,
+    sword: true,
+    effects: [
+      { kind: "damage", amount: 12 },
+      { kind: "apply_vulnerability", amount: 2 },
     ],
   },
   yijian: {

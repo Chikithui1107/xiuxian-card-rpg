@@ -123,6 +123,7 @@ function impactKey(kind: PlayFxKind): string | null {
   switch (kind) {
     case "fuxue":
     case "shuangren":
+    case "poshizhan":
     case "yijian":
       return "fuxue_slash";
     default:

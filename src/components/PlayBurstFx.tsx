@@ -168,6 +168,7 @@ function BurstBody({ kind }: { kind: PlayFxKind }) {
   switch (kind) {
     case "fuxue":
     case "shuangren":
+    case "poshizhan":
       return <FuxueBurst />;
     case "jiangang":
     case "yangjian":

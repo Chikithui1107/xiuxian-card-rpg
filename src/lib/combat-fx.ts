@@ -35,6 +35,7 @@ export function playFxDurationMs(kind: PlayFxKind): number {
       return 780;
     case "fuxue":
     case "shuangren":
+    case "poshizhan":
       return 680;
     case "cangfeng":
     case "shuangjian":
