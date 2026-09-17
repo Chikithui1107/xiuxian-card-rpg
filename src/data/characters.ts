@@ -37,8 +37,10 @@ export interface PlayableCharacter extends Hero {
 const BAIYE_DECK: CardTemplateId[] = [
   "fuxue",
   "fuxue",
+  "ningshuang",
   "jiangang",
   "lingtai",
+  "yijian",
 ];
 
 export const PLAYABLE_CHARACTERS: PlayableCharacter[] = [
