@@ -220,9 +220,10 @@ export function EnemyPanel({
           護盾 {enemy.block}
         </p>
       )}
-      {enemy.vulnerability && (
+      {enemy.vulnerabilityStacks != null &&
+        enemy.vulnerabilityStacks > 0 && (
         <p className="mt-0.5 text-[9px] font-semibold tracking-wide text-[#e09090]">
-          破綻
+          破綻 {enemy.vulnerabilityStacks}
         </p>
       )}
       {enemy.passiveLabel && (

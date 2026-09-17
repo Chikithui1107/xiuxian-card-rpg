@@ -108,6 +108,7 @@ import {
   INITIAL_COMBAT_BUFFS,
   clearSwordGuard,
   resolveCardEffects,
+  tickEnemyVulnerabilityStacks,
   tickNurtureSword,
   type CombatBuffs,
 } from "@/lib/battle-resolve";
@@ -1863,7 +1864,7 @@ export default function GamePage() {
           shuangjianStacks: combatBuffs.shuangjianStacks,
           jianxinStacks: combatBuffs.jianxinStacks,
         },
-        { enemyVulnerable: Boolean(enemy.vulnerability) }
+        { enemyVulnerable: (enemy.vulnerabilityStacks ?? 0) > 0 }
       );
 
       let nextDeck = afterPlay;
@@ -1886,14 +1887,14 @@ export default function GamePage() {
       });
       setEnergy(energy - paid + gainPart);
 
-      setEnemy((prev) => {
-        let next = { ...prev };
-        if (resolved.isAttack) next = { ...next, vulnerability: false };
-        if (resolved.applyVulnerability) {
-          next = { ...next, vulnerability: true };
-        }
-        return next;
-      });
+      if (resolved.applyVulnerabilityStacks > 0) {
+        setEnemy((prev) => ({
+          ...prev,
+          vulnerabilityStacks:
+            (prev.vulnerabilityStacks ?? 0) +
+            resolved.applyVulnerabilityStacks,
+        }));
+      }
 
       const newDeck = drawCards(nextDeck, resolved.draw);
       const syncedDeck = syncYijianCostModifier(
@@ -2273,12 +2274,20 @@ export default function GamePage() {
     }
 
     setEnemy((prev) => {
-      let next = prev;
+      let next: CombatEnemy = {
+        ...prev,
+        vulnerabilityStacks: tickEnemyVulnerabilityStacks(
+          prev.vulnerabilityStacks
+        ),
+      };
       if (next.passive === "regen") {
         const healed = applyRegenPassive(next);
         const healAmount = healed.currentHp - next.currentHp;
         if (healAmount > 0) setLastPassiveHeal(healAmount);
-        next = healed;
+        next = {
+          ...healed,
+          vulnerabilityStacks: next.vulnerabilityStacks,
+        };
       }
       return advanceEnemyIntent(next);
     });

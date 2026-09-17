@@ -50,7 +50,7 @@ export default function RoguelikeBattleMvp() {
   const [enemy, setEnemy] = useState({
     hp: ENEMY_MAX_HP,
     intentIndex: 0,
-    vulnerability: false,
+    vulnerabilityStacks: 0,
   });
   const [deck, setDeck] = useState<BattleDeckState>(() =>
     createBattleDeck(STARTER_DECK, HAND_SIZE)
@@ -67,7 +67,7 @@ export default function RoguelikeBattleMvp() {
 
   const resetBattle = useCallback(() => {
     setPlayer(initialPlayer());
-    setEnemy({ hp: ENEMY_MAX_HP, intentIndex: 0, vulnerability: false });
+    setEnemy({ hp: ENEMY_MAX_HP, intentIndex: 0, vulnerabilityStacks: 0 });
     setDeck(createBattleDeck(STARTER_DECK, HAND_SIZE));
     setPhase("playing");
     setLastHit(null);
@@ -87,7 +87,7 @@ export default function RoguelikeBattleMvp() {
       if (!played) return;
 
       const resolved = resolveCardEffects(template, player, {
-        enemyVulnerable: enemy.vulnerability,
+        enemyVulnerable: enemy.vulnerabilityStacks > 0,
       });
 
       const updatedPlayer: PlayerBattleState = {
@@ -107,13 +107,12 @@ export default function RoguelikeBattleMvp() {
         pushLog(`打出「${card.name}」。`);
       }
 
-      let vulnerability = enemy.vulnerability;
-      if (resolved.isAttack) vulnerability = false;
-      if (resolved.applyVulnerability) vulnerability = true;
+      const vulnerabilityStacks =
+        enemy.vulnerabilityStacks + resolved.applyVulnerabilityStacks;
 
       setPlayer(updatedPlayer);
       setDeck(nextDeck);
-      setEnemy((prev) => ({ ...prev, hp: enemyHp, vulnerability }));
+      setEnemy((prev) => ({ ...prev, hp: enemyHp, vulnerabilityStacks }));
 
       if (enemyHp <= 0) {
         setPhase("won");
@@ -161,6 +160,7 @@ export default function RoguelikeBattleMvp() {
     setEnemy((prev) => ({
       ...prev,
       intentIndex: (prev.intentIndex + 1) % ENEMY_INTENTS.length,
+      vulnerabilityStacks: Math.max(0, prev.vulnerabilityStacks - 1),
     }));
 
     if (nextPlayer.hp <= 0) {
@@ -181,7 +181,9 @@ export default function RoguelikeBattleMvp() {
       <section className="rounded-lg border border-stone-800 bg-stone-900/80 p-3">
         <p className="text-sm">
           妖狼 {enemy.hp}/{ENEMY_MAX_HP}
-          {enemy.vulnerability ? " · 破綻" : ""}
+          {enemy.vulnerabilityStacks > 0
+            ? ` · 破綻 ${enemy.vulnerabilityStacks}`
+            : ""}
         </p>
         <p className="mt-1 text-xs text-stone-400">
           意圖：{currentIntent.label} — {currentIntent.description}

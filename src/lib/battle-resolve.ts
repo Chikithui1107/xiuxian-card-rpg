@@ -43,11 +43,11 @@ export interface ResolveCardResult {
   damageHits: number[];
   draw: number;
   energyDelta: number;
-  /** 是否應在結算後賦予破綻 */
-  applyVulnerability: boolean;
+  /** 結算後賦予敵人的破綻層數（0＝無） */
+  applyVulnerabilityStacks: number;
   /** 是否執行尋霜移牌 */
   findYijian: boolean;
-  /** 本牌是否為攻擊牌（觸發／消耗破綻） */
+  /** 本牌是否為攻擊牌（享受破綻加成） */
   isAttack: boolean;
 }
 
@@ -57,7 +57,8 @@ function floorDamage(n: number): number {
 
 /**
  * 結算白夜牌效果。
- * 破綻倍率套用於本張攻擊牌全部 hit；不在此清除破綻（由呼叫端在攻擊後清除）。
+ * 敵人破綻 ≥1 時，本張攻擊牌全部 hit ×1.5（層數不疊加倍率）。
+ * 破綻不在攻擊後清除，改由該敵人自己的回合結束時 -1。
  * 劍心澄明抽牌依「獲得劍意事件」次數計算，避免遞迴。
  */
 export function resolveCardEffects(
@@ -69,7 +70,7 @@ export function resolveCardEffects(
   let damageHits: number[] = [];
   let draw = 0;
   let energyDelta = -template.cost;
-  let applyVulnerability = false;
+  let applyVulnerabilityStacks = 0;
   let findYijian = false;
   let intentGainEvents = 0;
   const enemyVulnerable = Boolean(opts?.enemyVulnerable);
@@ -94,7 +95,6 @@ export function resolveCardEffects(
         let dmg = fx.base + next.swordIntent * fx.perIntent;
         if (next.nurtureSword >= 1) dmg *= 2;
         damageHits = [withVuln(dmg)];
-        // 霜劍護主：每次打出一劍霜寒後獲劍罡
         if (next.shuangjianStacks > 0) {
           next = {
             ...next,
@@ -120,7 +120,7 @@ export function resolveCardEffects(
         energyDelta += fx.amount;
         break;
       case "apply_vulnerability":
-        applyVulnerability = true;
+        applyVulnerabilityStacks += Math.max(1, fx.amount ?? 1);
         break;
       case "find_yijian":
         findYijian = true;
@@ -139,7 +139,6 @@ export function resolveCardEffects(
     }
   }
 
-  // 劍心澄明：每個獲得劍意事件抽 jianxinStacks 張（不遞迴產生新事件）
   if (intentGainEvents > 0 && next.jianxinStacks > 0) {
     draw += intentGainEvents * next.jianxinStacks;
   }
@@ -149,10 +148,16 @@ export function resolveCardEffects(
     damageHits,
     draw,
     energyDelta,
-    applyVulnerability,
+    applyVulnerabilityStacks,
     findYijian,
     isAttack,
   };
+}
+
+/** 該敵人自己的回合結束：破綻 -1（層數＝剩餘自身回合次數） */
+export function tickEnemyVulnerabilityStacks(stacks: number | undefined): number {
+  const n = Math.max(0, Math.floor(stacks ?? 0));
+  return Math.max(0, n - 1);
 }
 
 /** 玩家回合結束：養劍 -1 */

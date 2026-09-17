@@ -30,7 +30,7 @@ export type CardEffect =
   | { kind: "gain_nurture"; amount: number }
   | { kind: "draw"; amount: number }
   | { kind: "gain_energy"; amount: number }
-  | { kind: "apply_vulnerability" }
+  | { kind: "apply_vulnerability"; amount?: number }
   | { kind: "find_yijian" }
   | { kind: "power_cangfeng" }
   | { kind: "power_shuangjian" }
@@ -88,12 +88,12 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     name: "霜刃連斬",
     type: "攻擊",
     cost: 2,
-    description: "造成 6 點傷害 3 次。\n賦予【破綻】。",
+    description: "造成 6 點傷害 3 次。\n賦予 1 層【破綻】。",
     isAttack: true,
     sword: true,
     effects: [
       { kind: "multi_damage", amount: 6, hits: 3 },
-      { kind: "apply_vulnerability" },
+      { kind: "apply_vulnerability", amount: 1 },
     ],
   },
   lingtai: {

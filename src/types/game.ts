@@ -128,8 +128,8 @@ export interface CombatEnemy extends Enemy {
   pendingIntent?: EnemyIntent;
   /** 敵人護盾（防禦 intent） */
   block?: number;
-  /** 破綻：下一張攻擊牌傷害 +50% */
-  vulnerability?: boolean;
+  /** 破綻層數：≥1 時攻擊牌傷害 +50%；該敵人自己的回合結束時 -1 */
+  vulnerabilityStacks?: number;
   /** 僅特定遭遇（如「遭遇野狼」）顯示立繪 */
   monsterSprite?: string;
 }
