@@ -430,7 +430,9 @@ export function EnemyPanel({
 function DamageNumber({ popup }: { popup: DamagePopup }) {
   return (
     <div
-      className="combat-dmg-number pointer-events-none absolute font-black tabular-nums"
+      className={`combat-dmg-number pointer-events-none absolute font-black tabular-nums${
+        popup.isHighDamage ? " combat-dmg-number--high" : ""
+      }`}
       style={{
         left: `${popup.x}%`,
         top: `${popup.y}%`,

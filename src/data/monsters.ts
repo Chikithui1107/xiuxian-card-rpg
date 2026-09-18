@@ -64,8 +64,9 @@ export const DEMONIC_TIGER: MonsterConfig = {
   name: "噬靈虎王",
   image: publicAsset("/monsters/demonic_tiger.png"),
   description: "青嵐谷深處的妖王，吞噬靈氣修行，攻勢兇猛且節奏多變。",
-  visualScale: 1.22,
-  visualOffsetY: -0.3,
+  /** 素材幾乎滿畫布，略低於裂石猿以免遮血條／傷害字 */
+  visualScale: 1.06,
+  visualOffsetY: 1.5,
 };
 
 export const BLOOD_ELDER: MonsterConfig = {

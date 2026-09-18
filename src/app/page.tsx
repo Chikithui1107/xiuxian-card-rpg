@@ -483,6 +483,8 @@ export default function GamePage() {
   const [battleInstanceId, setBattleInstanceId] = useState(0);
   const [deckState, setDeckState] = useState<BattleDeckState>(EMPTY_DECK);
   const popupIdRef = useRef(0);
+  const popupStaggerRef = useRef(0);
+  const popupStaggerResetRef = useRef<number | null>(null);
   const [energy, setEnergy] = useState(MAX_ENERGY);
   const [phase, setPhase] = useState<CombatPhase>("playing");
   const [battlePhase, setBattlePhase] = useState<BattlePhase>("IN_BATTLE");
@@ -1408,13 +1410,24 @@ export default function GamePage() {
 
   const spawnDamagePopupNow = useCallback((damage: number) => {
     popupIdRef.current += 1;
+    const hitIndex = popupStaggerRef.current;
+    popupStaggerRef.current += 1;
+    if (popupStaggerResetRef.current) {
+      window.clearTimeout(popupStaggerResetRef.current);
+    }
+    popupStaggerResetRef.current = window.setTimeout(() => {
+      popupStaggerRef.current = 0;
+      popupStaggerResetRef.current = null;
+    }, 380);
+
+    // 多段傷害略錯開，避免疊在虎王胸口白毛／青焰上全糊成一團
     const popup: DamagePopup = {
       id: `popup_${popupIdRef.current}`,
       value: damage,
       isCrit: false,
       isHighDamage: damage >= HIGH_DAMAGE_THRESHOLD,
-      x: 38 + Math.random() * 24,
-      y: 28 + Math.random() * 18,
+      x: 36 + (hitIndex % 3) * 10 + Math.random() * 6,
+      y: 26 + Math.random() * 10 - hitIndex * 5,
     };
     setDamagePopups((prev) => [...prev, popup]);
     window.setTimeout(() => {

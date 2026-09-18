@@ -140,14 +140,31 @@
 .animate-seal-pulse { animation: seal-pulse 4s ease-in-out infinite; }
 
 .combat-dmg-number {
-  font-size: 1.2rem;
+  font-size: 1.45rem;
   letter-spacing: 0.02em;
-  color: #f2ebe0;
+  color: #fff8ee;
+  -webkit-text-stroke: 0.5px rgba(8, 6, 4, 0.85);
   text-shadow:
-    0 1px 0 #2a2620,
-    0 0 10px rgba(0, 0, 0, 0.55);
+    -1.5px -1.5px 0 #0a0806,
+    1.5px -1.5px 0 #0a0806,
+    -1.5px 1.5px 0 #0a0806,
+    1.5px 1.5px 0 #0a0806,
+    0 2px 3px rgba(0, 0, 0, 0.95),
+    0 0 14px rgba(0, 0, 0, 0.75);
   animation: combat-dmg-float 0.52s ease-out forwards;
   will-change: transform, opacity;
+}
+
+.combat-dmg-number--high {
+  font-size: 1.7rem;
+  color: #f0c060;
+  text-shadow:
+    -1.5px -1.5px 0 #1a1006,
+    1.5px -1.5px 0 #1a1006,
+    -1.5px 1.5px 0 #1a1006,
+    1.5px 1.5px 0 #1a1006,
+    0 2px 4px rgba(0, 0, 0, 0.95),
+    0 0 16px rgba(200, 120, 30, 0.45);
 }
 
 .enemy-sprite-hit-shake {
