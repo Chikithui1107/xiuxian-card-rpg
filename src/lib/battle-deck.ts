@@ -77,6 +77,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "攻擊",
     cost: 1,
     description: "造成 7 點傷害。\n獲得 2 點【劍意】。",
+    icon: "/cards/baiye/icons/01-fuxue-liuguang.png",
     isAttack: true,
     sword: true,
     effects: [
@@ -90,6 +91,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "攻擊",
     cost: 2,
     description: "造成 6 點傷害 3 次。\n賦予 1 層【破綻】。",
+    icon: "/cards/baiye/icons/02-shuangren-lianzhan.png",
     isAttack: true,
     sword: true,
     effects: [
@@ -103,6 +105,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "技能",
     cost: 1,
     description: "抽 2 張牌。\n獲得 1 點【劍意】。",
+    icon: "/cards/baiye/icons/03-lingtai-guanjian.png",
     effects: [
       { kind: "gain_intent", amount: 1 },
       { kind: "draw", amount: 2 },
@@ -114,6 +117,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "技能",
     cost: 1,
     description: "獲得 7 點【劍罡】。",
+    icon: "/cards/baiye/icons/04-jiangang-huti.png",
     effects: [{ kind: "gain_sword_guard", amount: 7 }],
   },
   ningshuang: {
@@ -122,6 +126,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "技能",
     cost: 1,
     description: "獲得 4 點【劍意】。",
+    icon: "/cards/baiye/icons/05-ningshuang-ruqiao.png",
     effects: [{ kind: "gain_intent", amount: 4 }],
   },
   guishao: {
@@ -130,6 +135,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "技能",
     cost: 0,
     description: "獲得 1 點真元，抽 1 張牌。\n【消耗】",
+    icon: "/cards/baiye/icons/06-guiqiao.png",
     isExhaust: true,
     effects: [
       { kind: "gain_energy", amount: 1 },
@@ -143,6 +149,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     cost: 1,
     description:
       "將【一劍霜寒】從抽牌堆或棄牌堆加入手牌。\n獲得 3 點【劍意】。",
+    icon: "/cards/baiye/icons/07-xunshuang.png",
     effects: [
       { kind: "find_yijian" },
       { kind: "gain_intent", amount: 3 },
@@ -154,6 +161,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "技能",
     cost: 1,
     description: "獲得 1 層【養劍】。\n擁有【養劍】時，【一劍霜寒】傷害 ×2。",
+    icon: "/cards/baiye/icons/08-yangjian-jue.png",
     effects: [{ kind: "gain_nurture", amount: 1 }],
   },
   cangfeng: {
@@ -162,6 +170,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "能力",
     cost: 1,
     description: "【一劍霜寒】費用 -1。\n可疊加。\n【能力】",
+    icon: "/cards/baiye/icons/09-cangfeng-daifa.png",
     isPower: true,
     effects: [{ kind: "power_cangfeng" }],
   },
@@ -171,6 +180,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "能力",
     cost: 1,
     description: "打出【一劍霜寒】後，獲得 8 點【劍罡】。\n可疊加。\n【能力】",
+    icon: "/cards/baiye/icons/10-shuangjian-huzhu.png",
     isPower: true,
     effects: [{ kind: "power_shuangjian" }],
   },
@@ -180,6 +190,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "能力",
     cost: 1,
     description: "每當你獲得一次【劍意】，抽 1 張牌。\n可疊加。\n【能力】",
+    icon: "/cards/baiye/icons/11-jianxin-chengming.png",
     isPower: true,
     effects: [{ kind: "power_jianxin" }],
   },
@@ -189,6 +200,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "技能",
     cost: 2,
     description: "獲得 12 點【劍罡】。\n獲得 3 點【劍意】。",
+    icon: "/cards/baiye/icons/12-baojian-shouxin.png",
     effects: [
       { kind: "gain_intent", amount: 3 },
       { kind: "gain_sword_guard", amount: 12 },
@@ -200,6 +212,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     type: "攻擊",
     cost: 2,
     description: "造成 12 點傷害。\n賦予 2 層【破綻】。",
+    icon: "/cards/baiye/icons/13-poshi-zhan.png",
     isAttack: true,
     sword: true,
     effects: [
@@ -214,6 +227,7 @@ const SWORD_TEMPLATES: Record<SwordCardTemplateId, CardTemplate> = {
     cost: 2,
     description:
       "造成 15＋當前【劍意】×3 點傷害。\n擁有【養劍】時，傷害 ×2。\n不消耗【劍意】。",
+    icon: "/cards/baiye/icons/14-yijian-shuanghan.png",
     isAttack: true,
     sword: true,
     effects: [{ kind: "damage_yijian", base: 15, perIntent: 3 }],
