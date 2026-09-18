@@ -19,6 +19,8 @@ export interface RouteOptionCardProps {
   tone: RouteCardTone;
   /** public path, e.g. /monsters/demon_wolf.png */
   artSrc?: string | null;
+  /** CSS object-position for art crop focus */
+  artPosition?: string;
   selected?: boolean;
   onSelect: (id: string) => void;
 }
@@ -40,6 +42,7 @@ export function RouteOptionCard({
   actionText = "踏入此途 →",
   tone,
   artSrc,
+  artPosition = "center 22%",
   selected = false,
   onSelect,
 }: RouteOptionCardProps) {
@@ -59,6 +62,7 @@ export function RouteOptionCard({
             src={publicAsset(artSrc)}
             alt=""
             className="mystic-route-card__img"
+            style={{ objectPosition: artPosition }}
             draggable={false}
           />
         ) : (
@@ -72,7 +76,11 @@ export function RouteOptionCard({
         <h3 className="mystic-route-card__title">{title}</h3>
         {description ? (
           <p className="mystic-route-card__desc">{description}</p>
-        ) : null}
+        ) : (
+          <p className="mystic-route-card__desc mystic-route-card__desc--spacer">
+            {"\u00a0"}
+          </p>
+        )}
         <span className="mystic-route-card__action">{actionText}</span>
       </div>
     </button>

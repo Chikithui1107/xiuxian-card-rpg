@@ -63,6 +63,22 @@ function routeArtSrc(node: MapNode): string | null {
   return `/monsters/${spriteId}.png`;
 }
 
+/** 路線卡立繪重心：不改原圖，只調裁切焦點 */
+const ROUTE_ART_POSITION: Record<string, string> = {
+  demon_wolf: "center 20%",
+  bandit: "center 48%",
+  spirit_snake: "center 28%",
+  traitor: "center 32%",
+  stone_ape: "center 30%",
+  demonic_tiger: "center 35%",
+};
+
+function routeArtPosition(node: MapNode): string {
+  if (!node.enemyId) return "center 30%";
+  const spriteId = ENEMY_SPRITE_ID[node.enemyId];
+  return (spriteId && ROUTE_ART_POSITION[spriteId]) || "center 30%";
+}
+
 function routeDescription(node: MapNode): string {
   if (node.enemyId && ROUTE_BLURB[node.enemyId]) {
     return ROUTE_BLURB[node.enemyId];
@@ -167,9 +183,11 @@ export function PathChoiceView({
               <span className="mystic-route-status__label mystic-route-status__label--spirit">
                 靈砂
               </span>
-              <span className="mystic-route-status__spirit-mark" aria-hidden>
-                ●
-              </span>
+              <div className="mystic-route-status__bar-wrap mystic-route-status__bar-wrap--spirit">
+                <span className="mystic-route-status__spirit-mark" aria-hidden>
+                  ●
+                </span>
+              </div>
               <span className="mystic-route-status__value mystic-route-status__value--spirit">
                 {runSpirit.toLocaleString()}
               </span>
@@ -207,13 +225,15 @@ export function PathChoiceView({
 
         <section className="mystic-route-fork" aria-label="路線選擇">
           <div className="mystic-route-fork__heading">
+            <span className="mystic-route-fork__line" aria-hidden />
             <span className="mystic-route-fork__ornament" aria-hidden>
-              ❖
+              ◇
             </span>
             <p className="mystic-route-fork__label">{forkLabel}</p>
             <span className="mystic-route-fork__ornament" aria-hidden>
-              ❖
+              ◇
             </span>
+            <span className="mystic-route-fork__line" aria-hidden />
           </div>
 
           <div
@@ -230,6 +250,7 @@ export function PathChoiceView({
                 description={routeDescription(node)}
                 tone={nodeTone(node.type)}
                 artSrc={routeArtSrc(node)}
+                artPosition={routeArtPosition(node)}
                 selected={selectedId === node.id}
                 onSelect={() => handleSelect(node)}
               />
