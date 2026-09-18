@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { MapView } from "@/components/MapView";
-import { NODE_ICONS, NODE_LABELS } from "@/lib/map";
-import type { MapNode } from "@/types/map";
+import {
+  RouteOptionCard,
+  type RouteCardTone,
+} from "@/components/RouteOptionCard";
+import { NODE_LABELS } from "@/lib/map";
+import { ENEMY_SPRITE_ID, getMonsterConfig } from "@/data/monsters";
+import { publicAsset } from "@/lib/paths";
+import type { MapNode, NodeType } from "@/types/map";
 
 interface PathChoiceViewProps {
   map: MapNode[][];
@@ -21,6 +27,47 @@ interface PathChoiceViewProps {
   mapMessage?: string | null;
   currentNodeId?: string | null;
   onSelectNode: (node: MapNode) => void;
+}
+
+const ROUTE_BLURB: Record<string, string> = {
+  enemy_wolf: "妖狼盤踞霧林，擅長撲襲。",
+  enemy_bandit: "散修惡徒攔路，劍招雖粗卻凶狠。",
+  enemy_spirit_snake: "靈蛇藏於溪霧之間，出手迅疾。",
+  enemy_traitor: "叛劍客立於斷崖，三連斬壓制對手。",
+  enemy_stone_ape: "裂石猿皮堅如石，蓄力一擊極凶。",
+  enemy_demonic_tiger: "虎王盤踞谷底，青焰噬靈，攻勢多變。",
+};
+
+const TYPE_BLURB: Record<NodeType, string> = {
+  combat: "前方妖氣隱現，宜謹慎應對。",
+  elite: "強敵據守要道，此戰不可輕敵。",
+  rest: "此地可暫歇調息，恢復氣血。",
+  shop: "雲遊散修擺攤於此，或可換取資糧。",
+  event: "奇緣未定，踏入後方知吉凶。",
+  boss: "通天塔主鎮守此境，破境在此一戰。",
+};
+
+function nodeTone(type: NodeType): RouteCardTone {
+  if (type === "combat") return "combat";
+  if (type === "elite") return "elite";
+  if (type === "event") return "event";
+  if (type === "rest") return "rest";
+  if (type === "shop") return "shop";
+  return "boss";
+}
+
+function routeArtSrc(node: MapNode): string | null {
+  if (!node.enemyId) return null;
+  const spriteId = ENEMY_SPRITE_ID[node.enemyId];
+  if (!spriteId || !getMonsterConfig({ monsterSprite: spriteId })) return null;
+  return `/monsters/${spriteId}.png`;
+}
+
+function routeDescription(node: MapNode): string {
+  if (node.enemyId && ROUTE_BLURB[node.enemyId]) {
+    return ROUTE_BLURB[node.enemyId];
+  }
+  return TYPE_BLURB[node.type];
 }
 
 export function PathChoiceView({
@@ -41,121 +88,170 @@ export function PathChoiceView({
   onSelectNode,
 }: PathChoiceViewProps) {
   const [showMap, setShowMap] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
   const hpPercent = Math.max(0, (playerHp / maxHp) * 100);
   const progressPercent =
     totalCount > 0 ? Math.min(100, (completedCount / totalCount) * 100) : 0;
   const title =
     chapterLabel && realmLabel
-      ? `${chapterLabel} · ${realmLabel}`
+      ? `${chapterLabel}・${realmLabel}`
       : tierName;
 
+  const forkLabel = useMemo(() => {
+    if (choices.length <= 1) return "前方唯餘一路";
+    if (choices.length === 2) return "前方岔路・二選一";
+    return `前方岔路・${choices.length}選一`;
+  }, [choices.length]);
+
+  const handleSelect = (node: MapNode) => {
+    setSelectedId(node.id);
+    onSelectNode(node);
+  };
+
   return (
-    <div className="flex flex-col gap-3 px-3 pb-4 pt-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="zone-label">秘境前路</p>
-          <h2 className="title-ink mt-1 text-lg font-bold tracking-wider">
-            {title}
-          </h2>
-          <p className="mt-1 text-[11px] text-stone-400">
-            本次修行 {runChapterIndex + 1} / {runChapterTotal}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setShowMap(true)}
-          className="btn-cyber shrink-0 px-3 py-1.5 text-[11px]"
-        >
-          觀秘境全圖
-        </button>
-      </div>
+    <div className="mystic-route-page">
+      <div
+        className="mystic-route-page__bg"
+        style={{
+          backgroundImage: `url(${publicAsset("/backgrounds/realm-qinglan-valley.jpg")})`,
+        }}
+        aria-hidden
+      />
+      <div className="mystic-route-page__veil" aria-hidden />
 
-      <div className="glass-panel-gold px-3 py-2.5">
-        <div className="mb-1 flex justify-between text-[10px]">
-          <span className="text-[#7aab9a]">氣血</span>
-          <span className="stat-value text-[#9ab8aa]">
-            {playerHp.toLocaleString()} / {maxHp.toLocaleString()}
-          </span>
-        </div>
-        <div className="mb-2.5 h-1.5 overflow-hidden rounded-full bg-black/40">
+      <div className="mystic-route-page__content">
+        <header className="mystic-route-header">
+          <div className="mystic-route-header__main">
+            <p className="mystic-route-header__eyebrow">秘境前路</p>
+            <h2 className="mystic-route-header__title">{title}</h2>
+            <p className="mystic-route-header__run">
+              本次修行 {runChapterIndex + 1} / {runChapterTotal}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowMap(true)}
+            className="mystic-route-map-btn"
+          >
+            <span className="mystic-route-map-btn__icon" aria-hidden>
+              ⌖
+            </span>
+            觀秘境全圖
+          </button>
+        </header>
+
+        <section className="mystic-route-status" aria-label="當前狀態">
+          <div className="mystic-route-status__seal" aria-hidden>
+            ❋
+          </div>
+          <div className="mystic-route-status__rows">
+            <div className="mystic-route-status__row">
+              <span className="mystic-route-status__label mystic-route-status__label--hp">
+                氣血
+              </span>
+              <div className="mystic-route-status__bar-wrap">
+                <div className="mystic-route-status__bar">
+                  <div
+                    className="mystic-route-status__bar-fill mystic-route-status__bar-fill--hp"
+                    style={{ width: `${hpPercent}%` }}
+                  />
+                </div>
+              </div>
+              <span className="mystic-route-status__value">
+                {playerHp.toLocaleString()} / {maxHp.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="mystic-route-status__row mystic-route-status__row--spirit">
+              <span className="mystic-route-status__label mystic-route-status__label--spirit">
+                靈砂
+              </span>
+              <span className="mystic-route-status__spirit-mark" aria-hidden>
+                ●
+              </span>
+              <span className="mystic-route-status__value mystic-route-status__value--spirit">
+                {runSpirit.toLocaleString()}
+              </span>
+            </div>
+
+            <div className="mystic-route-status__row">
+              <span className="mystic-route-status__label">本境進度</span>
+              <div className="mystic-route-status__bar-wrap">
+                <div className="mystic-route-status__bar">
+                  <div
+                    className="mystic-route-status__bar-fill mystic-route-status__bar-fill--progress"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+              </div>
+              <span className="mystic-route-status__value">
+                {completedCount} / {totalCount}
+              </span>
+            </div>
+          </div>
+          <div className="mystic-route-status__side" aria-hidden>
+            <span>修</span>
+            <span>心</span>
+            <span>問</span>
+            <span>道</span>
+          </div>
+        </section>
+
+        {mapMessage ? (
+          <div className="mystic-route-toast" role="status">
+            <p className="mystic-route-toast__label">探索結果</p>
+            <p className="mystic-route-toast__text">{mapMessage}</p>
+          </div>
+        ) : null}
+
+        <section className="mystic-route-fork" aria-label="路線選擇">
+          <div className="mystic-route-fork__heading">
+            <span className="mystic-route-fork__ornament" aria-hidden>
+              ❖
+            </span>
+            <p className="mystic-route-fork__label">{forkLabel}</p>
+            <span className="mystic-route-fork__ornament" aria-hidden>
+              ❖
+            </span>
+          </div>
+
           <div
-            className="hp-bar-fill h-full rounded-full transition-all"
-            style={{ width: `${hpPercent}%` }}
-          />
-        </div>
-        <div className="mb-2.5 flex justify-between text-[10px]">
-          <span className="text-[#c9a84c]/90">靈砂</span>
-          <span className="stat-value text-[#c9a84c]">
-            {runSpirit.toLocaleString()}
-          </span>
-        </div>
-        <div className="mb-1 flex justify-between text-[10px]">
-          <span className="text-stone-500">本境進度</span>
-          <span className="text-[#c9a84c]">
-            {completedCount}/{totalCount}
-          </span>
-        </div>
-        <div className="h-1 overflow-hidden rounded-full bg-black/40">
-          <div
-            className="h-full rounded-full bg-[#c9a84c]/70 transition-all"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-      </div>
-
-      {mapMessage && (
-        <div className="rounded-lg border border-[#8a7340]/35 bg-stone-950/80 px-3 py-2.5 text-center">
-          <p className="text-[10px] tracking-wider text-[#8a7340]">探索結果</p>
-          <p className="mt-1 text-[12px] leading-relaxed text-[#e8e0d4]">
-            {mapMessage}
-          </p>
-        </div>
-      )}
-
-      <div>
-        <p className="mb-2 text-center text-[11px] tracking-[0.2em] text-stone-500">
-          {choices.length <= 1 ? "前方唯餘一路" : "前方岔路 · 二選一"}
-        </p>
-        <div
-          className={`grid gap-3 ${
-            choices.length === 1 ? "grid-cols-1" : "grid-cols-2"
-          }`}
-        >
-          {choices.map((node) => {
-            const icon = NODE_ICONS[node.type];
-            return (
-              <button
+            className={`mystic-route-fork__grid${
+              choices.length === 1 ? " is-single" : ""
+            }${choices.length >= 3 ? " is-triple" : ""}`}
+          >
+            {choices.map((node) => (
+              <RouteOptionCard
                 key={node.id}
-                type="button"
-                onClick={() => onSelectNode(node)}
-                className={`card-hover rounded-xl border-2 p-3 text-left transition active:scale-[0.98] ${icon.color} ${icon.ring} ring-1`}
-              >
-                <p className="text-[10px] tracking-wider text-stone-400">
-                  {NODE_LABELS[node.type]}
-                </p>
-                <p className="mt-1 text-sm font-bold leading-snug tracking-wide">
-                  {node.title}
-                </p>
-                <p className="mt-3 text-[10px] text-[#c9a84c]/90">踏入此途 →</p>
-              </button>
-            );
-          })}
-        </div>
-        {choices.length === 0 && (
-          <p className="mt-4 text-center text-xs text-stone-500">
-            此間無路可走，請從選單放棄本次修行。
-          </p>
-        )}
+                id={node.id}
+                tag={NODE_LABELS[node.type]}
+                title={node.title}
+                description={routeDescription(node)}
+                tone={nodeTone(node.type)}
+                artSrc={routeArtSrc(node)}
+                selected={selectedId === node.id}
+                onSelect={() => handleSelect(node)}
+              />
+            ))}
+          </div>
+
+          {choices.length === 0 ? (
+            <p className="mystic-route-empty">
+              此間無路可走，請從選單放棄本次修行。
+            </p>
+          ) : null}
+        </section>
+
+        <p className="mystic-route-footnote">
+          右上選單可隨時退出・破境後將延續至下一境
+        </p>
       </div>
 
-      <p className="text-center text-[10px] leading-relaxed text-stone-500">
-        右上選單可隨時退出 · 破境後將延續至下一境
-      </p>
-
-      {showMap && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-sm">
-          <div className="flex shrink-0 items-center justify-between border-b border-[#4a7c6f]/20 px-3 py-2.5">
-            <p className="zone-label text-[#7aab9a]">秘境全圖 · 僅供觀覽</p>
+      {showMap ? (
+        <div className="mystic-route-map-overlay">
+          <div className="mystic-route-map-overlay__bar">
+            <p className="zone-label text-[#7aab9a]">秘境全圖・僅供觀覽</p>
             <button
               type="button"
               onClick={() => setShowMap(false)}
@@ -164,7 +260,7 @@ export function PathChoiceView({
               關閉
             </button>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mystic-route-map-overlay__body">
             <MapView
               map={map}
               tierName={tierName}
@@ -175,7 +271,7 @@ export function PathChoiceView({
             />
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
