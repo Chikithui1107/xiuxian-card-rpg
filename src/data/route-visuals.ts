@@ -1,5 +1,6 @@
 /**
  * 秘境前路路線卡專用視覺（不影響戰鬥 visualScale）。
+ * 第一境場景背景見 public/routes/first-realm/manifest.json
  */
 export interface RouteMonsterVisual {
   /** 場景背景 public path */
@@ -12,62 +13,64 @@ export interface RouteMonsterVisual {
   routeOffsetY: number;
 }
 
-const DEFAULT_SCENE = "/backgrounds/realm-qinglan-valley.jpg";
+const FIRST_REALM = "/routes/first-realm";
+
+const DEFAULT_SCENE = `${FIRST_REALM}/01-mist-forest-wolf.png`;
 
 /** spriteId → 路線卡顯示 */
 export const ROUTE_MONSTER_VISUALS: Record<string, RouteMonsterVisual> = {
   demon_wolf: {
-    sceneBg: "/backgrounds/lobby-moon-path.jpg",
+    sceneBg: `${FIRST_REALM}/01-mist-forest-wolf.png`,
     routeScale: 0.9,
     routeOffsetX: 0,
     routeOffsetY: 2,
   },
   bandit: {
-    sceneBg: "/backgrounds/combat-moon-path.jpg",
+    sceneBg: `${FIRST_REALM}/02-barren-road-bandit.png`,
     routeScale: 0.86,
     routeOffsetX: 0,
     routeOffsetY: 6,
   },
   spirit_snake: {
-    sceneBg: "/backgrounds/realm-qinglan-valley.jpg",
+    sceneBg: `${FIRST_REALM}/03-green-creek-snake.png`,
     routeScale: 0.92,
     routeOffsetX: 0,
     routeOffsetY: 4,
   },
   traitor: {
-    sceneBg: "/backgrounds/lobby-moon-path.jpg",
+    sceneBg: `${FIRST_REALM}/04-broken-cliff-traitor.png`,
     routeScale: 0.88,
     routeOffsetX: 0,
     routeOffsetY: 4,
   },
   stone_ape: {
-    sceneBg: "/backgrounds/realm-qinglan-valley.jpg",
+    sceneBg: `${FIRST_REALM}/05-stone-valley-ape.png`,
     routeScale: 0.9,
     routeOffsetX: 0,
     routeOffsetY: 2,
   },
   demonic_tiger: {
-    sceneBg: "/backgrounds/realm-qinglan-valley.jpg",
+    sceneBg: `${FIRST_REALM}/06-deep-valley-tiger.png`,
     routeScale: 0.84,
     routeOffsetX: 0,
     routeOffsetY: 4,
   },
   blood_elder: {
-    sceneBg: "/backgrounds/combat-moon-path.jpg",
+    sceneBg: `${FIRST_REALM}/06-deep-valley-tiger.png`,
     routeScale: 0.86,
     routeOffsetX: 0,
     routeOffsetY: 2,
   },
 };
 
-/** nodeType → 無怪物時的場景 */
+/** nodeType → 無怪物時的場景（休整／商店／奇遇） */
 export const ROUTE_TYPE_SCENE: Record<string, string> = {
   combat: DEFAULT_SCENE,
-  elite: "/backgrounds/lobby-moon-path.jpg",
-  event: "/backgrounds/realm-qinglan-valley.jpg",
-  rest: "/backgrounds/lobby-cloud-terrace.jpg",
-  shop: "/backgrounds/lobby-baiye-terrace.jpg",
-  boss: "/backgrounds/realm-qinglan-valley.jpg",
+  elite: `${FIRST_REALM}/04-broken-cliff-traitor.png`,
+  event: `${FIRST_REALM}/09-event-spirit-altar.png`,
+  rest: `${FIRST_REALM}/07-rest-moon-path.png`,
+  shop: `${FIRST_REALM}/08-shop-ruined-village.png`,
+  boss: `${FIRST_REALM}/06-deep-valley-tiger.png`,
 };
 
 export function getRouteMonsterVisual(
