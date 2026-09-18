@@ -17,10 +17,13 @@ export interface RouteOptionCardProps {
   description?: string;
   actionText?: string;
   tone: RouteCardTone;
-  /** public path, e.g. /monsters/demon_wolf.png */
-  artSrc?: string | null;
-  /** CSS object-position for art crop focus */
-  artPosition?: string;
+  /** 怪物透明立繪 public path */
+  monsterSrc?: string | null;
+  /** 場景背景 public path */
+  sceneSrc?: string | null;
+  routeScale?: number;
+  routeOffsetX?: number;
+  routeOffsetY?: number;
   selected?: boolean;
   onSelect: (id: string) => void;
 }
@@ -41,11 +44,16 @@ export function RouteOptionCard({
   description,
   actionText = "踏入此途 →",
   tone,
-  artSrc,
-  artPosition = "center center",
+  monsterSrc,
+  sceneSrc,
+  routeScale = 0.9,
+  routeOffsetX = 0,
+  routeOffsetY = 0,
   selected = false,
   onSelect,
 }: RouteOptionCardProps) {
+  const monsterTransform = `translateX(calc(-50% + ${routeOffsetX}px)) translateY(${routeOffsetY}px) scale(${routeScale})`;
+
   return (
     <button
       type="button"
@@ -55,19 +63,28 @@ export function RouteOptionCard({
       }`}
       aria-pressed={selected}
     >
-      <div className="mystic-route-card__art" aria-hidden>
-        {artSrc ? (
+      <div className="mystic-route-card__art route-art" aria-hidden>
+        {sceneSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={publicAsset(artSrc)}
+            src={publicAsset(sceneSrc)}
             alt=""
-            className="mystic-route-card__img"
-            style={{ objectPosition: artPosition }}
+            className="route-scene-bg"
             draggable={false}
           />
         ) : (
-          <div className="mystic-route-card__art-fallback" />
+          <div className="route-scene-fallback" />
         )}
+        {monsterSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={publicAsset(monsterSrc)}
+            alt=""
+            className="route-monster"
+            style={{ transform: monsterTransform }}
+            draggable={false}
+          />
+        ) : null}
         <div className="mystic-route-card__art-veil" />
         <span className="mystic-route-card__tag">{tag}</span>
       </div>

@@ -8,6 +8,10 @@ import {
 } from "@/components/RouteOptionCard";
 import { NODE_LABELS } from "@/lib/map";
 import { ENEMY_SPRITE_ID, getMonsterConfig } from "@/data/monsters";
+import {
+  getRouteMonsterVisual,
+  getRouteSceneBg,
+} from "@/data/route-visuals";
 import { publicAsset } from "@/lib/paths";
 import type { MapNode, NodeType } from "@/types/map";
 
@@ -56,27 +60,15 @@ function nodeTone(type: NodeType): RouteCardTone {
   return "boss";
 }
 
-function routeArtSrc(node: MapNode): string | null {
+function routeMonsterSrc(node: MapNode): string | null {
   if (!node.enemyId) return null;
   const spriteId = ENEMY_SPRITE_ID[node.enemyId];
   if (!spriteId || !getMonsterConfig({ monsterSprite: spriteId })) return null;
   return `/monsters/${spriteId}.png`;
 }
 
-/** 路線卡立繪重心：不改原圖，只調裁切焦點 */
-const ROUTE_ART_POSITION: Record<string, string> = {
-  demon_wolf: "center 28%",
-  bandit: "center 36%",
-  spirit_snake: "center 32%",
-  traitor: "center 30%",
-  stone_ape: "center 34%",
-  demonic_tiger: "center 38%",
-};
-
-function routeArtPosition(node: MapNode): string {
-  if (!node.enemyId) return "center 30%";
-  const spriteId = ENEMY_SPRITE_ID[node.enemyId];
-  return (spriteId && ROUTE_ART_POSITION[spriteId]) || "center 30%";
+function routeSpriteId(node: MapNode): string | undefined {
+  return node.enemyId ? ENEMY_SPRITE_ID[node.enemyId] : undefined;
 }
 
 function routeDescription(node: MapNode): string {
@@ -241,20 +233,30 @@ export function PathChoiceView({
               choices.length === 1 ? " is-single" : ""
             }${choices.length >= 3 ? " is-triple" : ""}`}
           >
-            {choices.map((node) => (
-              <RouteOptionCard
-                key={node.id}
-                id={node.id}
-                tag={NODE_LABELS[node.type]}
-                title={node.title}
-                description={routeDescription(node)}
-                tone={nodeTone(node.type)}
-                artSrc={routeArtSrc(node)}
-                artPosition={routeArtPosition(node)}
-                selected={selectedId === node.id}
-                onSelect={() => handleSelect(node)}
-              />
-            ))}
+            {choices.map((node) => {
+              const spriteId = routeSpriteId(node);
+              const visual = getRouteMonsterVisual(spriteId);
+              return (
+                <RouteOptionCard
+                  key={node.id}
+                  id={node.id}
+                  tag={NODE_LABELS[node.type]}
+                  title={node.title}
+                  description={routeDescription(node)}
+                  tone={nodeTone(node.type)}
+                  monsterSrc={routeMonsterSrc(node)}
+                  sceneSrc={getRouteSceneBg({
+                    spriteId,
+                    nodeType: node.type,
+                  })}
+                  routeScale={visual?.routeScale ?? 0.9}
+                  routeOffsetX={visual?.routeOffsetX ?? 0}
+                  routeOffsetY={visual?.routeOffsetY ?? 0}
+                  selected={selectedId === node.id}
+                  onSelect={() => handleSelect(node)}
+                />
+              );
+            })}
           </div>
 
           {choices.length === 0 ? (

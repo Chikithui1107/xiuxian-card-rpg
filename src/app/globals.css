@@ -4309,9 +4309,9 @@ html.combat-scroll-lock {
   filter: brightness(1.04);
 }
 
-.mystic-route-card:hover .mystic-route-card__img,
-.mystic-route-card:focus-visible .mystic-route-card__img {
-  filter: saturate(0.92) contrast(1.06) brightness(1.08);
+.mystic-route-card:hover .route-monster,
+.mystic-route-card:focus-visible .route-monster {
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45)) brightness(1.06);
 }
 
 .mystic-route-card:active {
@@ -4325,42 +4325,64 @@ html.combat-scroll-lock {
     0 10px 24px rgba(0, 0, 0, 0.42);
 }
 
-.mystic-route-card__art {
+.mystic-route-card__art,
+.route-art {
   position: relative;
-  flex: 0 0 46%;
-  height: 46%;
-  min-height: 0;
+  flex: 0 0 auto;
+  width: 100%;
+  height: clamp(9.5rem, 28vw, 11rem);
+  min-height: 9.5rem;
+  max-height: 11rem;
   overflow: hidden;
   background: #0a0c10;
 }
 
-.mystic-route-card__img {
+.route-scene-bg {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center center;
-  transform: scale(1.02);
-  filter: saturate(0.88) contrast(1.04);
-  transition: filter 0.2s ease;
+  filter: saturate(0.7) brightness(0.55);
+  transform: scale(1.04);
 }
 
-.mystic-route-card__art-fallback {
-  width: 100%;
-  height: 100%;
+.route-scene-fallback {
+  position: absolute;
+  inset: 0;
   background:
-    radial-gradient(circle at 50% 30%, rgba(90, 120, 130, 0.25), transparent 55%),
+    radial-gradient(circle at 50% 30%, rgba(90, 120, 130, 0.28), transparent 55%),
     linear-gradient(160deg, #1a2228, #0c1014 70%);
+}
+
+.route-monster {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 1;
+  width: auto;
+  height: auto;
+  max-width: 96%;
+  max-height: 96%;
+  object-fit: contain;
+  object-position: center bottom;
+  transform-origin: center bottom;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+  transition: filter 0.2s ease;
+  pointer-events: none;
 }
 
 .mystic-route-card__art-veil {
   position: absolute;
   inset: 0;
+  z-index: 2;
   background:
     linear-gradient(
       180deg,
-      rgba(6, 8, 12, 0.08) 0%,
-      rgba(8, 10, 14, 0.12) 50%,
-      rgba(10, 10, 12, 0.78) 100%
+      rgba(6, 8, 12, 0.18) 0%,
+      rgba(8, 10, 14, 0.08) 42%,
+      rgba(10, 10, 12, 0.72) 100%
     );
   pointer-events: none;
 }
