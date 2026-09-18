@@ -65,12 +65,12 @@ function routeArtSrc(node: MapNode): string | null {
 
 /** 路線卡立繪重心：不改原圖，只調裁切焦點 */
 const ROUTE_ART_POSITION: Record<string, string> = {
-  demon_wolf: "center 20%",
-  bandit: "center 48%",
-  spirit_snake: "center 28%",
-  traitor: "center 32%",
-  stone_ape: "center 30%",
-  demonic_tiger: "center 35%",
+  demon_wolf: "center 28%",
+  bandit: "center 36%",
+  spirit_snake: "center 32%",
+  traitor: "center 30%",
+  stone_ape: "center 34%",
+  demonic_tiger: "center 38%",
 };
 
 function routeArtPosition(node: MapNode): string {

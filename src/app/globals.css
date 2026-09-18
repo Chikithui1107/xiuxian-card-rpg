@@ -4212,12 +4212,16 @@ html.combat-scroll-lock {
   color: #e8e0d4;
 }
 
+.mystic-route-fork {
+  margin-top: 0.35rem;
+}
+
 .mystic-route-fork__heading {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.85rem;
 }
 
 .mystic-route-fork__line {
@@ -4249,13 +4253,13 @@ html.combat-scroll-lock {
 .mystic-route-fork__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: 0.75rem;
   align-items: stretch;
 }
 
 .mystic-route-fork__grid.is-single {
   grid-template-columns: 1fr;
-  max-width: 16rem;
+  max-width: 15.5rem;
   margin-inline: auto;
 }
 
@@ -4276,42 +4280,56 @@ html.combat-scroll-lock {
   }
 }
 
+/* 直式路線卡：雙欄下固定高度約 260–300px，避免扁橫向 banner */
 .mystic-route-card {
   display: flex;
   flex-direction: column;
-  min-height: 13.4rem;
+  justify-content: space-between;
+  width: 100%;
+  height: clamp(16.5rem, 72vw, 18.75rem);
+  min-height: 16.5rem;
+  max-height: 18.75rem;
   overflow: hidden;
-  border-radius: 0.4rem;
+  border-radius: 1rem;
   border: 1px solid rgba(90, 85, 75, 0.45);
-  background: rgba(12, 12, 14, 0.82);
+  background: rgba(12, 12, 14, 0.86);
   text-align: left;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.34);
   transition:
     transform 0.18s ease,
     border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
 }
 
 .mystic-route-card:hover,
 .mystic-route-card:focus-visible {
-  transform: translateY(-1px);
+  transform: translateY(-3px);
   outline: none;
+  filter: brightness(1.04);
+}
+
+.mystic-route-card:hover .mystic-route-card__img,
+.mystic-route-card:focus-visible .mystic-route-card__img {
+  filter: saturate(0.92) contrast(1.06) brightness(1.08);
 }
 
 .mystic-route-card:active {
   transform: scale(0.98);
+  filter: none;
 }
 
 .mystic-route-card.is-selected {
   box-shadow:
-    0 0 0 1px rgba(201, 168, 76, 0.35),
-    0 8px 22px rgba(0, 0, 0, 0.4);
+    0 0 0 1px rgba(201, 168, 76, 0.38),
+    0 10px 24px rgba(0, 0, 0, 0.42);
 }
 
 .mystic-route-card__art {
   position: relative;
-  height: 6.25rem;
-  flex-shrink: 0;
+  flex: 0 0 46%;
+  height: 46%;
+  min-height: 0;
   overflow: hidden;
   background: #0a0c10;
 }
@@ -4320,9 +4338,10 @@ html.combat-scroll-lock {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 22%;
-  transform: scale(1.04);
-  filter: saturate(0.85) contrast(1.05);
+  object-position: center center;
+  transform: scale(1.02);
+  filter: saturate(0.88) contrast(1.04);
+  transition: filter 0.2s ease;
 }
 
 .mystic-route-card__art-fallback {
@@ -4339,22 +4358,22 @@ html.combat-scroll-lock {
   background:
     linear-gradient(
       180deg,
-      rgba(6, 8, 12, 0.12) 0%,
-      rgba(8, 10, 14, 0.18) 45%,
-      rgba(10, 10, 12, 0.86) 100%
+      rgba(6, 8, 12, 0.08) 0%,
+      rgba(8, 10, 14, 0.12) 50%,
+      rgba(10, 10, 12, 0.78) 100%
     );
   pointer-events: none;
 }
 
 .mystic-route-card__tag {
   position: absolute;
-  top: 0.4rem;
-  left: 0.4rem;
+  top: 0.45rem;
+  left: 0.45rem;
   z-index: 1;
-  border-radius: 0.15rem;
+  border-radius: 0.18rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(8, 8, 10, 0.72);
-  padding: 0.12rem 0.38rem;
+  background: rgba(8, 8, 10, 0.74);
+  padding: 0.14rem 0.4rem;
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.16em;
@@ -4362,27 +4381,36 @@ html.combat-scroll-lock {
 
 .mystic-route-card__body {
   display: flex;
-  flex: 1;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+  padding: 0.55rem 0.6rem 0.65rem;
+}
+
+.mystic-route-card__copy {
+  display: flex;
   flex-direction: column;
   gap: 0.28rem;
-  min-height: 5.1rem;
-  padding: 0.5rem 0.55rem 0.55rem;
+  min-height: 0;
 }
 
 .mystic-route-card__title {
+  margin: 0;
   font-size: 12px;
   font-weight: 700;
-  line-height: 1.3;
-  letter-spacing: 0.06em;
+  line-height: 1.35;
+  letter-spacing: 0.05em;
   color: #f0e8d8;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .mystic-route-card__desc {
-  flex: 1;
-  min-height: 2.1em;
+  margin: 0;
+  min-height: 2.6em;
   font-size: 10px;
   line-height: 1.4;
   letter-spacing: 0.02em;
@@ -4398,7 +4426,10 @@ html.combat-scroll-lock {
 }
 
 .mystic-route-card__action {
-  margin-top: auto;
+  flex-shrink: 0;
+  margin-top: 0.45rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -4493,7 +4524,7 @@ html.combat-scroll-lock {
 }
 
 .mystic-route-footnote {
-  margin-top: 1.6rem;
+  margin-top: 1.25rem;
   margin-bottom: 0.25rem;
   padding-top: 0;
   text-align: center;

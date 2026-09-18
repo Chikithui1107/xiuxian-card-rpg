@@ -42,7 +42,7 @@ export function RouteOptionCard({
   actionText = "踏入此途 →",
   tone,
   artSrc,
-  artPosition = "center 22%",
+  artPosition = "center center",
   selected = false,
   onSelect,
 }: RouteOptionCardProps) {
@@ -73,14 +73,16 @@ export function RouteOptionCard({
       </div>
 
       <div className="mystic-route-card__body">
-        <h3 className="mystic-route-card__title">{title}</h3>
-        {description ? (
-          <p className="mystic-route-card__desc">{description}</p>
-        ) : (
-          <p className="mystic-route-card__desc mystic-route-card__desc--spacer">
-            {"\u00a0"}
-          </p>
-        )}
+        <div className="mystic-route-card__copy">
+          <h3 className="mystic-route-card__title">{title}</h3>
+          {description ? (
+            <p className="mystic-route-card__desc">{description}</p>
+          ) : (
+            <p className="mystic-route-card__desc mystic-route-card__desc--spacer">
+              {"\u00a0"}
+            </p>
+          )}
+        </div>
         <span className="mystic-route-card__action">{actionText}</span>
       </div>
     </button>
