@@ -157,6 +157,11 @@ const CHAR_PROGRESS_KEY = "xiuxian_character_progress_v1";
 const RUN_SAVE_KEY = "xiuxian_active_run_v1";
 const ACHIEVEMENTS_KEY = "xiuxian_achievements_v1";
 
+/**
+ * 角色永久進度（非 Run）。
+ * permanentDeck 欄位僅作兼容占位，應始終為 startingDeck；
+ * 本局累積牌組只存在 ActiveRunSave.permanentDeck。
+ */
 type CharacterProgress = {
   permanentDeck: CardTemplateId[];
   playerHp: number;
@@ -202,9 +207,30 @@ function sanitizeMaxCalamityLevel(value: unknown): number {
   return Math.max(0, Math.min(MAX_CALAMITY_LEVEL, Math.floor(value)));
 }
 
+/**
+ * 建立新 Run 牌組（唯一入口）。
+ * carryCards 預留給未來悟道閣攜行槽；V1 恒為空。
+ */
+function createStartingRunDeck(
+  character: PlayableCharacter,
+  carryCards: CardTemplateId[] = []
+): CardTemplateId[] {
+  return [...character.startingDeck, ...carryCards];
+}
+
+/**
+ * CharacterProgress.permanentDeck 只存「角色預設起始組」占位，
+ * 不保存本局 Run 獎勵牌。真正 Run 牌組只在 ActiveRunSave。
+ */
+function progressDeckPlaceholder(
+  character: PlayableCharacter
+): CardTemplateId[] {
+  return [...character.startingDeck];
+}
+
 function createProgress(character: PlayableCharacter): CharacterProgress {
   return {
-    permanentDeck: [...character.startingDeck],
+    permanentDeck: progressDeckPlaceholder(character),
     playerHp: character.maxHp,
     spiritStones: character.spiritStones,
     totalClears: 0,
@@ -226,7 +252,7 @@ function sanitizeDeckForCharacter(
   return filtered.length > 0 ? filtered : [...character.startingDeck];
 }
 
-/** 無進行中秘境時：山門氣血回滿，牌組回角色起始組 */
+/** 無進行中秘境時：山門氣血回滿；牌組欄位回起始組占位 */
 function fullHpProgress(
   character: PlayableCharacter,
   snap?: CharacterProgress
@@ -234,7 +260,7 @@ function fullHpProgress(
   const base = snap ?? createProgress(character);
   return {
     ...base,
-    permanentDeck: [...character.startingDeck],
+    permanentDeck: progressDeckPlaceholder(character),
     playerHp: character.maxHp,
   };
 }
@@ -463,6 +489,8 @@ export default function GamePage() {
   const [isInCombat, setIsInCombat] = useState(false);
   const [inventory, setInventory] = useState<InventoryState>(INITIAL_INVENTORY);
   const [permanentDeck, setPermanentDeck] = useState<CardTemplateId[]>([]);
+  /** 與 permanentDeck 同步；供新 Run／開戰避開 setState 競態 */
+  const runDeckRef = useRef<CardTemplateId[]>([]);
   const [selectedTier, setSelectedTier] = useState<DungeonTier | null>(null);
   const [tierFloor, setTierFloor] = useState(1);
   const [chapterIndex, setChapterIndex] = useState(0);
@@ -614,7 +642,8 @@ export default function GamePage() {
             if (c.id === savedRun.characterId) {
               nextProgress[c.id] = {
                 ...(snap ?? createProgress(c)),
-                permanentDeck: deck,
+                // CharacterProgress 不保存 Run 累積牌組
+                permanentDeck: progressDeckPlaceholder(c),
                 playerHp: hp,
                 spiritStones: Math.max(0, Math.floor(savedRun.spiritStones)),
                 maxCalamityLevel: sanitizeMaxCalamityLevel(
@@ -624,10 +653,7 @@ export default function GamePage() {
             } else {
               nextProgress[c.id] = {
                 ...(snap ?? createProgress(c)),
-                permanentDeck: sanitizeDeckForCharacter(
-                  c,
-                  snap?.permanentDeck ?? c.startingDeck
-                ),
+                permanentDeck: progressDeckPlaceholder(c),
                 maxCalamityLevel: sanitizeMaxCalamityLevel(
                   snap?.maxCalamityLevel
                 ),
@@ -638,7 +664,8 @@ export default function GamePage() {
             nextProgress[savedRun.characterId] ?? createProgress(runChar);
           setActiveCharacterId(savedRun.characterId);
           setProgressByCharacter(nextProgress);
-          setPermanentDeck(progress.permanentDeck);
+          runDeckRef.current = deck;
+          setPermanentDeck(deck);
           setPlayerHp(progress.playerHp);
           setSpiritStones(progress.spiritStones);
           setRunSpirit(Math.max(0, Math.floor(savedRun.runSpirit)));
@@ -691,7 +718,9 @@ export default function GamePage() {
       const progress = nextProgress[activeId] ?? fullHpProgress(activeChar);
       setActiveCharacterId(activeId);
       setProgressByCharacter(nextProgress);
-      setPermanentDeck(progress.permanentDeck);
+      const lobbyDeck = progressDeckPlaceholder(activeChar);
+      runDeckRef.current = lobbyDeck;
+      setPermanentDeck(lobbyDeck);
       setPlayerHp(progress.playerHp);
       setSpiritStones(progress.spiritStones);
       setRunSpirit(0);
@@ -754,7 +783,8 @@ export default function GamePage() {
       tierId: selectedTier.id,
       calamityLevel,
       dungeonMap,
-      permanentDeck,
+      // 以 ref 為準，避免新 Run 首幀仍寫入上一局牌組
+      permanentDeck: runDeckRef.current,
       playerHp,
       spiritStones,
       runSpirit,
@@ -783,12 +813,12 @@ export default function GamePage() {
 
   useEffect(() => {
     if (!ready) return;
+    const activeChar = getCharacter(activeCharacterId);
+    const inRun = selectedTier !== null && dungeonMap.length > 0;
     const snapshot: CharacterProgress = {
-      permanentDeck: sanitizeDeckForCharacter(
-        getCharacter(activeCharacterId),
-        permanentDeck
-      ),
-      playerHp,
+      // 永不把 Run 獎勵牌寫入角色永久進度
+      permanentDeck: progressDeckPlaceholder(activeChar),
+      playerHp: inRun ? playerHp : activeChar.maxHp,
       spiritStones,
       totalClears,
       maxCalamityLevel,
@@ -806,7 +836,8 @@ export default function GamePage() {
   }, [
     ready,
     activeCharacterId,
-    permanentDeck,
+    selectedTier,
+    dungeonMap.length,
     playerHp,
     spiritStones,
     totalClears,
@@ -828,7 +859,9 @@ export default function GamePage() {
       if (!nextChar.unlocked) return;
 
       const currentSnap: CharacterProgress = {
-        permanentDeck,
+        permanentDeck: progressDeckPlaceholder(
+          getCharacter(activeCharacterId)
+        ),
         playerHp,
         spiritStones,
         totalClears,
@@ -844,13 +877,7 @@ export default function GamePage() {
 
       const merged = {
         ...progressByCharacter,
-        [activeCharacterId]: {
-          ...currentSnap,
-          permanentDeck: sanitizeDeckForCharacter(
-            getCharacter(activeCharacterId),
-            currentSnap.permanentDeck
-          ),
-        },
+        [activeCharacterId]: currentSnap,
         [nextId]: {
           ...nextSnap,
           maxCalamityLevel: nextMaxCalamity,
@@ -858,7 +885,9 @@ export default function GamePage() {
       };
       setProgressByCharacter(merged);
       setActiveCharacterId(nextId);
-      setPermanentDeck(nextSnap.permanentDeck);
+      const nextDeck = progressDeckPlaceholder(nextChar);
+      runDeckRef.current = nextDeck;
+      setPermanentDeck(nextDeck);
       setPlayerHp(nextSnap.playerHp);
       setSpiritStones(nextSnap.spiritStones);
       setTotalClears(nextSnap.totalClears);
@@ -890,7 +919,6 @@ export default function GamePage() {
     },
     [
       activeCharacterId,
-      permanentDeck,
       playerHp,
       spiritStones,
       totalClears,
@@ -943,8 +971,18 @@ export default function GamePage() {
   }, []);
 
   const resetPermanentDeck = useCallback(() => {
-    setPermanentDeck([...character.startingDeck]);
-  }, [character.startingDeck]);
+    const fresh = createStartingRunDeck(character);
+    runDeckRef.current = fresh;
+    setPermanentDeck(fresh);
+  }, [character]);
+
+  const appendRunDeckCard = useCallback((templateId: CardTemplateId) => {
+    setPermanentDeck((prev) => {
+      const next = [...prev, templateId];
+      runDeckRef.current = next;
+      return next;
+    });
+  }, []);
 
   const returnToLobby = useCallback(
     (message: string | null = null, healPlayer = false) => {
@@ -1018,7 +1056,7 @@ export default function GamePage() {
       setBattleInstanceId((id) => id + 1);
       setTierFloor(node.tier + 1);
       setCurrentMapNodeId(node.id);
-      setDeckState(initBattleDeck(permanentDeck));
+      setDeckState(initBattleDeck(runDeckRef.current));
       setEnergy(MAX_ENERGY);
       setPhase("playing");
       setBattlePhase("IN_BATTLE");
@@ -1047,7 +1085,7 @@ export default function GamePage() {
       setActiveTab("combat");
       playCardDrawSfx(COMBAT_HAND_SIZE);
     },
-    [permanentDeck, calamityLevel]
+    [calamityLevel]
   );
 
   const returnToPath = useCallback(
@@ -1188,14 +1226,14 @@ export default function GamePage() {
       if (runSpirit < SHOP_PRICE) return;
       shopChoiceLockRef.current = true;
       setRunSpirit((s) => s - SHOP_PRICE);
-      setPermanentDeck((prev) => [...prev, templateId]);
+      appendRunDeckCard(templateId);
       const cardName = CARD_TEMPLATES[templateId]?.name ?? "法訣";
       const nodeId = activeShopNodeId;
       setActiveShopNodeId(null);
       setShopOfferIds([]);
       finishMapNode(nodeId, `購得「${cardName}」，耗費 ${SHOP_PRICE} 靈砂`);
     },
-    [activeShopNodeId, runSpirit, finishMapNode]
+    [activeShopNodeId, runSpirit, finishMapNode, appendRunDeckCard]
   );
 
   const handleShopLeave = useCallback(() => {
@@ -1330,6 +1368,12 @@ export default function GamePage() {
           Math.min(MAX_CALAMITY_LEVEL, Math.floor(level))
         )
       );
+
+      // NEW RUN：同步建立牌組，不依賴 resetPermanentDeck 的異步 setState
+      const freshRunDeck = createStartingRunDeck(character);
+      runDeckRef.current = freshRunDeck;
+      setPermanentDeck(freshRunDeck);
+
       const newRunId = createRunSessionId();
       runSessionIdRef.current = newRunId;
       setRunSessionId(newRunId);
@@ -1360,17 +1404,38 @@ export default function GamePage() {
       setActiveRestNodeId(null);
       setActiveShopNodeId(null);
       setShopOfferIds([]);
+      setRewardTemplateIds([]);
+      setPendingFloorReward(0);
+      setPendingEliteReward(false);
+      setPendingTierComplete(false);
+      setStageClearInfo(null);
       setIsInCombat(false);
       setCombatScreen("path");
       setActiveTab("combat");
       setPhase("playing");
-      resetPermanentDeck();
+      setBattlePhase("IN_BATTLE");
       setRunSpirit(100);
       setPlayerHp(heroStats.maxHp);
       setEnemy(createNeutralEnemy());
       resetCombatState();
 
-      // 先建 Run，再排主線劇情（刷新不會丟 Run）
+      // 首寫即用 freshRunDeck，堵住 checkpoint effect 舊牌組競態
+      writeActiveRunSave({
+        version: 2,
+        runSessionId: newRunId,
+        characterId: character.id,
+        chapterIndex: 0,
+        tierId: tier.id,
+        calamityLevel: calamity,
+        dungeonMap: freshMap,
+        permanentDeck: freshRunDeck,
+        playerHp: heroStats.maxHp,
+        spiritStones,
+        runSpirit: 100,
+        mapMessage: null,
+        savedAt: Date.now(),
+      });
+
       const stories = getStartStoryScenesForCharacter(
         character.id,
         readSeenStories()
@@ -1382,10 +1447,10 @@ export default function GamePage() {
     },
     [
       resetCombatState,
-      resetPermanentDeck,
       heroStats.maxHp,
       maxCalamityLevel,
-      character.id,
+      character,
+      spiritStones,
       queueStoryScenes,
     ]
   );
@@ -2355,7 +2420,7 @@ export default function GamePage() {
       rewardDoneRef.current = true;
 
       if (templateId) {
-        setPermanentDeck((prev) => [...prev, templateId]);
+        appendRunDeckCard(templateId);
       }
 
       const nextRunSpirit = runSpirit + pendingFloorReward;
@@ -2431,6 +2496,7 @@ export default function GamePage() {
       character.id,
       returnToPath,
       queueStoryScenes,
+      appendRunDeckCard,
     ]
   );
 
