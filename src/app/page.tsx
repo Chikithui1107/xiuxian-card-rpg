@@ -2210,7 +2210,7 @@ export default function GamePage() {
             : 0;
 
       if (step.kind === "shield" || step.kind === "shieldBreak") {
-        playShieldHitSfx();
+        playShieldHitSfx(enemy);
         if (amount > 0) {
           displayBlock = Math.max(0, displayBlock - amount);
           if (character.combatPath === "karma") {
@@ -2229,7 +2229,7 @@ export default function GamePage() {
           }
         }
       } else {
-        playPlayerHitSfx();
+        playPlayerHitSfx(enemy);
         displayHp = Math.max(0, playerHpRef.current - amount);
         playerHpRef.current = displayHp;
         setPlayerHp(displayHp);
@@ -2264,7 +2264,7 @@ export default function GamePage() {
       }
       return { defeated: false, feedback };
     },
-    [character.combatPath]
+    [character.combatPath, enemy]
   );
 
   const resolveEnemyDefend = useCallback((value: number) => {
