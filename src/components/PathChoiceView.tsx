@@ -11,6 +11,7 @@ import { ENEMY_SPRITE_ID, getMonsterConfig } from "@/data/monsters";
 import {
   getRouteMonsterVisual,
   getRouteSceneBg,
+  getRouteTypeIcon,
 } from "@/data/route-visuals";
 import { publicAsset } from "@/lib/paths";
 import type { MapNode, NodeType } from "@/types/map";
@@ -236,6 +237,7 @@ export function PathChoiceView({
             {choices.map((node) => {
               const spriteId = routeSpriteId(node);
               const visual = getRouteMonsterVisual(spriteId);
+              const monsterSrc = routeMonsterSrc(node);
               return (
                 <RouteOptionCard
                   key={node.id}
@@ -244,7 +246,8 @@ export function PathChoiceView({
                   title={node.title}
                   description={routeDescription(node)}
                   tone={nodeTone(node.type)}
-                  monsterSrc={routeMonsterSrc(node)}
+                  monsterSrc={monsterSrc}
+                  iconSrc={monsterSrc ? null : getRouteTypeIcon(node.type)}
                   sceneSrc={getRouteSceneBg({
                     spriteId,
                     nodeType: node.type,

@@ -73,6 +73,20 @@ export const ROUTE_TYPE_SCENE: Record<string, string> = {
   boss: `${FIRST_REALM}/06-tiger-altar-boss.png`,
 };
 
+const ROUTE_ICONS = "/routes/icons";
+
+/** 功能節點圖標（商店／奇遇／修整）；戰鬥立繪不受影響 */
+export const ROUTE_TYPE_ICONS: Partial<Record<string, string>> = {
+  shop: `${ROUTE_ICONS}/shop.png`,
+  event: `${ROUTE_ICONS}/event.png`,
+  rest: `${ROUTE_ICONS}/rest.png`,
+};
+
+export function getRouteTypeIcon(nodeType: string | undefined): string | null {
+  if (!nodeType) return null;
+  return ROUTE_TYPE_ICONS[nodeType] ?? null;
+}
+
 export function getRouteMonsterVisual(
   spriteId: string | undefined
 ): RouteMonsterVisual | null {
