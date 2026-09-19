@@ -21,6 +21,7 @@ interface LobbyViewProps {
   onEnterDungeon: () => void;
   onContinueGame: () => void;
   onAbandonGame: () => void;
+  onOpenGacha?: () => void;
   onDismissRunMessage?: () => void;
 }
 
@@ -38,6 +39,7 @@ export function LobbyView({
   onEnterDungeon,
   onContinueGame,
   onAbandonGame,
+  onOpenGacha,
   onDismissRunMessage,
 }: LobbyViewProps) {
   const hpPercent = Math.max(0, (playerHp / stats.maxHp) * 100);
@@ -90,6 +92,16 @@ export function LobbyView({
       </div>
 
       <div className="lobby-dock absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-3">
+        {onOpenGacha ? (
+          <button
+            type="button"
+            onClick={onOpenGacha}
+            className="lobby-gacha-entry mb-2"
+            aria-label="前往因緣閣"
+          >
+            因緣閣 · 悟道／霓裳
+          </button>
+        ) : null}
         <div className="lobby-stat-sheet mb-3 px-3 py-2.5">
           <div className="mb-1 flex items-center justify-between text-[10px]">
             <span className="text-[#8eb8a8]">氣血</span>

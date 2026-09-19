@@ -12,6 +12,7 @@ import {
 import { MobileFrame } from "@/components/MobileFrame";
 import { BottomNav } from "@/components/BottomNav";
 import { LobbyView } from "@/components/LobbyView";
+import { GachaView } from "@/components/gacha/GachaView";
 import { CombatView } from "@/components/CombatView";
 import {
   CultivationStartView,
@@ -457,6 +458,7 @@ export default function GamePage() {
     Record<string, CharacterProgress>
   >({});
   const [activeTab, setActiveTab] = useState<AppTab>("lobby");
+  const [showGacha, setShowGacha] = useState(false);
   const [combatScreen, setCombatScreen] = useState<CombatScreen>("tier-select");
   const [isInCombat, setIsInCombat] = useState(false);
   const [inventory, setInventory] = useState<InventoryState>(INITIAL_INVENTORY);
@@ -2542,6 +2544,18 @@ export default function GamePage() {
   );
 
   const renderContent = () => {
+    if (showGacha && (activeTab === "lobby" || activeTab === "characters")) {
+      return (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <GachaView
+            spiritStones={spiritStones}
+            onSpendSpirit={spendSpiritStones}
+            onClose={() => setShowGacha(false)}
+          />
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case "lobby":
       case "characters":
@@ -2572,6 +2586,7 @@ export default function GamePage() {
               onEnterDungeon={enterTierSelect}
               onContinueGame={continueGame}
               onAbandonGame={abandonGame}
+              onOpenGacha={() => setShowGacha(true)}
               onDismissRunMessage={dismissRunMessage}
             />
           </div>
@@ -2682,14 +2697,26 @@ export default function GamePage() {
   const handleTabChange = useCallback(
     (tab: AppTab) => {
       if (tab === "characters") {
+        setShowGacha(false);
         setActiveTab("lobby");
         setCharacterSelectOpen(true);
         return;
       }
       setCharacterSelectOpen(false);
+      if (tab !== "lobby") setShowGacha(false);
       setActiveTab(tab);
     },
     []
+  );
+
+  const spendSpiritStones = useCallback(
+    (amount: number) => {
+      if (amount <= 0) return true;
+      if (spiritStones < amount) return false;
+      setSpiritStones((s) => s - amount);
+      return true;
+    },
+    [spiritStones]
   );
 
   const showRunMenu =
@@ -2729,7 +2756,9 @@ export default function GamePage() {
                 const meta = getDungeonChapterMeta(selectedTier);
                 return `${meta.chapterLabel} · ${meta.realmLabel} · 修行中`;
               })()
-            : activeTab === "lobby"
+            : showGacha
+              ? "因緣閣"
+              : activeTab === "lobby"
               ? "天樞聖宗"
               : TAB_LABELS[activeTab]
       }
