@@ -12,6 +12,7 @@ type WebkitWindow = Window & {
  */
 const SAMPLE_CANDIDATES: Record<string, string[]> = {
   fuxue_slash: ["fuxue-slash", "fuxue_slash"],
+  yijian_slash: ["yijian-slash", "yijian_slash"],
   tuxu_whoosh: ["tuxu-whoosh", "tuxu_whoosh"],
   // 新檔名避開舊 start-cultivation.mp3 的瀏覽器快取
   start_cultivation: ["horror-hit", "start-cultivation"],
@@ -27,7 +28,7 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
 
 /** 換樣本時遞增，強制繞過 HTTP 快取 */
-const SFX_CACHE_BUST = "v8";
+const SFX_CACHE_BUST = "v9";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -124,8 +125,9 @@ function impactKey(kind: PlayFxKind): string | null {
     case "fuxue":
     case "shuangren":
     case "poshizhan":
-    case "yijian":
       return "fuxue_slash";
+    case "yijian":
+      return "yijian_slash";
     default:
       return null;
   }
@@ -225,6 +227,7 @@ export function playGameOverSfx(lockAfter = false): void {
 
 export function preloadCombatSfx(): void {
   void loadBuffer("fuxue_slash");
+  void loadBuffer("yijian_slash");
   void loadBuffer("tuxu_whoosh");
   void loadBuffer("start_cultivation");
   void loadBuffer("player_hit");

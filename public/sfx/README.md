@@ -9,6 +9,7 @@
 | 戰鬥獲勝 | `battle-win.mp3` |
 | 擇劍訣入庫 | `reward-click.mp3` |
 | 拂雪流光命中 | `fuxue-slash.mp3` |
+| 一劍霜寒命中 | `yijian-slash.mp3` |
 | 踏虛掠影起手 | `tuxu-whoosh.mp3` |
 
 背景音樂在 `public/music/`：
