@@ -168,7 +168,8 @@ export function playWhoosh(kind?: PlayFxKind): void {
 export function playImpact(kind: PlayFxKind): void {
   const key = impactKey(kind);
   if (!key) return;
-  playSampleSync(key, 1);
+  // 一劍霜寒專用樣本偏輕，抬到 150%
+  playSampleSync(key, kind === "yijian" ? 1.5 : 1);
 }
 
 /** 敵人打中玩家（HP） */
