@@ -4373,6 +4373,23 @@ html.combat-scroll-lock {
   pointer-events: none;
 }
 
+/* 商店／奇遇／修整：contain，不拉伸、不裁切 */
+.route-node-icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  width: auto;
+  height: auto;
+  max-width: 70%;
+  max-height: 78%;
+  object-fit: contain;
+  object-position: center center;
+  transform: translate(-50%, -50%);
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+  pointer-events: none;
+}
+
 .mystic-route-card__art-veil {
   position: absolute;
   inset: 0;

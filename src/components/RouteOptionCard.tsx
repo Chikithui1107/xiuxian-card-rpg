@@ -19,6 +19,8 @@ export interface RouteOptionCardProps {
   tone: RouteCardTone;
   /** 怪物透明立繪 public path */
   monsterSrc?: string | null;
+  /** 功能節點圖標（商店／奇遇／修整），object-fit: contain */
+  iconSrc?: string | null;
   /** 場景背景 public path */
   sceneSrc?: string | null;
   routeScale?: number;
@@ -45,6 +47,7 @@ export function RouteOptionCard({
   actionText = "踏入此途 →",
   tone,
   monsterSrc,
+  iconSrc,
   sceneSrc,
   routeScale = 0.9,
   routeOffsetX = 0,
@@ -82,6 +85,14 @@ export function RouteOptionCard({
             alt=""
             className="route-monster"
             style={{ transform: monsterTransform }}
+            draggable={false}
+          />
+        ) : iconSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={publicAsset(iconSrc)}
+            alt=""
+            className="route-node-icon"
             draggable={false}
           />
         ) : null}
