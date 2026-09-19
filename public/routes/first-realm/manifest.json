@@ -1,56 +1,14 @@
 {
-  "usage": "First-realm route-card scene backgrounds. Use scene as cover layer, transparent monster sprite as contain layer above it.",
+  "basePath": "/routes/first-realm/",
   "assets": [
-    {
-      "file": "01-mist-forest-wolf.png",
-      "route": "霧林・妖狼出沒",
-      "nodeType": "combat",
-      "monster": "妖狼"
-    },
-    {
-      "file": "02-barren-road-bandit.png",
-      "route": "荒道・劫修攔路",
-      "nodeType": "combat",
-      "monster": "劫修"
-    },
-    {
-      "file": "03-green-creek-snake.png",
-      "route": "青溪・靈蛇潛伏",
-      "nodeType": "combat",
-      "monster": "青鱗靈蛇"
-    },
-    {
-      "file": "04-broken-cliff-traitor.png",
-      "route": "斷崖 / 劍塚",
-      "nodeType": "elite",
-      "monster": "叛劍客"
-    },
-    {
-      "file": "05-stone-valley-ape.png",
-      "route": "亂石谷",
-      "nodeType": "elite",
-      "monster": "裂石猿"
-    },
-    {
-      "file": "06-deep-valley-tiger.png",
-      "route": "青嵐谷深處",
-      "nodeType": "boss",
-      "monster": "噬靈虎王"
-    },
-    {
-      "file": "07-rest-moon-path.png",
-      "route": "休整",
-      "nodeType": "rest"
-    },
-    {
-      "file": "08-shop-ruined-village.png",
-      "route": "仙坊 / 商店",
-      "nodeType": "shop"
-    },
-    {
-      "file": "09-event-spirit-altar.png",
-      "route": "奇遇",
-      "nodeType": "event"
-    }
+    {"file":"01-mist-forest-wolf.png","title":"霧林・妖狼出沒","nodeType":"combat","monster":"妖狼"},
+    {"file":"02-barren-battlefield-bandit.png","title":"荒道・劫修攔路","nodeType":"combat","monster":"劫修"},
+    {"file":"03-emerald-creek-snake.png","title":"青溪・靈蛇潛伏","nodeType":"combat","monster":"青鱗靈蛇"},
+    {"file":"04-stone-valley-ape.png","title":"石谷・裂猿怒吼","nodeType":"elite","monster":"裂石猿"},
+    {"file":"05-blood-ridge-elite.png","title":"血嶺・強敵現身","nodeType":"elite","monster":"叛劍客"},
+    {"file":"06-tiger-altar-boss.png","title":"虎神古壇・噬靈王現","nodeType":"boss","monster":"噬靈虎王"},
+    {"file":"07-rest-pavilion.png","title":"山亭・暫歇調息","nodeType":"rest"},
+    {"file":"08-misty-market-shop.png","title":"幽市・霧中交易","nodeType":"shop"},
+    {"file":"09-spirit-altar-event.png","title":"靈壇・古符異動","nodeType":"event"}
   ]
 }
