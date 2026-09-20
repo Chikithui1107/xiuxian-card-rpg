@@ -213,12 +213,12 @@ export function playShieldHitSfx(
   playSampleSync("shield_hit", 0.7);
 }
 
-/** 妖狼攻擊：低吼 + 加速利爪同步疊加 */
+/** 妖狼攻擊：低吼 + 加速利爪同步疊加（利爪音量 150%） */
 function playWolfAttackSfx(onShield = false): void {
   playSampleSync("wolf_growl", onShield ? 0.9 : 1);
   playSampleSync(
     "wolf_claw",
-    onShield ? 0.85 : 0.95,
+    onShield ? 0.85 * 1.5 : 0.95 * 1.5,
     0,
     WOLF_CLAW_PLAYBACK_RATE
   );
