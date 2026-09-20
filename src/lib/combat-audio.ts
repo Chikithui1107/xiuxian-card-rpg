@@ -18,8 +18,9 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
   start_cultivation: ["horror-hit", "start-cultivation"],
   /** 敵人打中玩家（通用） */
   player_hit: ["horror-hit", "fuxue-slash", "fuxue_slash"],
-  /** 妖狼攻擊 */
+  /** 妖狼攻擊：低吼 + 利爪同時播 */
   wolf_growl: ["wolf-growl", "wolf_growl"],
+  wolf_claw: ["wolf-claw", "wolf_claw"],
   /** 護盾受擊（沿用較輕的 whoosh） */
   shield_hit: ["tuxu-whoosh", "tuxu_whoosh"],
   card_draw: ["card-draw", "card_draw"],
@@ -30,7 +31,7 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
 
 /** 換樣本時遞增，強制繞過 HTTP 快取 */
-const SFX_CACHE_BUST = "v10";
+const SFX_CACHE_BUST = "v11";
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -179,7 +180,7 @@ export function playPlayerHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
   if (isWolfEnemy(enemy)) {
-    playSampleSync("wolf_growl", 1);
+    playWolfAttackSfx(false);
     return;
   }
   playSampleSync("player_hit", 0.95);
@@ -190,10 +191,16 @@ export function playShieldHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
   if (isWolfEnemy(enemy)) {
-    playSampleSync("wolf_growl", 0.9);
+    playWolfAttackSfx(true);
     return;
   }
   playSampleSync("shield_hit", 0.7);
+}
+
+/** 妖狼攻擊：低吼與利爪同步疊加 */
+function playWolfAttackSfx(onShield: boolean): void {
+  playSampleSync("wolf_growl", onShield ? 0.9 : 1);
+  playSampleSync("wolf_claw", onShield ? 0.85 : 0.95);
 }
 
 function isWolfEnemy(
@@ -255,6 +262,7 @@ export function preloadCombatSfx(): void {
   void loadBuffer("start_cultivation");
   void loadBuffer("player_hit");
   void loadBuffer("wolf_growl");
+  void loadBuffer("wolf_claw");
   void loadBuffer("shield_hit");
   void loadBuffer("card_draw");
   void loadBuffer("reward_click");
