@@ -365,14 +365,7 @@ export function EnemyPanel({
                 <div
                   className={`relative flex h-full max-w-full items-end justify-center ${
                     spriteShake ? "enemy-sprite-hit-shake" : ""
-                  } ${
-                    attackLunge
-                      ? enemy.id === "enemy_wolf" ||
-                        enemy.monsterSprite === "demon_wolf"
-                        ? "enemy-sprite-lunge-wolf"
-                        : "enemy-sprite-lunge"
-                      : ""
-                  }`}
+                  } ${attackLunge ? "enemy-sprite-lunge" : ""}`}
                 >
                   <img
                     src={monster.image}

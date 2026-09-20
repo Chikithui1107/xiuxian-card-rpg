@@ -35,21 +35,6 @@ const SFX_CACHE_BUST = "v12";
 
 /** 妖狼利爪加速；原長 ~3.02s → 約 1.68s */
 export const WOLF_CLAW_PLAYBACK_RATE = 1.8;
-/** 低吼原長 */
-const WOLF_GROWL_DURATION_SEC = 1.92;
-const WOLF_CLAW_DURATION_SEC = 3.024;
-/** 疊加後有效音效時長（對齊突進動畫） */
-export const WOLF_ATTACK_SFX_MS = Math.round(
-  Math.max(WOLF_GROWL_DURATION_SEC, WOLF_CLAW_DURATION_SEC / WOLF_CLAW_PLAYBACK_RATE) *
-    1000
-);
-/** 突進開始後多久結算命中（約動作前段） */
-export const WOLF_ATTACK_IMPACT_AT_MS = 360;
-/** 命中後繼續前傾至音效結束 */
-export const WOLF_ATTACK_HOLD_AFTER_IMPACT_MS = Math.max(
-  0,
-  WOLF_ATTACK_SFX_MS - WOLF_ATTACK_IMPACT_AT_MS
-);
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -211,7 +196,7 @@ export function playPlayerHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
   if (isWolfEnemy(enemy)) {
-    // 妖狼在突進開始時已播，命中幀不再重播
+    playWolfAttackSfx(false);
     return;
   }
   playSampleSync("player_hit", 0.95);
@@ -222,13 +207,14 @@ export function playShieldHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
   if (isWolfEnemy(enemy)) {
+    playWolfAttackSfx(true);
     return;
   }
   playSampleSync("shield_hit", 0.7);
 }
 
-/** 妖狼攻擊：低吼 + 加速利爪，與突進動畫同步起播 */
-export function playWolfAttackSfx(onShield = false): void {
+/** 妖狼攻擊：低吼 + 加速利爪同步疊加 */
+function playWolfAttackSfx(onShield = false): void {
   playSampleSync("wolf_growl", onShield ? 0.9 : 1);
   playSampleSync(
     "wolf_claw",
@@ -238,7 +224,7 @@ export function playWolfAttackSfx(onShield = false): void {
   );
 }
 
-export function isWolfEnemy(
+function isWolfEnemy(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): boolean {
   return (

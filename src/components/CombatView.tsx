@@ -53,10 +53,6 @@ import {
   playWhoosh,
   preloadCombatSfx,
   unlockCombatAudio,
-  isWolfEnemy,
-  playWolfAttackSfx,
-  WOLF_ATTACK_IMPACT_AT_MS,
-  WOLF_ATTACK_HOLD_AFTER_IMPACT_MS,
 } from "@/lib/combat-audio";
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
 import { publicAsset } from "@/lib/paths";
@@ -609,23 +605,14 @@ export function CombatView({
         let defeated = false;
 
         if (plan.kind === "attack" && !plan.dodged && plan.hits.length > 0) {
-          const wolfAttack = isWolfEnemy(enemy);
           for (let i = 0; i < plan.hits.length; i++) {
+            setEnemyLunge(true);
+            await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
+
             const steps =
               takeEnemyHitSteps?.(plan.hits[i]) ?? [
                 { kind: "hp" as const, amount: plan.hits[i] },
               ];
-            const hitsShield = steps.some(
-              (s) => s.kind === "shield" || s.kind === "shieldBreak"
-            );
-
-            setEnemyLunge(true);
-            if (wolfAttack) {
-              playWolfAttackSfx(hitsShield);
-              await delayMs(WOLF_ATTACK_IMPACT_AT_MS);
-            } else {
-              await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
-            }
 
             for (let s = 0; s < steps.length; s++) {
               const result = applyPlayerImpactStep?.(steps[s]);
@@ -638,9 +625,6 @@ export function CombatView({
               }
             }
 
-            if (wolfAttack) {
-              await delayMs(WOLF_ATTACK_HOLD_AFTER_IMPACT_MS);
-            }
             setEnemyLunge(false);
             if (defeated) break;
             if (i < plan.hits.length - 1) {
@@ -651,12 +635,7 @@ export function CombatView({
           }
         } else if (plan.kind === "attack" && plan.dodged) {
           setEnemyLunge(true);
-          if (isWolfEnemy(enemy)) {
-            playWolfAttackSfx(false);
-            await delayMs(WOLF_ATTACK_IMPACT_AT_MS + WOLF_ATTACK_HOLD_AFTER_IMPACT_MS);
-          } else {
-            await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
-          }
+          await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
           setEnemyLunge(false);
           await delayMs(ENEMY_RETURN_MS);
         } else if (plan.kind === "defend" && plan.defendValue > 0) {
@@ -703,7 +682,6 @@ export function CombatView({
     playEndTurnDiscardAnimation,
     waitForNextDrawBatch,
     finishTurnSequence,
-    enemy,
   ]);
 
   const spawnDiscardFlights = useCallback(
