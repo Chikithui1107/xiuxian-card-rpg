@@ -51,6 +51,9 @@ import {
 import {
   playDenySfx,
   playWhoosh,
+  playWolfAttackSfx,
+  isWolfEnemy,
+  WOLF_ATTACK_SFX_MS,
   preloadCombatSfx,
   unlockCombatAudio,
 } from "@/lib/combat-audio";
@@ -603,11 +606,15 @@ export function CombatView({
         setIntentHighlight(false);
 
         let defeated = false;
+        const wolfAttack = isWolfEnemy(enemy);
+        const windupLungeMs = ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS;
 
         if (plan.kind === "attack" && !plan.dodged && plan.hits.length > 0) {
           for (let i = 0; i < plan.hits.length; i++) {
             setEnemyLunge(true);
-            await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
+            // 妖狼：音效與突進同開；多段攻擊只播一次，避免疊三次長音
+            if (wolfAttack && i === 0) playWolfAttackSfx(false);
+            await delayMs(windupLungeMs);
 
             const steps =
               takeEnemyHitSteps?.(plan.hits[i]) ?? [
@@ -625,6 +632,19 @@ export function CombatView({
               }
             }
 
+            if (wolfAttack) {
+              if (plan.hits.length === 1) {
+                // 單段：突進姿維持到音效結束
+                await delayMs(Math.max(0, WOLF_ATTACK_SFX_MS - windupLungeMs));
+              } else if (i === plan.hits.length - 1) {
+                // 多段最後一擊：補齊剩餘音效時長
+                const spentApprox =
+                  plan.hits.length * windupLungeMs +
+                  (plan.hits.length - 1) * ENEMY_MULTI_HIT_GAP_MS;
+                await delayMs(Math.max(0, WOLF_ATTACK_SFX_MS - spentApprox));
+              }
+            }
+
             setEnemyLunge(false);
             if (defeated) break;
             if (i < plan.hits.length - 1) {
@@ -635,7 +655,11 @@ export function CombatView({
           }
         } else if (plan.kind === "attack" && plan.dodged) {
           setEnemyLunge(true);
-          await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
+          if (wolfAttack) playWolfAttackSfx(false);
+          await delayMs(windupLungeMs);
+          if (wolfAttack) {
+            await delayMs(Math.max(0, WOLF_ATTACK_SFX_MS - windupLungeMs));
+          }
           setEnemyLunge(false);
           await delayMs(ENEMY_RETURN_MS);
         } else if (plan.kind === "defend" && plan.defendValue > 0) {
@@ -673,6 +697,7 @@ export function CombatView({
   }, [
     hand,
     inputLocked,
+    enemy,
     onEndTurn,
     takeEnemyHitSteps,
     applyPlayerImpactStep,
@@ -1258,6 +1283,7 @@ export function CombatView({
           frostSlash={frostSlash}
           intentHighlight={intentHighlight}
           attackLunge={enemyLunge}
+          attackLungeWolf={isWolfEnemy(enemy)}
         />
       </div>
 

@@ -222,6 +222,11 @@
   will-change: transform;
 }
 
+/* 妖狼：突進前半略拉長，後段由 JS 維持 lunged 姿態至音效結束 */
+.enemy-sprite-lunge.enemy-sprite-lunge--wolf {
+  animation-duration: 0.32s;
+}
+
 @keyframes player-hud-hit-shake {
   0%,
   100% {

@@ -175,40 +175,37 @@ export function playImpact(kind: PlayFxKind): void {
   playSampleSync(key, kind === "yijian" ? 1.5 : 1);
 }
 
-/** 敵人打中玩家（HP） */
-export function playPlayerHitSfx(
-  enemy?: { id?: string; monsterSprite?: string } | null
-): void {
-  if (isWolfEnemy(enemy)) {
-    playWolfAttackSfx(false);
-    return;
-  }
-  playSampleSync("player_hit", 0.95);
-}
-
-/** 打在護盾上 */
-export function playShieldHitSfx(
-  enemy?: { id?: string; monsterSprite?: string } | null
-): void {
-  if (isWolfEnemy(enemy)) {
-    playWolfAttackSfx(true);
-    return;
-  }
-  playSampleSync("shield_hit", 0.7);
-}
+/** 妖狼攻擊音效時長（ms）：以較長的利爪樣本為準，覆蓋低吼 */
+export const WOLF_ATTACK_SFX_MS = 3020;
 
 /** 妖狼攻擊：低吼與利爪同步疊加 */
-function playWolfAttackSfx(onShield: boolean): void {
+export function playWolfAttackSfx(onShield = false): void {
   playSampleSync("wolf_growl", onShield ? 0.9 : 1);
   playSampleSync("wolf_claw", onShield ? 0.85 : 0.95);
 }
 
-function isWolfEnemy(
+export function isWolfEnemy(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): boolean {
   return (
     enemy?.id === "enemy_wolf" || enemy?.monsterSprite === "demon_wolf"
   );
+}
+
+/** 敵人打中玩家（HP）；妖狼音效由 CombatView 與動畫同步觸發 */
+export function playPlayerHitSfx(
+  enemy?: { id?: string; monsterSprite?: string } | null
+): void {
+  if (isWolfEnemy(enemy)) return;
+  playSampleSync("player_hit", 0.95);
+}
+
+/** 打在護盾上；妖狼音效由 CombatView 與動畫同步觸發 */
+export function playShieldHitSfx(
+  enemy?: { id?: string; monsterSprite?: string } | null
+): void {
+  if (isWolfEnemy(enemy)) return;
+  playSampleSync("shield_hit", 0.7);
 }
 
 /** 開始 / 繼續修行時的過渡音 */

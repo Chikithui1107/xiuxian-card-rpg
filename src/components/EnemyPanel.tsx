@@ -30,6 +30,8 @@ interface EnemyPanelProps {
   frostSlash?: boolean;
   intentHighlight?: boolean;
   attackLunge?: boolean;
+  /** 妖狼突進：較長動畫／姿態維持 */
+  attackLungeWolf?: boolean;
 }
 
 const INTENT_ICON: Partial<Record<EnemyIntent["type"], string>> = {
@@ -86,6 +88,7 @@ export function EnemyPanel({
   frostSlash = false,
   intentHighlight = false,
   attackLunge = false,
+  attackLungeWolf = false,
 }: EnemyPanelProps) {
   const isDefeated = enemy.currentHp <= 0;
   const intent = getEnemyIntent(enemy);
@@ -365,7 +368,13 @@ export function EnemyPanel({
                 <div
                   className={`relative flex h-full max-w-full items-end justify-center ${
                     spriteShake ? "enemy-sprite-hit-shake" : ""
-                  } ${attackLunge ? "enemy-sprite-lunge" : ""}`}
+                  } ${
+                    attackLunge
+                      ? `enemy-sprite-lunge${
+                          attackLungeWolf ? " enemy-sprite-lunge--wolf" : ""
+                        }`
+                      : ""
+                  }`}
                 >
                   <img
                     src={monster.image}
