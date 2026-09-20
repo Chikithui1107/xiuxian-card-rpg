@@ -51,11 +51,12 @@ import {
 import {
   playDenySfx,
   playWhoosh,
-  playWolfAttackSfx,
-  isWolfEnemy,
-  WOLF_ATTACK_SFX_MS,
   preloadCombatSfx,
   unlockCombatAudio,
+  isWolfEnemy,
+  playWolfAttackSfx,
+  WOLF_ATTACK_IMPACT_AT_MS,
+  WOLF_ATTACK_HOLD_AFTER_IMPACT_MS,
 } from "@/lib/combat-audio";
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
 import { publicAsset } from "@/lib/paths";
@@ -606,20 +607,25 @@ export function CombatView({
         setIntentHighlight(false);
 
         let defeated = false;
-        const wolfAttack = isWolfEnemy(enemy);
-        const windupLungeMs = ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS;
 
         if (plan.kind === "attack" && !plan.dodged && plan.hits.length > 0) {
+          const wolfAttack = isWolfEnemy(enemy);
           for (let i = 0; i < plan.hits.length; i++) {
-            setEnemyLunge(true);
-            // 妖狼：音效與突進同開；多段攻擊只播一次，避免疊三次長音
-            if (wolfAttack && i === 0) playWolfAttackSfx(false);
-            await delayMs(windupLungeMs);
-
             const steps =
               takeEnemyHitSteps?.(plan.hits[i]) ?? [
                 { kind: "hp" as const, amount: plan.hits[i] },
               ];
+            const hitsShield = steps.some(
+              (s) => s.kind === "shield" || s.kind === "shieldBreak"
+            );
+
+            setEnemyLunge(true);
+            if (wolfAttack) {
+              playWolfAttackSfx(hitsShield);
+              await delayMs(WOLF_ATTACK_IMPACT_AT_MS);
+            } else {
+              await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
+            }
 
             for (let s = 0; s < steps.length; s++) {
               const result = applyPlayerImpactStep?.(steps[s]);
@@ -633,18 +639,8 @@ export function CombatView({
             }
 
             if (wolfAttack) {
-              if (plan.hits.length === 1) {
-                // 單段：突進姿維持到音效結束
-                await delayMs(Math.max(0, WOLF_ATTACK_SFX_MS - windupLungeMs));
-              } else if (i === plan.hits.length - 1) {
-                // 多段最後一擊：補齊剩餘音效時長
-                const spentApprox =
-                  plan.hits.length * windupLungeMs +
-                  (plan.hits.length - 1) * ENEMY_MULTI_HIT_GAP_MS;
-                await delayMs(Math.max(0, WOLF_ATTACK_SFX_MS - spentApprox));
-              }
+              await delayMs(WOLF_ATTACK_HOLD_AFTER_IMPACT_MS);
             }
-
             setEnemyLunge(false);
             if (defeated) break;
             if (i < plan.hits.length - 1) {
@@ -655,10 +651,11 @@ export function CombatView({
           }
         } else if (plan.kind === "attack" && plan.dodged) {
           setEnemyLunge(true);
-          if (wolfAttack) playWolfAttackSfx(false);
-          await delayMs(windupLungeMs);
-          if (wolfAttack) {
-            await delayMs(Math.max(0, WOLF_ATTACK_SFX_MS - windupLungeMs));
+          if (isWolfEnemy(enemy)) {
+            playWolfAttackSfx(false);
+            await delayMs(WOLF_ATTACK_IMPACT_AT_MS + WOLF_ATTACK_HOLD_AFTER_IMPACT_MS);
+          } else {
+            await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
           }
           setEnemyLunge(false);
           await delayMs(ENEMY_RETURN_MS);
@@ -697,7 +694,6 @@ export function CombatView({
   }, [
     hand,
     inputLocked,
-    enemy,
     onEndTurn,
     takeEnemyHitSteps,
     applyPlayerImpactStep,
@@ -707,6 +703,7 @@ export function CombatView({
     playEndTurnDiscardAnimation,
     waitForNextDrawBatch,
     finishTurnSequence,
+    enemy,
   ]);
 
   const spawnDiscardFlights = useCallback(
@@ -1270,22 +1267,21 @@ export function CombatView({
       </div>
 
       <div ref={enemyTargetRef} className="combat-shell-stage">
-        <EnemyPanel
-          enemy={enemy}
-          damagePopups={damagePopups}
+          <EnemyPanel
+            enemy={enemy}
+            damagePopups={damagePopups}
           impactFeedback={impactFeedback}
-          isShaking={isShaking}
+            isShaking={isShaking}
           hitFlash={hitFlash}
-          lastEnemyDamage={lastEnemyDamage}
+            lastEnemyDamage={lastEnemyDamage}
           lastDodge={lastDodge}
-          lastPassiveHeal={lastPassiveHeal}
+            lastPassiveHeal={lastPassiveHeal}
           karmaMarks={karmaMarks}
           frostSlash={frostSlash}
           intentHighlight={intentHighlight}
           attackLunge={enemyLunge}
-          attackLungeWolf={isWolfEnemy(enemy)}
-        />
-      </div>
+          />
+        </div>
 
       <div ref={playerTargetRef} className="combat-shell-dock">
         <CardHand
@@ -1310,11 +1306,11 @@ export function CombatView({
           discardPilePulse={discardPilePulse}
           drawPilePulse={drawPilePulse}
           playerBar={
-            <CombatPlayerBar
-              hero={hero}
-              stats={heroStats}
-              currentHp={playerHp}
-              energy={energy}
+        <CombatPlayerBar
+          hero={hero}
+          stats={heroStats}
+          currentHp={playerHp}
+          energy={energy}
               combatBuffs={combatBuffs}
               block={block}
               karmaMode={karmaMode}

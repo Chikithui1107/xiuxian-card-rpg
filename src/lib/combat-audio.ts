@@ -31,7 +31,25 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
 
 /** 換樣本時遞增，強制繞過 HTTP 快取 */
-const SFX_CACHE_BUST = "v11";
+const SFX_CACHE_BUST = "v12";
+
+/** 妖狼利爪加速；原長 ~3.02s → 約 1.68s */
+export const WOLF_CLAW_PLAYBACK_RATE = 1.8;
+/** 低吼原長 */
+const WOLF_GROWL_DURATION_SEC = 1.92;
+const WOLF_CLAW_DURATION_SEC = 3.024;
+/** 疊加後有效音效時長（對齊突進動畫） */
+export const WOLF_ATTACK_SFX_MS = Math.round(
+  Math.max(WOLF_GROWL_DURATION_SEC, WOLF_CLAW_DURATION_SEC / WOLF_CLAW_PLAYBACK_RATE) *
+    1000
+);
+/** 突進開始後多久結算命中（約動作前段） */
+export const WOLF_ATTACK_IMPACT_AT_MS = 360;
+/** 命中後繼續前傾至音效結束 */
+export const WOLF_ATTACK_HOLD_AFTER_IMPACT_MS = Math.max(
+  0,
+  WOLF_ATTACK_SFX_MS - WOLF_ATTACK_IMPACT_AT_MS
+);
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -84,31 +102,43 @@ async function loadBuffer(logicalKey: string): Promise<AudioBuffer | null> {
   return null;
 }
 
-function playBuffer(buffer: AudioBuffer, peak = 1, offsetSec = 0): void {
+function playBuffer(
+  buffer: AudioBuffer,
+  peak = 1,
+  offsetSec = 0,
+  playbackRate = 1
+): void {
   const audio = getCtx();
   if (!audio || !master) return;
   if (audio.state === "suspended") {
-    void audio.resume().then(() => playBuffer(buffer, peak, offsetSec));
+    void audio
+      .resume()
+      .then(() => playBuffer(buffer, peak, offsetSec, playbackRate));
     return;
   }
   const src = audio.createBufferSource();
   src.buffer = buffer;
+  src.playbackRate.value = Math.max(0.25, playbackRate);
   const gain = audio.createGain();
   gain.gain.value = peak;
   src.connect(gain);
   gain.connect(master);
-  const offset = Math.max(0, Math.min(offsetSec, Math.max(0, buffer.duration - 0.05)));
+  const offset = Math.max(
+    0,
+    Math.min(offsetSec, Math.max(0, buffer.duration - 0.05))
+  );
   src.start(0, offset);
 }
 
 async function playSample(
   logicalKey: string,
   peak = 1,
-  offsetSec = 0
+  offsetSec = 0,
+  playbackRate = 1
 ): Promise<boolean> {
   const buffer = await loadBuffer(logicalKey);
   if (!buffer) return false;
-  playBuffer(buffer, peak, offsetSec);
+  playBuffer(buffer, peak, offsetSec, playbackRate);
   return true;
 }
 
@@ -144,15 +174,16 @@ export function playDenySfx(): void {
 function playSampleSync(
   logicalKey: string,
   peak = 1,
-  offsetSec = 0
+  offsetSec = 0,
+  playbackRate = 1
 ): void {
   const cached = bufferCache.get(logicalKey);
   if (cached) {
-    playBuffer(cached, peak, offsetSec);
+    playBuffer(cached, peak, offsetSec, playbackRate);
     return;
   }
   if (bufferCache.has(logicalKey) && cached === null) return;
-  void playSample(logicalKey, peak, offsetSec);
+  void playSample(logicalKey, peak, offsetSec, playbackRate);
 }
 
 /** 出牌離手：輕「唰」，不是命中 */
@@ -175,13 +206,36 @@ export function playImpact(kind: PlayFxKind): void {
   playSampleSync(key, kind === "yijian" ? 1.5 : 1);
 }
 
-/** 妖狼攻擊音效時長（ms）：以較長的利爪樣本為準，覆蓋低吼 */
-export const WOLF_ATTACK_SFX_MS = 3020;
+/** 敵人打中玩家（HP） */
+export function playPlayerHitSfx(
+  enemy?: { id?: string; monsterSprite?: string } | null
+): void {
+  if (isWolfEnemy(enemy)) {
+    // 妖狼在突進開始時已播，命中幀不再重播
+    return;
+  }
+  playSampleSync("player_hit", 0.95);
+}
 
-/** 妖狼攻擊：低吼與利爪同步疊加 */
+/** 打在護盾上 */
+export function playShieldHitSfx(
+  enemy?: { id?: string; monsterSprite?: string } | null
+): void {
+  if (isWolfEnemy(enemy)) {
+    return;
+  }
+  playSampleSync("shield_hit", 0.7);
+}
+
+/** 妖狼攻擊：低吼 + 加速利爪，與突進動畫同步起播 */
 export function playWolfAttackSfx(onShield = false): void {
   playSampleSync("wolf_growl", onShield ? 0.9 : 1);
-  playSampleSync("wolf_claw", onShield ? 0.85 : 0.95);
+  playSampleSync(
+    "wolf_claw",
+    onShield ? 0.85 : 0.95,
+    0,
+    WOLF_CLAW_PLAYBACK_RATE
+  );
 }
 
 export function isWolfEnemy(
@@ -190,22 +244,6 @@ export function isWolfEnemy(
   return (
     enemy?.id === "enemy_wolf" || enemy?.monsterSprite === "demon_wolf"
   );
-}
-
-/** 敵人打中玩家（HP）；妖狼音效由 CombatView 與動畫同步觸發 */
-export function playPlayerHitSfx(
-  enemy?: { id?: string; monsterSprite?: string } | null
-): void {
-  if (isWolfEnemy(enemy)) return;
-  playSampleSync("player_hit", 0.95);
-}
-
-/** 打在護盾上；妖狼音效由 CombatView 與動畫同步觸發 */
-export function playShieldHitSfx(
-  enemy?: { id?: string; monsterSprite?: string } | null
-): void {
-  if (isWolfEnemy(enemy)) return;
-  playSampleSync("shield_hit", 0.7);
 }
 
 /** 開始 / 繼續修行時的過渡音 */
