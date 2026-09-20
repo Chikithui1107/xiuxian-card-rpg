@@ -35,6 +35,8 @@ const SFX_CACHE_BUST = "v12";
 
 /** 妖狼利爪加速；原長 ~3.02s → 約 1.68s */
 export const WOLF_CLAW_PLAYBACK_RATE = 1.8;
+/** 利爪相對命中幀提前起播 */
+export const WOLF_CLAW_LEAD_MS = 200;
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -196,7 +198,7 @@ export function playPlayerHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
   if (isWolfEnemy(enemy)) {
-    playWolfAttackSfx(false);
+    playWolfGrowlSfx(false);
     return;
   }
   playSampleSync("player_hit", 0.95);
@@ -207,15 +209,19 @@ export function playShieldHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
   if (isWolfEnemy(enemy)) {
-    playWolfAttackSfx(true);
+    playWolfGrowlSfx(true);
     return;
   }
   playSampleSync("shield_hit", 0.7);
 }
 
-/** 妖狼攻擊：低吼 + 加速利爪同步疊加（利爪音量 150%） */
-function playWolfAttackSfx(onShield = false): void {
+/** 妖狼低吼（命中幀） */
+function playWolfGrowlSfx(onShield = false): void {
   playSampleSync("wolf_growl", onShield ? 0.9 : 1);
+}
+
+/** 妖狼利爪（相對命中提前 WOLF_CLAW_LEAD_MS；音量 150%、1.8× 速） */
+export function playWolfClawSfx(onShield = false): void {
   playSampleSync(
     "wolf_claw",
     onShield ? 0.85 * 1.5 : 0.95 * 1.5,
@@ -224,7 +230,7 @@ function playWolfAttackSfx(onShield = false): void {
   );
 }
 
-function isWolfEnemy(
+export function isWolfEnemy(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): boolean {
   return (

@@ -53,6 +53,9 @@ import {
   playWhoosh,
   preloadCombatSfx,
   unlockCombatAudio,
+  isWolfEnemy,
+  playWolfClawSfx,
+  WOLF_CLAW_LEAD_MS,
 } from "@/lib/combat-audio";
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
 import { publicAsset } from "@/lib/paths";
@@ -605,14 +608,26 @@ export function CombatView({
         let defeated = false;
 
         if (plan.kind === "attack" && !plan.dodged && plan.hits.length > 0) {
+          const wolfAttack = isWolfEnemy(enemy);
+          const attackMs = ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS;
           for (let i = 0; i < plan.hits.length; i++) {
-            setEnemyLunge(true);
-            await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
-
             const steps =
               takeEnemyHitSteps?.(plan.hits[i]) ?? [
                 { kind: "hp" as const, amount: plan.hits[i] },
               ];
+            const hitsShield = steps.some(
+              (s) => s.kind === "shield" || s.kind === "shieldBreak"
+            );
+
+            setEnemyLunge(true);
+            if (wolfAttack) {
+              const clawLead = Math.min(WOLF_CLAW_LEAD_MS, attackMs);
+              await delayMs(attackMs - clawLead);
+              playWolfClawSfx(hitsShield);
+              await delayMs(clawLead);
+            } else {
+              await delayMs(attackMs);
+            }
 
             for (let s = 0; s < steps.length; s++) {
               const result = applyPlayerImpactStep?.(steps[s]);
@@ -682,6 +697,7 @@ export function CombatView({
     playEndTurnDiscardAnimation,
     waitForNextDrawBatch,
     finishTurnSequence,
+    enemy,
   ]);
 
   const spawnDiscardFlights = useCallback(
