@@ -201,3 +201,34 @@
     animation: none;
   }
 }
+
+/* The gate layout keeps the figure grounded, with room for the HUD and path ahead. */
+.scene[data-composition="gate"] {
+  --gate-character-height: 60%;
+  --gate-character-bottom: calc(25% + env(safe-area-inset-bottom, 0px));
+}
+
+.scene[data-composition="gate"] .character {
+  left: 53%;
+}
+
+.scene[data-composition="gate"] .groundShadow {
+  left: 53%;
+  bottom: calc(var(--gate-character-bottom) + .6%);
+  width: 40%;
+  opacity: .85;
+}
+
+.scene[data-composition="gate"][data-lobby-theme="ink"] {
+  --gate-character-height: 59%;
+}
+
+@container (max-height: 650px) {
+  .scene[data-composition="gate"] {
+    --gate-character-height: 56%;
+    --gate-character-bottom: calc(29% + env(safe-area-inset-bottom, 0px));
+  }
+  .scene[data-composition="gate"][data-lobby-theme="ink"] {
+    --gate-character-height: 56%;
+  }
+}

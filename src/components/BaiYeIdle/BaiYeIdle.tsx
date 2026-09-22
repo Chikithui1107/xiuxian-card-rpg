@@ -9,6 +9,8 @@ type BaiYeIdleProps = {
   backgroundSrc?: string;
   characterName?: string;
   className?: string;
+  /** 山門 V2 只調整展示構圖，不修改角色資料。 */
+  composition?: "portrait" | "gate";
   /** jade | ink — 氛圍微調，不改版式 */
   theme?: "jade" | "ink";
   backgroundPosition?: string;
@@ -23,6 +25,7 @@ export default function BaiYeIdle({
   backgroundSrc = "/images/baiye/baiye-bg.png",
   characterName = "白夜",
   className,
+  composition = "portrait",
   theme = "jade",
   backgroundPosition,
   backgroundFilter,
@@ -41,12 +44,19 @@ export default function BaiYeIdle({
     ...(characterBottom ? { bottom: characterBottom } : null),
     ...(characterHeight ? { height: characterHeight } : null),
     ...(characterMaxWidth ? { maxWidth: characterMaxWidth } : null),
+    ...(composition === "gate"
+      ? {
+          bottom: "var(--gate-character-bottom, 18%)",
+          height: "var(--gate-character-height, 68%)",
+        }
+      : null),
   };
 
   return (
     <div
       className={[styles.scene, className].filter(Boolean).join(" ")}
       data-lobby-theme={theme}
+      data-composition={composition}
     >
       <img
         className={styles.background}

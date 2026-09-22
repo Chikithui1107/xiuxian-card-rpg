@@ -5031,3 +5031,224 @@ html.combat-scroll-lock {
   letter-spacing: 0.18em;
   color: rgba(140, 150, 142, 0.8);
 }
+
+/* Phase 1: scoped mountain-gate UI. Other scenes retain their current theme. */
+.mobile-frame:has(.lobby-v2) {
+  --ui-background: #101719;
+  --ui-surface: #26343d;
+  --ui-border: rgba(208, 183, 120, 0.3);
+  --ui-text-primary: #e9ece7;
+  --ui-text-secondary: #c0cbce;
+  --ui-gold: #b89554;
+  --ui-gold-emphasis: #d0b778;
+  --ui-spirit: #91e5e9;
+  --ui-success: #88b79c;
+  --ui-danger: #d04a4e;
+  --ui-disabled: #738088;
+  --lobby-font-body: -apple-system, BlinkMacSystemFont, "PingFang TC", "Microsoft JhengHei", sans-serif;
+}
+
+.lobby-v2 {
+  isolation: isolate;
+  color: var(--ui-text-primary);
+  font-family: var(--lobby-font-body);
+  container-type: size;
+}
+
+/* Gradients are confined to readable HUD/action areas; the scene stays visible. */
+.lobby-v2__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    rgba(11, 23, 30, .88) 0%, rgba(11, 23, 30, .65) 15%,
+    rgba(11, 23, 30, .1) 31%, transparent 43%, transparent 65%,
+    rgba(12, 23, 29, .22) 76%, rgba(12, 23, 29, .82) 100%);
+}
+
+.lobby-v2__hud {
+  position: absolute;
+  top: calc(4.3rem + env(safe-area-inset-top, 0px));
+  left: 22px;
+  right: 22px;
+  z-index: 20;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  text-shadow: 0 1px 8px rgba(5, 12, 18, .45);
+}
+.lobby-v2__identity h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: .16em;
+  line-height: 1.3;
+}
+.lobby-v2__identity > p {
+  margin-top: 5px;
+  color: var(--ui-text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.lobby-v2__vital { width: 136px; margin-top: 15px; }
+.lobby-v2__hp-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+.lobby-v2__hp-label > span:first-child { color: var(--ui-text-secondary); }
+.lobby-v2__hp-max { color: var(--ui-text-secondary); }
+.lobby-v2__hp-track { height: 3px; background: rgba(233, 236, 231, .2); }
+.lobby-v2__hp-track > span { display: block; height: 100%; background: linear-gradient(90deg, var(--ui-success), var(--ui-spirit)); transition: width .2s; }
+.lobby-v2__currency { padding-top: 5px; text-align: right; }
+.lobby-v2__currency > span { display: block; font-size: 13px; color: var(--ui-text-secondary); }
+.lobby-v2__currency strong { display: block; margin-top: 4px; color: #e8d6ac; font-size: 21px; line-height: 1.4; font-weight: 500; font-variant-numeric: tabular-nums; }
+
+.lobby-v2__gacha {
+  position: absolute;
+  left: 16px;
+  top: 44%;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  min-width: 80px;
+  min-height: 96px;
+  padding: 12px 6px;
+  color: var(--ui-text-primary);
+  background: radial-gradient(ellipse, rgba(16, 23, 25, .8) 0%, rgba(16, 23, 25, .42) 38%, transparent 72%);
+  border: 0;
+  cursor: pointer;
+  text-shadow: 0 1px 6px #101719;
+  transition: color .15s, transform .12s;
+}
+.lobby-v2__gacha svg { width: 30px; height: 30px; color: var(--ui-gold-emphasis); }
+.lobby-v2__gacha > span { font-family: var(--font-serif); font-size: 16px; letter-spacing: .1em; }
+.lobby-v2__gacha small { color: var(--ui-text-secondary); font-size: 12px; }
+
+.lobby-v2__departure {
+  position: absolute;
+  bottom: calc(77px + env(safe-area-inset-bottom, 0px));
+  left: 22px;
+  right: 22px;
+  z-index: 20;
+}
+.lobby-v2__primary {
+  display: block;
+  position: relative;
+  width: 100%;
+  min-height: 78px;
+  padding: 13px 14px 13px 18px;
+  text-align: left;
+  color: var(--ui-text-primary);
+  background: linear-gradient(90deg, rgba(16, 23, 25, .65), rgba(16, 23, 25, .26) 68%, transparent);
+  border: 0;
+  border-left: 2px solid var(--ui-gold-emphasis);
+  cursor: pointer;
+  transition: background .15s, transform .12s;
+}
+.lobby-v2__primary::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, var(--ui-border), transparent 85%);
+}
+.lobby-v2__action-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-serif);
+  font-size: 25px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: .18em;
+}
+.lobby-v2__action-title > span { color: var(--ui-gold-emphasis); font-family: var(--lobby-font-body); font-size: 22px; font-weight: 400; }
+.lobby-v2__run-label { display: block; margin-top: 5px; font-size: 12px; line-height: 1.6; letter-spacing: .03em; color: var(--ui-text-secondary); }
+.lobby-v2__ledger { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 44px; }
+.lobby-v2__ledger p { display: flex; flex-wrap: wrap; gap: 16px; color: var(--ui-text-secondary); font-size: 12px; }
+.lobby-v2__ledger b { padding-left: 4px; color: var(--ui-text-primary); font-weight: 500; font-variant-numeric: tabular-nums; }
+.lobby-v2__abandon { min-height: 44px; padding: 6px 0 6px 12px; border: 0; background: transparent; color: var(--ui-text-secondary); font-size: 12px; cursor: pointer; }
+.lobby-v2 button:focus-visible { outline: 2px solid var(--ui-spirit); outline-offset: 4px; }
+.lobby-v2__gacha:active, .lobby-v2__primary:active { transform: translateY(2px); }
+@media (hover: hover) {
+  .lobby-v2__primary:hover { background: linear-gradient(90deg, rgba(38, 52, 61, .8), transparent); }
+  .lobby-v2__gacha:hover, .lobby-v2__abandon:hover { color: var(--ui-spirit); }
+}
+.lobby-v2__toast { top: calc(13rem + env(safe-area-inset-top, 0px)); }
+
+/* Scope shared chrome via the actual Lobby, not the immersive flag (also used by gacha). */
+.mobile-frame:has(.lobby-v2) .mobile-content.has-bottom-nav {
+  padding-bottom: 0;
+}
+.mobile-frame:has(.lobby-v2) .mobile-header {
+  padding: calc(16px + env(safe-area-inset-top, 0px)) 22px 0;
+  text-align: left;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  background: none;
+}
+.mobile-frame:has(.lobby-v2) .mobile-header-title.title-ink {
+  font-size: 19px;
+  letter-spacing: .2em;
+  text-indent: 0;
+  color: var(--ui-text-primary);
+  line-height: 28px;
+}
+.mobile-frame:has(.lobby-v2) .mobile-header-subtitle {
+  margin: 0;
+  text-indent: 0;
+  letter-spacing: .12em;
+  font-size: 12px;
+  color: var(--ui-text-secondary);
+  max-width: calc(100% - 108px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mobile-frame:has(.lobby-v2) .bgm-toggle-btn {
+  left: auto;
+  right: 12px;
+  top: calc(8px + env(safe-area-inset-top, 0px));
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  color: var(--ui-text-secondary);
+}
+.mobile-frame:has(.lobby-v2) .bgm-toggle-icon { width: 18px; height: 18px; }
+.mobile-frame:has(.lobby-v2) .bgm-tap-hint { left: auto; right: 56px; top: calc(16px + env(safe-area-inset-top, 0px)); font-family: var(--lobby-font-body); }
+.mobile-frame:has(.lobby-v2) .bottom-nav { padding-top: 20px; background: linear-gradient(180deg, transparent, rgba(16, 23, 25, .92) 70%); }
+.mobile-frame:has(.lobby-v2) .bottom-nav-label { font-family: var(--lobby-font-body); font-size: 13px; letter-spacing: .12em; }
+.mobile-frame:has(.lobby-v2) .bottom-nav-item { color: #bbc5c6; }
+.mobile-frame:has(.lobby-v2) .bottom-nav-item-active { color: #e8d6ac; }
+.mobile-frame:has(.lobby-v2) .bottom-nav-item:focus-visible, .mobile-frame:has(.lobby-v2) .bgm-toggle-btn:focus-visible { outline: 2px solid var(--ui-spirit); outline-offset: -3px; }
+
+@container (max-height: 650px) {
+  .lobby-v2__hud { top: calc(3.5rem + env(safe-area-inset-top, 0px)); left: 18px; right: 18px; }
+  .lobby-v2__identity h2 { font-size: 23px; }
+  .lobby-v2__vital { margin-top: 10px; }
+  .lobby-v2__gacha { top: 39%; left: 10px; }
+  .lobby-v2__departure { left: 18px; right: 18px; bottom: calc(71px + env(safe-area-inset-bottom, 0px)); }
+  .lobby-v2__primary { min-height: 72px; padding-top: 9px; padding-bottom: 9px; }
+  .lobby-v2__action-title { font-size: 23px; }
+  .lobby-v2__toast { top: calc(11.5rem + env(safe-area-inset-top, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lobby-v2 *, .mobile-frame:has(.lobby-v2) .bottom-nav-item { transition: none; }
+}

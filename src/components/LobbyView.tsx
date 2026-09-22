@@ -47,12 +47,13 @@ export function LobbyView({
 
   return (
     <div
-      className={`lobby-home animate-fade-in relative min-h-0 flex-1 overflow-hidden${
+      className={`lobby-home lobby-v2 relative min-h-0 flex-1 overflow-hidden${
         character.lobbyTheme === "ink" ? " lobby-home-ink" : ""
       }`}
     >
       <BaiYeIdle
         className="absolute inset-0"
+        composition="gate"
         characterSrc={
           character.lobbyPortrait ??
           hero.lobbyPortrait ??
@@ -71,111 +72,89 @@ export function LobbyView({
         characterHeight={art?.characterHeight}
         characterMaxWidth={art?.characterMaxWidth}
       />
+      <div className="lobby-v2__veil" aria-hidden />
 
-      <div className="lobby-bg-veil pointer-events-none absolute inset-0 z-[19]" />
+      <section className="lobby-v2__hud" aria-label="當前修士狀態">
+        <div className="lobby-v2__identity">
+          <h2>{hero.name}</h2>
+          <p>{hero.title}<span aria-hidden> · </span>{hero.realm}</p>
+          <div className="lobby-v2__vital">
+            <div className="lobby-v2__hp-label">
+              <span>氣血</span>
+              <span>{formatNumber(playerHp)}<span className="lobby-v2__hp-max"> / {formatNumber(stats.maxHp)}</span></span>
+            </div>
+            <div
+              className="lobby-v2__hp-track"
+              role="progressbar"
+              aria-label="氣血"
+              aria-valuemin={0}
+              aria-valuemax={stats.maxHp}
+              aria-valuenow={playerHp}
+            >
+              <span style={{ width: `${hpPercent}%` }} />
+            </div>
+          </div>
+        </div>
+        <div className="lobby-v2__currency" aria-label={`靈石 ${formatNumber(spiritStones)}`}>
+          <span>靈石</span>
+          <strong>{formatNumber(spiritStones)}</strong>
+        </div>
+      </section>
+
+      {onOpenGacha ? (
+        <button
+          type="button"
+          onClick={onOpenGacha}
+          className="lobby-v2__gacha"
+          aria-label="前往因緣閣"
+        >
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden>
+            <circle cx="16" cy="16" r="10" stroke="currentColor" strokeWidth="1" />
+            <path d="M16 2v6m0 16v6M2 16h6m16 0h6M16 10l6 6-6 6-6-6 6-6Z" stroke="currentColor" strokeWidth="1" />
+            <circle cx="16" cy="16" r="2" fill="currentColor" />
+          </svg>
+          <span>因緣閣</span>
+          <small>悟道 · 霓裳</small>
+        </button>
+      ) : null}
+
+      <div className="lobby-v2__departure">
+        {hasActiveRun ? (
+          <button
+            type="button"
+            onClick={onContinueGame}
+            className="lobby-v2__primary"
+            aria-label="繼續修行"
+          >
+            <span className="lobby-v2__action-title">繼續修行<span aria-hidden>↗</span></span>
+            <span className="lobby-v2__run-label">{runLabel ?? "返回本次秘境"}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onEnterDungeon}
+            className="lobby-v2__primary"
+            aria-label="開始修行，前往秘境試煉"
+          >
+            <span className="lobby-v2__action-title">開始修行<span aria-hidden>↗</span></span>
+            <span className="lobby-v2__run-label">五境連闖 · 一世修行</span>
+          </button>
+        )}
+        <div className="lobby-v2__ledger">
+          <p><span>牌組 <b>{deckCount}</b></span><span>通關 <b>{totalClears}</b></span></p>
+          {hasActiveRun ? (
+            <button type="button" className="lobby-v2__abandon" onClick={onAbandonGame} aria-label="放棄本次修行">放棄本次修行</button>
+          ) : null}
+        </div>
+      </div>
 
       {lastRunMessage && onDismissRunMessage && (
         <RunToast
           message={lastRunMessage}
           onDismiss={onDismissRunMessage}
-          topClassName="top-[calc(3.85rem+env(safe-area-inset-top,0px))]"
+          topClassName="lobby-v2__toast"
         />
       )}
-
-      <div className="lobby-hero-title pointer-events-none absolute inset-x-0 z-20 px-4 pb-3 pt-8 text-center">
-        <h2 className="text-[1.55rem] font-bold tracking-[0.36em] text-[#f5efe4] drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
-          {hero.name}
-        </h2>
-        <p className="lobby-hero-subtitle mt-1 text-[11px] tracking-[0.22em]">
-          {hero.title} · {hero.realm}
-        </p>
-      </div>
-
-      <div className="lobby-dock absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-3">
-        {onOpenGacha ? (
-          <button
-            type="button"
-            onClick={onOpenGacha}
-            className="lobby-gacha-entry mb-2"
-            aria-label="前往因緣閣"
-          >
-            因緣閣 · 悟道／霓裳
-          </button>
-        ) : null}
-        <div className="lobby-stat-sheet mb-3 px-3 py-2.5">
-          <div className="mb-1 flex items-center justify-between text-[10px]">
-            <span className="text-[#8eb8a8]">氣血</span>
-            <span className="stat-value text-[#d5e8dc]">
-              {formatNumber(playerHp)} / {formatNumber(stats.maxHp)}
-            </span>
-          </div>
-          <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-black/55">
-            <div
-              className="hp-bar-fill h-full rounded-full"
-              style={{ width: `${hpPercent}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between gap-2 text-[10px]">
-            <span className="text-stone-400">
-              靈石{" "}
-              <span className="font-semibold text-[#8eb8a8]">
-                {formatNumber(spiritStones)}
-              </span>
-            </span>
-            <span className="text-stone-400">
-              牌組{" "}
-              <span className="font-semibold text-[#c9a84c]">{deckCount}</span>
-            </span>
-            <span className="text-stone-400">
-              通關{" "}
-              <span className="font-semibold text-[#c9a84c]">{totalClears}</span>
-            </span>
-          </div>
-        </div>
-
-        {hasActiveRun ? (
-          <div className="space-y-2">
-            <button
-              onClick={onContinueGame}
-              className="btn-start-game"
-              aria-label="繼續修行"
-            >
-              <span className="relative block text-[1.05rem] font-bold tracking-[0.42em]">
-                繼續修行
-              </span>
-              <span className="btn-start-divider" aria-hidden>
-                <i className="btn-start-diamond" />
-              </span>
-              <span className="relative block text-[10px] font-semibold tracking-[0.22em] text-[#b8a878]/90">
-                {runLabel ?? "返回本次秘境"}
-              </span>
-            </button>
-            <button
-              onClick={onAbandonGame}
-              className="btn-abandon"
-              aria-label="放棄本次修行"
-            >
-              放棄本次修行
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={onEnterDungeon}
-            className="btn-start-game"
-            aria-label="開始修行，前往秘境試煉"
-          >
-            <span className="relative block text-[1.05rem] font-bold tracking-[0.42em]">
-              開始修行
-            </span>
-            <span className="btn-start-divider" aria-hidden>
-              <i className="btn-start-diamond" />
-            </span>
-            <span className="relative block text-[10px] font-semibold tracking-[0.22em] text-[#b8a878]/90">
-              五境連闖 · 一世修行
-            </span>
-          </button>
-        )}
-      </div>
     </div>
   );
 }
