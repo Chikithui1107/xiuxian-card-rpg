@@ -1290,14 +1290,15 @@ export default function GamePage() {
   }, []);
 
   const quitRun = useCallback(() => {
-    // 先 invalidate session，堵住尚未執行的舊 checkpoint effect 寫回
+    // 放棄＝失敗：先作廢本局存檔，再進渡劫失敗畫面（專屬曲鎖到選按鈕）
     runSessionIdRef.current = null;
     setRunSessionId(null);
     clearActiveRunSave();
     setRunSpirit(0);
-    resetPermanentDeck();
-    returnToLobby("已放棄修行，本次五境進度已重置。", true);
-  }, [returnToLobby, resetPermanentDeck]);
+    playGameOverSfx(true);
+    setPhase("defeat");
+    playLockRef.current = false;
+  }, []);
 
   const dismissRunMessage = useCallback(() => {
     setLastRunMessage(null);
