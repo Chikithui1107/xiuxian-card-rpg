@@ -1,0 +1,46 @@
+.root { position: relative; display: flex; flex: 1; min-height: 0; flex-direction: column; color: #e9ece7; }
+.card { overflow-y: auto; max-height: 100%; margin: auto 20px; padding: 26px 20px; border-top: 1px solid #b8955480; background: linear-gradient(150deg,#182426,#101719); }
+.card h2 { font-size: 24px; margin: 8px 0 14px; }
+.card p { font-size: 14px; line-height: 1.8; color: #bccacb; }
+.eyebrow { color: #d0b778 !important; letter-spacing: .18em; font-size: 12px !important; }
+.primary, .secondary { min-height: 44px; width: 100%; margin-top: 12px; padding: 10px 12px; text-align: center; }
+.primary { border: 1px solid #b8955480; color: #f4f1e8; background: #b8955415; }
+.secondary { color: #bac7ca; text-decoration: underline; text-underline-offset: 4px; }
+.toolbar { display:flex; align-items:center; justify-content:space-between; padding: 0 12px; flex-shrink:0; min-height:44px; font-size:12px; color:#c3d2d4; }
+.toolbar button { min-height:44px; padding:0 10px; color:#d0b778; }
+.guide { flex-shrink:0; padding:10px 16px; border-left:2px solid #65c7d4; background:#16282ced; }
+.guide h2 { font-size:15px; color:#f4f1e8; margin-bottom:4px; }
+.guide p { font-size:13px; line-height:1.55; color:#ccdadb; }
+.guide button { min-height:44px; padding:6px 14px; border-bottom:1px solid #b89554; color:#d0b778; }
+.notice { color:#91e5e9 !important; }
+.battle { display:flex; position:relative; flex:1; min-height:0; }
+.root :global(.combat-shell) { flex:1; }
+.root[data-step="intent"] :global(.enemy-intent) { outline:2px solid #91e5e9; outline-offset:3px; }
+.root[data-step="guard"] :global([data-hand-instance-id*="jiangang"]),
+.root[data-step="attack"] :global([data-hand-instance-id*="fuxue"]),
+.root[data-step="charge"] :global([data-hand-instance-id*="ningshuang"]),
+.root[data-step="burst"] :global([data-hand-instance-id*="yijian"]) { filter:drop-shadow(0 0 5px #91e5e9); }
+.root[data-step="end"] :global(.btn-end-turn-seal) { outline:2px solid #91e5e9; outline-offset:3px; }
+.root button:focus-visible { outline:2px solid #91e5e9; outline-offset:2px; }
+@media (max-height:700px) {
+  .guide { padding:6px 12px; }
+  .guide h2 { font-size:13px; margin-bottom:2px; }
+  .guide p { font-size:12px; }
+  .root :global(.combat-shell-top) { display:none; }
+  .root :global(.enemy-sprite-stage) { max-width:130px; }
+}
+
+/* Keep the full practice opponent inside the available stage at every height. */
+.root :global(.enemy-sprite-stage), .root :global(.enemy-unit) { height:100%; }
+.root :global(.enemy-unit) > div:last-child { flex:1; min-height:0; height:auto; }
+@media (max-height:700px) {
+  .root {
+    --combat-top-h:0px;
+    --combat-hud-h:2.8rem;
+    --combat-actions-h:3.4rem;
+    --hand-zone-h:12.5rem;
+    --player-gap-hand-actions:.25rem;
+    --player-gap-hud-hand:.1rem;
+    --combat-dock-h:calc(var(--combat-hud-h) + var(--player-gap-hud-hand) + var(--hand-zone-h) + var(--player-gap-hand-actions) + var(--combat-actions-h) + .55rem + env(safe-area-inset-bottom, 0px));
+  }
+}
