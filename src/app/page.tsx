@@ -24,6 +24,8 @@ import { CharacterSelectModal } from "@/components/CharacterSelectModal";
 import { CardRewardModal } from "@/components/CardRewardModal";
 import { EventModal } from "@/components/EventModal";
 import { InGameMenu } from "@/components/InGameMenu";
+import { BattleTutorial } from "@/components/tutorial/BattleTutorial";
+import { readTutorialOutcome, saveTutorialOutcome, type TutorialOutcome } from "@/lib/tutorial";
 import { VictoryAnimOverlay } from "@/components/VictoryAnimOverlay";
 import { StageClearOverlay } from "@/components/StageClearOverlay";
 import { DefeatOverlay } from "@/components/DefeatOverlay";
@@ -568,6 +570,8 @@ export default function GamePage() {
   const [shopOfferIds, setShopOfferIds] = useState<CardTemplateId[]>([]);
   /** 主線劇情隊列（僅覆蓋層，不改 Run） */
   const [storyQueue, setStoryQueue] = useState<StoryScene[]>([]);
+  const [tutorial, setTutorial] = useState<{ level: number | null } | null>(null);
+  const closeTutorial = useCallback(() => setTutorial(null), []);
   /** Boss 前短劇情結束後自動開打 */
   const pendingBossAfterStoryRef = useRef<{
     tier: DungeonTier;
@@ -2666,7 +2670,13 @@ export default function GamePage() {
                 maxCalamityLevel={maxCalamityLevel}
                 selectedCalamity={pendingCalamity}
                 onCalamityChange={setPendingCalamity}
-                onStart={() => startCultivationRun(pendingCalamity)}
+                onStart={() => {
+                  if (character.id === "baiye" && !readTutorialOutcome()) {
+                    setTutorial({ level: pendingCalamity });
+                  } else {
+                    startCultivationRun(pendingCalamity);
+                  }
+                }}
               />
             </div>
           );
@@ -2812,6 +2822,19 @@ export default function GamePage() {
     );
   }
 
+  if (tutorial) {
+    const finishTutorial = (outcome: TutorialOutcome) => {
+      saveTutorialOutcome(outcome);
+      setTutorial(null);
+      if (tutorial.level !== null) startCultivationRun(tutorial.level);
+    };
+    return (
+      <MobileFrame title="仙途" subtitle="試劍指引" compactHeader bgmScene="combat">
+        <BattleTutorial replay={tutorial.level === null} onFinish={finishTutorial} onCancel={closeTutorial} />
+      </MobileFrame>
+    );
+  }
+
   return (
     <MobileFrame
       title="仙途"
@@ -2834,7 +2857,12 @@ export default function GamePage() {
       bgmScene={isInCombat ? "combat" : "lobby"}
       storyMode={storyActive}
       inGameMenu={
-        showRunMenu ? <InGameMenu onQuit={quitRun} /> : null
+        showRunMenu || (activeTab === "lobby" && !showGacha && !characterSelectOpen && !isInCombat && phase !== "defeat") ? (
+          <InGameMenu
+            onQuit={showRunMenu ? quitRun : undefined}
+            onTutorial={!isInCombat ? () => setTutorial({ level: null }) : undefined}
+          />
+        ) : null
       }
       bottomNav={
         isInCombat ? null : (

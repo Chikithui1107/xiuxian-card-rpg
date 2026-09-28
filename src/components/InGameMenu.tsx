@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 
 interface InGameMenuProps {
-  onQuit: () => void;
+  onQuit?: () => void;
+  onTutorial?: () => void;
 }
 
-export function InGameMenu({ onQuit }: InGameMenuProps) {
+export function InGameMenu({ onQuit, onTutorial }: InGameMenuProps) {
   const [open, setOpen] = useState(false);
   const [confirmQuit, setConfirmQuit] = useState(false);
 
@@ -54,7 +55,7 @@ export function InGameMenu({ onQuit }: InGameMenuProps) {
           />
           <div className="in-game-menu-panel glass-panel-gold">
             <p className="zone-label text-[#8a7340]">
-              {confirmQuit ? "請再確認" : "祕境進行中"}
+              {confirmQuit ? "請再確認" : onQuit ? "祕境進行中" : "山門"}
             </p>
             <h2
               id="in-game-menu-title"
@@ -94,16 +95,17 @@ export function InGameMenu({ onQuit }: InGameMenuProps) {
                   className="btn-start-game !py-3"
                 >
                   <span className="relative block text-base font-bold tracking-[0.32em]">
-                    繼續修行
+                    {onQuit ? "繼續修行" : "返回山門"}
                   </span>
                 </button>
-                <button
+                {onTutorial && <button type="button" className="btn-abandon" onClick={() => { closeMenu(); onTutorial(); }}>重看教學</button>}
+                {onQuit && <button
                   type="button"
                   onClick={() => setConfirmQuit(true)}
                   className="btn-abandon"
                 >
                   放棄本次修行
-                </button>
+                </button>}
               </div>
             )}
           </div>
