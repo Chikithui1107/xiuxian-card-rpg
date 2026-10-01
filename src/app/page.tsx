@@ -74,7 +74,8 @@ import {
 import { buildCardFacePreviewFromKarma } from "@/lib/card-face-display";
 import { AspectDiscardModal } from "@/components/AspectDiscardModal";
 import { RestModal } from "@/components/RestModal";
-import { ShopModal, SHOP_PRICE } from "@/components/ShopModal";
+import { ShopModal } from "@/components/ShopModal";
+import { getShopCardPrice, STARTING_RUN_GOLD, REST_GOLD_REWARD } from "@/lib/run-economy";
 import { StoryOverlay } from "@/components/StoryOverlay";
 import {
   getChapterStoryConfig,
@@ -503,7 +504,7 @@ export default function GamePage() {
   const [maxCalamityLevel, setMaxCalamityLevel] = useState(0);
   const [totalClears, setTotalClears] = useState(0);
   const [spiritStones, setSpiritStones] = useState(1280);
-  /** 本局靈砂：僅存於 Active Run，結束／戰敗／放棄清零 */
+  /** 本局金幣：僅存於 Active Run，結束／戰敗／放棄清零 */
   const [runSpirit, setRunSpirit] = useState(0);
   const [runSessionId, setRunSessionId] = useState<string | null>(null);
   const runSessionIdRef = useRef<string | null>(null);
@@ -1237,26 +1238,28 @@ export default function GamePage() {
   const handleRestSpirit = useCallback(() => {
     if (!activeRestNodeId || restChoiceLockRef.current) return;
     restChoiceLockRef.current = true;
-    setRunSpirit((s) => s + 80);
+    setRunSpirit((s) => s + REST_GOLD_REWARD);
     const nodeId = activeRestNodeId;
     setActiveRestNodeId(null);
-    finishMapNode(nodeId, "吐納聚靈，獲得 80 靈砂");
+    finishMapNode(nodeId, `搜尋錢袋，獲得 ${REST_GOLD_REWARD} 金幣`);
   }, [activeRestNodeId, finishMapNode]);
 
   const handleShopBuy = useCallback(
     (templateId: CardTemplateId) => {
       if (!activeShopNodeId || shopChoiceLockRef.current) return;
-      if (runSpirit < SHOP_PRICE) return;
+      if (!shopOfferIds.includes(templateId)) return;
+      const price = getShopCardPrice(chapterIndex);
+      if (runSpirit < price) return;
       shopChoiceLockRef.current = true;
-      setRunSpirit((s) => s - SHOP_PRICE);
+      setRunSpirit((s) => s - price);
       appendRunDeckCard(templateId);
       const cardName = CARD_TEMPLATES[templateId]?.name ?? "法訣";
       const nodeId = activeShopNodeId;
       setActiveShopNodeId(null);
       setShopOfferIds([]);
-      finishMapNode(nodeId, `購得「${cardName}」，耗費 ${SHOP_PRICE} 靈砂`);
+      finishMapNode(nodeId, `購得「${cardName}」，耗費 ${price} 金幣`);
     },
-    [activeShopNodeId, runSpirit, finishMapNode, appendRunDeckCard]
+    [activeShopNodeId, shopOfferIds, chapterIndex, runSpirit, finishMapNode, appendRunDeckCard]
   );
 
   const handleShopLeave = useCallback(() => {
@@ -1352,7 +1355,7 @@ export default function GamePage() {
     if (
       typeof window !== "undefined" &&
       !window.confirm(
-        "確定放棄本次修行？當前五境進度、法訣與靈砂將全部失去，下次將從引氣入道重新開始。"
+        "確定放棄本次修行？當前五境進度、法訣與金幣將全部失去，下次將從引氣入道重新開始。"
       )
     ) {
       return;
@@ -1461,7 +1464,7 @@ export default function GamePage() {
       setActiveTab("combat");
       setPhase("playing");
       setBattlePhase("IN_BATTLE");
-      setRunSpirit(100);
+      setRunSpirit(STARTING_RUN_GOLD);
       setPlayerHp(heroStats.maxHp);
       setEnemy(createNeutralEnemy());
       resetCombatState();
@@ -1478,7 +1481,7 @@ export default function GamePage() {
         permanentDeck: freshRunDeck,
         playerHp: heroStats.maxHp,
         spiritStones,
-        runSpirit: 100,
+        runSpirit: STARTING_RUN_GOLD,
         mapMessage: null,
         savedAt: Date.now(),
       });
@@ -2637,7 +2640,7 @@ export default function GamePage() {
     clearActiveRunSave();
     resetPermanentDeck();
     returnToLobby(
-      `渡劫成功！五境圓滿，餘砂化為靈石 +${convert}。`,
+      `渡劫成功！五境圓滿，剩餘金幣兌換為靈石 +${convert}。`,
       true
     );
   }, [
@@ -2993,6 +2996,7 @@ export default function GamePage() {
       {activeShopNodeId && (
         <ShopModal
           offerIds={shopOfferIds}
+          price={getShopCardPrice(chapterIndex)}
           runSpirit={runSpirit}
           onBuy={handleShopBuy}
           onLeave={handleShopLeave}

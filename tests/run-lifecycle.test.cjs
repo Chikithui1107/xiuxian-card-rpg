@@ -23,7 +23,7 @@ Module._load = function(request, ...args) {
       views.set(name, props);
       return React.createElement('section', { 'data-view': name }, props.children, props.inGameMenu, props.bottomNav);
     });
-    return { [name]: components.get(name), MAX_CALAMITY_LEVEL: 10, getCalamityLabel: () => '凡境', SHOP_PRICE: 30 };
+    return { [name]: components.get(name), MAX_CALAMITY_LEVEL: 10, getCalamityLabel: () => '凡境' };
   }
   return originalLoad.call(this, request, ...args);
 };
@@ -116,6 +116,37 @@ test('earned deck restores from checkpoint; defeat, abandon, stale callbacks, re
     assert.deepEqual(progress.baiye.permanentDeck, getCharacter('baiye').startingDeck);
     assert.deepEqual(progress.moyi.permanentDeck, getCharacter('moyi').startingDeck);
     assert.equal(progress.baiye.spiritStones, fresh.spiritStones);
+    // Resume at the earliest possible shop after one completed combat.
+    // Exercise actual page pricing, affordability, offer validation and double clicks.
+    const { completeMapNode } = require('../src/lib/map.ts');
+    const map = completeMapNode(fresh.dungeonMap, fresh.dungeonMap[0][0].id);
+    map[1][0].type = 'shop';
+    for (const balance of [79, 80, 112]) {
+      await step(() => root.unmount());
+      localStorage.setItem(RUN, JSON.stringify({ ...fresh, dungeonMap: map, runSpirit: balance }));
+      root = createRoot(document.getElementById('root'));
+      await render();
+      await step(() => props('LobbyView').onContinueGame());
+      await skipStory();
+      await step(() => props('PathChoiceView').onSelectNode(map[1][0]));
+      const shop = props('ShopModal');
+      assert.equal(shop.price, 80);
+      assert.equal(shop.offerIds.length, 3);
+      await step(() => shop.onBuy('not-an-offer'));
+      assert.equal(readRun().runSpirit, balance);
+      assert.deepEqual(readRun().permanentDeck, fresh.permanentDeck);
+      await step(() => { shop.onBuy(shop.offerIds[0]); shop.onBuy(shop.offerIds[0]); });
+      if (balance < 80) {
+        assert.equal(readRun().runSpirit, balance);
+        assert.deepEqual(readRun().permanentDeck, fresh.permanentDeck);
+        await step(() => shop.onLeave());
+      } else {
+        assert.equal(readRun().runSpirit, balance - shop.price);
+        assert.deepEqual(readRun().permanentDeck, [...fresh.permanentDeck, shop.offerIds[0]]);
+      }
+      assert.equal(readRun().dungeonMap[1][0].status, 'completed');
+    }
+
   } finally {
     await step(() => root.unmount());
     dom.window.close();

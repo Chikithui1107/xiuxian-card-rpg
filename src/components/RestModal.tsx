@@ -1,5 +1,7 @@
 "use client";
 
+import { REST_GOLD_REWARD } from "@/lib/run-economy";
+
 interface RestModalProps {
   maxHp: number;
   currentHp: number;
@@ -24,7 +26,7 @@ export function RestModal({
           靈泉休整
         </h2>
         <p className="mt-3 text-[13px] leading-relaxed text-stone-300">
-          泉眼隱於石縫，水汽清涼。此刻只能擇一：療傷，或採納散落靈息化為靈砂。
+          泉眼隱於石縫，水汽清涼。此刻只能擇一：療傷，或搜尋附近遺落的錢袋。
         </p>
         <p className="mt-2 text-[11px] tracking-wide text-stone-500">
           氣血 {currentHp}/{maxHp}
@@ -55,10 +57,10 @@ export function RestModal({
             className="rounded-lg border border-[#8a7340]/40 bg-stone-950/70 px-3 py-3 text-left transition hover:border-[#c9a84c]/55 hover:bg-stone-900/80 active:scale-[0.99]"
           >
             <span className="block text-sm font-semibold tracking-wide text-[#e8e0d4]">
-              吐納聚靈
+              搜尋錢袋
             </span>
             <span className="mt-1 block text-[11px] text-stone-400">
-              獲得 80 靈砂
+              獲得 {REST_GOLD_REWARD} 金幣
             </span>
           </button>
         </div>

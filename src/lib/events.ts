@@ -84,7 +84,7 @@ export function applyEventChoice(
       }
       case "spirit_stones": {
         spiritDelta += effect.amount;
-        bits.push(`靈砂 +${effect.amount}`);
+        bits.push(`金幣 +${effect.amount}`);
         break;
       }
       case "nothing":

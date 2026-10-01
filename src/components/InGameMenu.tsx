@@ -66,7 +66,7 @@ export function InGameMenu({ onQuit, onTutorial }: InGameMenuProps) {
             {confirmQuit ? (
               <>
                 <p className="mt-2 text-[11px] leading-relaxed text-stone-400">
-                  確定放棄本次修行？當前五境進度、法訣與靈砂將全部失去，下次修行將重新從引氣入道開始。
+                  確定放棄本次修行？當前五境進度、法訣與金幣將全部失去，下次修行將重新從引氣入道開始。
                 </p>
                 <div className="mt-4 flex flex-col gap-2.5">
                   <button
