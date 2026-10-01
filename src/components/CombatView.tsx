@@ -10,6 +10,8 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import { createActionScope } from "@/lib/action-scope";
+import { cancelCombatAudio } from "@/lib/combat-audio";
 import { EnemyPanel } from "@/components/EnemyPanel";
 import { CardHand } from "@/components/CardHand";
 import { CombatPlayerBar } from "@/components/CombatPlayerBar";
@@ -19,7 +21,6 @@ import {
   END_TURN_BEAT_MS,
   END_TURN_FLY_MS,
   END_TURN_GATHER_MS,
-  delayMs,
   snapshotFlyingFace,
   FlyingCardVisual,
   type PileFlight,
@@ -322,6 +323,22 @@ export function CombatView({
   externalFeelToast = null,
   facePreview,
 }: CombatViewProps) {
+  const scopeRef = useRef(createActionScope());
+  useLayoutEffect(() => {
+    const scope = createActionScope();
+    scopeRef.current = scope;
+    return () => {
+      scope.cancel();
+      cancelCombatAudio(false);
+      // Flights unmount before animation-end: release their suspended sequences.
+      for (const resolve of endTurnDiscardWaitersRef.current.values()) resolve();
+      endTurnDiscardWaitersRef.current.clear();
+      for (const resolve of singleFlightWaitersRef.current.values()) resolve();
+      singleFlightWaitersRef.current.clear();
+      drawBatchWaiterRef.current?.resolve();
+      drawBatchWaiterRef.current = null;
+    };
+  }, []);
   const isPlaying = phase === "playing" && battlePhase === "IN_BATTLE";
   const placeLabel = locationName ?? tierName ?? "秘境";
   const progressFloor = Math.min(
@@ -425,7 +442,7 @@ export function CombatView({
     setFeelToast(msg);
     setDenyShake(true);
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => {
+    toastTimer.current = scopeRef.current.schedule(() => {
       setFeelToast(null);
       setDenyShake(false);
     }, 900);
@@ -475,8 +492,11 @@ export function CombatView({
     return new Promise((resolve) => {
       drawBatchWaiterRef.current = { resolve, armed: true };
       // 若兩幀內沒有抽牌飛出（手牌已滿等），直接結束等待
+      const scope = scopeRef.current;
       requestAnimationFrame(() => {
+        if (!scope.active) return;
         requestAnimationFrame(() => {
+          if (!scope.active) return;
           const w = drawBatchWaiterRef.current;
           if (w?.armed && !drawBatchRef.current) {
             resolveDrawBatchWaiter();
@@ -563,7 +583,8 @@ export function CombatView({
   }, [onEndTurnSequenceDone]);
 
   const handleEndTurn = useCallback(() => {
-    if (turnSeqBusyRef.current || inputLocked) return;
+    const scope = scopeRef.current;
+    if (!scope.active || !isPlaying || turnSeqBusyRef.current || inputLocked) return;
     turnSeqBusyRef.current = true;
     setInputLocked(true);
     playLayoutHoldRef.current = null;
@@ -585,6 +606,7 @@ export function CombatView({
             return next;
           });
           await playEndTurnDiscardAnimation(toDiscard);
+          if (!scope.active) return;
         }
 
         const plan = onEndTurn();
@@ -602,7 +624,7 @@ export function CombatView({
 
         // Intent 短暫高亮
         setIntentHighlight(true);
-        await delayMs(ENEMY_INTENT_HIGHLIGHT_MS);
+        if (!(await scope.wait(ENEMY_INTENT_HIGHLIGHT_MS))) return;
         setIntentHighlight(false);
 
         let defeated = false;
@@ -622,11 +644,11 @@ export function CombatView({
             setEnemyLunge(true);
             if (wolfAttack) {
               const clawLead = Math.min(WOLF_CLAW_LEAD_MS, attackMs);
-              await delayMs(attackMs - clawLead);
+              if (!(await scope.wait(attackMs - clawLead))) return;
               playWolfClawSfx(hitsShield);
-              await delayMs(clawLead);
+              if (!(await scope.wait(clawLead))) return;
             } else {
-              await delayMs(attackMs);
+              if (!(await scope.wait(attackMs))) return;
             }
 
             for (let s = 0; s < steps.length; s++) {
@@ -636,32 +658,32 @@ export function CombatView({
                 break;
               }
               if (s < steps.length - 1) {
-                await delayMs(SHIELD_BREAK_TO_HP_MS);
+                if (!(await scope.wait(SHIELD_BREAK_TO_HP_MS))) return;
               }
             }
 
             setEnemyLunge(false);
             if (defeated) break;
             if (i < plan.hits.length - 1) {
-              await delayMs(ENEMY_MULTI_HIT_GAP_MS);
+              if (!(await scope.wait(ENEMY_MULTI_HIT_GAP_MS))) return;
             } else {
-              await delayMs(ENEMY_RETURN_MS);
+              if (!(await scope.wait(ENEMY_RETURN_MS))) return;
             }
           }
         } else if (plan.kind === "attack" && plan.dodged) {
           setEnemyLunge(true);
-          await delayMs(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
+          if (!(await scope.wait(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS))) return;
           setEnemyLunge(false);
-          await delayMs(ENEMY_RETURN_MS);
+          if (!(await scope.wait(ENEMY_RETURN_MS))) return;
         } else if (plan.kind === "defend" && plan.defendValue > 0) {
           resolveEnemyDefend?.(plan.defendValue);
-          await delayMs(ENEMY_SUPPORT_ACTION_MS);
+          if (!(await scope.wait(ENEMY_SUPPORT_ACTION_MS))) return;
         } else if (
           plan.kind === "buff" ||
           plan.kind === "debuff" ||
           plan.kind === "special"
         ) {
-          await delayMs(ENEMY_SUPPORT_ACTION_MS);
+          if (!(await scope.wait(ENEMY_SUPPORT_ACTION_MS))) return;
         }
 
         if (defeated) {
@@ -675,19 +697,20 @@ export function CombatView({
           return;
         }
 
-        await delayMs(END_TURN_BEAT_MS);
+        if (!(await scope.wait(END_TURN_BEAT_MS))) return;
 
         const drawWait = waitForNextDrawBatch();
         onEndTurnDraw();
         await drawWait;
-        finishTurnSequence();
+        if (scope.active) finishTurnSequence();
       } catch {
-        finishTurnSequence();
+        if (scope.active) finishTurnSequence();
       }
     })();
   }, [
     hand,
     inputLocked,
+    isPlaying,
     onEndTurn,
     takeEnemyHitSteps,
     applyPlayerImpactStep,
@@ -777,8 +800,11 @@ export function CombatView({
       }
 
       // 2) 等 React layout + 隱藏樣式生效後，再讀每張卡自己的 slot rect
+      const scope = scopeRef.current;
       requestAnimationFrame(() => {
+        if (!scope.active) return;
         requestAnimationFrame(() => {
+          if (!scope.active) return;
           const pile =
             rectFromEl(drawPileRef.current) ?? fallbackPileRect("draw");
           const track = document.querySelector(".hand-fan-track");
@@ -897,7 +923,7 @@ export function CombatView({
   }, [playGhostIds, hand, spawnDrawFlights]);
 
   useEffect(() => {
-    const t = window.setTimeout(() => {
+    const t = scopeRef.current.schedule(() => {
       for (const card of hand) {
         if (hiddenCardIds.has(card.instanceId)) continue;
         const el = document.querySelector(
@@ -913,6 +939,7 @@ export function CombatView({
 
   const handlePlayCard = useCallback(
     (card: Card, origin: DOMRect) => {
+      if (!scopeRef.current.active || !isPlaying || inputLocked) return;
       unlockCombatAudio();
       logHandLayerRects("before-play");
 
@@ -986,12 +1013,12 @@ export function CombatView({
       ]);
 
       // windup：劍光／burst 略早於命中
-      window.setTimeout(() => {
+      scopeRef.current.schedule(() => {
         setBursts((prev) => [
           ...prev,
           { key, kind: fx, x: impactX, y: impactY },
         ]);
-        window.setTimeout(() => {
+        scopeRef.current.schedule(() => {
           setBursts((prev) => prev.filter((b) => b.key !== key));
         }, playFxDurationMs(fx));
       }, ATTACK_WINDUP_MS);
@@ -1001,15 +1028,15 @@ export function CombatView({
       // ★ 統一 impact：可多段（霜刃連斬）
       for (let hit = 0; hit < hitCount; hit++) {
         const at = IMPACT_AT_MS + hit * ENEMY_MULTI_HIT_GAP_MS;
-        window.setTimeout(() => {
+        scopeRef.current.schedule(() => {
           onCombatImpact?.(fx);
           if (hit === 0 && shouldScreenFlash(fx)) {
             setScreenFlash(true);
-            window.setTimeout(() => setScreenFlash(false), 480);
+            scopeRef.current.schedule(() => setScreenFlash(false), 480);
           }
           if (damage) {
             setHitFlash(true);
-            window.setTimeout(
+            scopeRef.current.schedule(
               () => setHitFlash(false),
               fx === "yijian" ? 320 : 220
             );
@@ -1020,11 +1047,11 @@ export function CombatView({
         }, at);
       }
 
-      window.setTimeout(() => {
+      scopeRef.current.schedule(() => {
         logHandLayerRects("during-play-flight");
       }, 40);
 
-      window.setTimeout(() => {
+      scopeRef.current.schedule(() => {
         setPlayGhostIds((prev) => {
           const next = new Set(prev);
           next.delete(card.instanceId);
@@ -1037,7 +1064,7 @@ export function CombatView({
         queueMicrotask(() => logHandLayerRects("after-hold-clear"));
       }, PLAY_LAYOUT_HOLD_MS);
     },
-    [flightId, onPlayCard, onCombatImpact, hand]
+    [flightId, onPlayCard, onCombatImpact, hand, isPlaying, inputLocked]
   );
 
   const displayHand = useMemo(
@@ -1092,7 +1119,7 @@ export function CombatView({
   const onDiscardAbsorb = useCallback((_flightId: string) => {
     setDiscardPilePulse(true);
     if (discardPulseTimer.current) clearTimeout(discardPulseTimer.current);
-    discardPulseTimer.current = setTimeout(() => {
+    discardPulseTimer.current = scopeRef.current.schedule(() => {
       setDiscardPilePulse(false);
     }, 280);
   }, []);
@@ -1105,6 +1132,7 @@ export function CombatView({
     autoPlayBusyRef.current = true;
     setInputLocked(true);
     let cancelled = false;
+    const scope = scopeRef.current;
     const card = karmaAutoPlayCard;
     const previewSnap = facePreview;
     const resolveCb = onKarmaAutoPlayResolve;
@@ -1112,11 +1140,11 @@ export function CombatView({
 
     void (async () => {
       try {
-        await delayMs(AUTO_PULL_START_DELAY_MS);
-        if (cancelled) return;
+        if (!(await scope.wait(AUTO_PULL_START_DELAY_MS))) return;
+        if (cancelled || !scope.active) return;
 
         setDrawPilePulse(true);
-        window.setTimeout(() => setDrawPilePulse(false), 220);
+        scopeRef.current.schedule(() => setDrawPilePulse(false), 220);
 
         const face = snapshotFlyingFace(card, previewSnap);
         const drawRect =
@@ -1180,12 +1208,12 @@ export function CombatView({
           durationMs: AUTO_PULL_TO_CENTER_MS,
           spinDeg: -8,
         });
-        if (cancelled) return;
+        if (cancelled || !scope.active) return;
 
         setAutoPlaySpotlight({ face, box: centerBox });
-        await delayMs(AUTO_PULL_HOLD_MS);
+        if (!(await scope.wait(AUTO_PULL_HOLD_MS))) return;
         setAutoPlaySpotlight(null);
-        if (cancelled) return;
+        if (cancelled || !scope.active) return;
 
         await playSinglePileFlight({
           kind: "draw",
@@ -1197,17 +1225,17 @@ export function CombatView({
           durationMs: AUTO_PULL_TO_PLAY_MS,
           spinDeg: 6,
         });
-        if (cancelled) return;
+        if (cancelled || !scope.active) return;
 
         // 先佇列傷害，再同一幀 impact
         resolveCb();
         onCombatImpact?.(fx);
         if (damageFx) {
           setHitFlash(true);
-          window.setTimeout(() => setHitFlash(false), 220);
+          scopeRef.current.schedule(() => setHitFlash(false), 220);
         }
-        await delayMs(AUTO_PULL_RESOLVE_BEAT_MS);
-        if (cancelled) return;
+        if (!(await scope.wait(AUTO_PULL_RESOLVE_BEAT_MS))) return;
+        if (cancelled || !scope.active) return;
 
         await playSinglePileFlight({
           kind: "discard",
@@ -1225,12 +1253,10 @@ export function CombatView({
           spinDeg: 12,
         });
       } finally {
-        setAutoPlaySpotlight(null);
-        autoPlayBusyRef.current = false;
-        if (!cancelled) {
-          finishedCb();
-          setInputLocked(false);
-        } else {
+        if (scope.active) {
+          setAutoPlaySpotlight(null);
+          autoPlayBusyRef.current = false;
+          if (!cancelled) finishedCb();
           setInputLocked(false);
         }
       }

@@ -2708,6 +2708,9 @@ html.combat-scroll-lock {
 }
 
 .defeat-overlay-content {
+  max-height: 100%;
+  overflow-y: auto;
+  flex-shrink: 0;
   position: relative;
   z-index: 1;
   display: flex;
@@ -2731,6 +2734,7 @@ html.combat-scroll-lock {
 }
 
 .defeat-overlay-frame {
+  flex-shrink: 0;
   width: 100%;
   padding: 0.48rem;
   border-radius: 0.5rem;
@@ -2762,7 +2766,7 @@ html.combat-scroll-lock {
   display: block;
   width: 100%;
   height: auto;
-  max-height: min(72vh, 28rem);
+  max-height: min(38vh, 18rem);
   object-fit: contain;
   border-radius: 0.18rem;
   user-select: none;

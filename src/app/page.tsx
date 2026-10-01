@@ -24,6 +24,7 @@ import { CharacterSelectModal } from "@/components/CharacterSelectModal";
 import { CardRewardModal } from "@/components/CardRewardModal";
 import { EventModal } from "@/components/EventModal";
 import { InGameMenu } from "@/components/InGameMenu";
+import { cancelCombatAudio, preloadCombatSfx } from "@/lib/combat-audio";
 import { BattleTutorial } from "@/components/tutorial/BattleTutorial";
 import { readTutorialOutcome, saveTutorialOutcome, type TutorialOutcome } from "@/lib/tutorial";
 import { VictoryAnimOverlay } from "@/components/VictoryAnimOverlay";
@@ -125,7 +126,8 @@ import {
   type PlayerImpactFeedback,
 } from "@/lib/combat-feedback";
 import type { PlayFxKind } from "@/lib/combat-fx";
-import { playImpact, playPlayerHitSfx, playShieldHitSfx } from "@/lib/combat-audio";
+import { presentCardImpact, presentPlayerImpact } from "@/lib/combat-presentation";
+import { recordJourneyEvent } from "@/lib/journey-events";
 import type { BattleDeckState } from "@/types/battle";
 import type { Card } from "@/types/battle";
 import { getEffectiveCost } from "@/types/battle";
@@ -512,7 +514,18 @@ export default function GamePage() {
   const [lastRunMessage, setLastRunMessage] = useState<string | null>(null);
 
   const [enemy, setEnemy] = useState<CombatEnemy>(() => createNeutralEnemy());
+  const enemyRef = useRef(enemy);
+  enemyRef.current = enemy;
   const [battleInstanceId, setBattleInstanceId] = useState(0);
+  const battleGenerationRef = useRef(0);
+  const battleGeneration = battleGenerationRef.current;
+  const isCurrentBattle = useCallback(() =>
+    runSessionId !== null && runSessionIdRef.current === runSessionId &&
+    battleGenerationRef.current === battleGeneration,
+    [runSessionId, battleGeneration]
+  );
+  const [defeatReason, setDefeatReason] = useState<"defeated" | "abandoned">("defeated");
+  const defeatActionLockRef = useRef(false);
   const [deckState, setDeckState] = useState<BattleDeckState>(EMPTY_DECK);
   const popupIdRef = useRef(0);
   const popupStaggerRef = useRef(0);
@@ -939,7 +952,11 @@ export default function GamePage() {
     };
   }, []);
 
+  useEffect(() => { if (ready) preloadCombatSfx(); }, [ready]);
+
   const resetCombatState = useCallback(() => {
+    battleGenerationRef.current += 1;
+    setIsShaking(false);
     if (victoryTimerRef.current) {
       clearTimeout(victoryTimerRef.current);
       victoryTimerRef.current = null;
@@ -981,11 +998,9 @@ export default function GamePage() {
   }, [character]);
 
   const appendRunDeckCard = useCallback((templateId: CardTemplateId) => {
-    setPermanentDeck((prev) => {
-      const next = [...prev, templateId];
-      runDeckRef.current = next;
-      return next;
-    });
+    const next = [...runDeckRef.current, templateId];
+    runDeckRef.current = next;
+    setPermanentDeck(next);
   }, []);
 
   const returnToLobby = useCallback(
@@ -1035,6 +1050,8 @@ export default function GamePage() {
 
   const startBattleForMapNode = useCallback(
     (tier: DungeonTier, node: MapNode) => {
+      if (!runSessionIdRef.current) return;
+      battleGenerationRef.current += 1;
       const scaledEnemy = getEnemyForMapNode(
         tier,
         node,
@@ -1057,6 +1074,8 @@ export default function GamePage() {
         intentIndex: 0,
       });
       setEnemy(freshEnemy);
+      enemyRef.current = freshEnemy;
+      recordJourneyEvent("battle_started", { runId: runSessionIdRef.current, nodeId: node.id, enemy: freshEnemy.id });
       setBattleInstanceId((id) => id + 1);
       setTierFloor(node.tier + 1);
       setCurrentMapNodeId(node.id);
@@ -1283,9 +1302,9 @@ export default function GamePage() {
 
   // 裝備加血後：不在秘境中則山門氣血對齊滿血上限
   useEffect(() => {
-    if (!ready || hasActiveRun || isInCombat) return;
+    if (!ready || hasActiveRun || isInCombat || phase === "defeat") return;
     setPlayerHp(heroStats.maxHp);
-  }, [ready, hasActiveRun, isInCombat, heroStats.maxHp]);
+  }, [ready, hasActiveRun, isInCombat, heroStats.maxHp, phase]);
 
   const continueGame = useCallback(() => {
     playStartCultivationSfx();
@@ -1293,16 +1312,37 @@ export default function GamePage() {
     setLastRunMessage(null);
   }, []);
 
-  const quitRun = useCallback(() => {
-    // 放棄＝失敗：先作廢本局存檔，再進渡劫失敗畫面（專屬曲鎖到選按鈕）
+  const endRun = useCallback((reason: "defeated" | "abandoned") => {
+    if (!runSessionIdRef.current) return;
+    recordJourneyEvent("run_ended", { runId: runSessionIdRef.current, reason });
+    // Invalidate synchronously before any queued callback or checkpoint can run.
     runSessionIdRef.current = null;
     setRunSessionId(null);
     clearActiveRunSave();
+    cancelCombatAudio();
+    resetCombatState();
+    resetPermanentDeck();
+    setIsInCombat(false);
+    setSelectedTier(null);
+    setDungeonMap([]);
+    setCurrentMapNodeId(null);
+    setActiveEvent(null);
+    setActiveEventNodeId(null);
+    setActiveRestNodeId(null);
+    setActiveShopNodeId(null);
+    setShopOfferIds([]);
+    setStoryQueue([]);
+    pendingBossAfterStoryRef.current = null;
+    pendingStageClearAfterStoryRef.current = null;
     setRunSpirit(0);
-    playGameOverSfx(true);
+    setDefeatReason(reason);
+    defeatActionLockRef.current = false;
     setPhase("defeat");
-    playLockRef.current = false;
-  }, []);
+    playLockRef.current = true;
+    playGameOverSfx(true);
+  }, [resetCombatState, resetPermanentDeck]);
+
+  const quitRun = useCallback(() => endRun("abandoned"), [endRun]);
 
   const dismissRunMessage = useCallback(() => {
     setLastRunMessage(null);
@@ -1344,8 +1384,9 @@ export default function GamePage() {
       const pendingBoss = pendingBossAfterStoryRef.current;
       if (pendingBoss && pendingBoss.sceneId === scene.id) {
         pendingBossAfterStoryRef.current = null;
+        const session = runSessionIdRef.current;
         queueMicrotask(() => {
-          startBattleForMapNode(pendingBoss.tier, pendingBoss.node);
+          if (session && runSessionIdRef.current === session) startBattleForMapNode(pendingBoss.tier, pendingBoss.node);
         });
         return;
       }
@@ -1382,6 +1423,7 @@ export default function GamePage() {
       const newRunId = createRunSessionId();
       runSessionIdRef.current = newRunId;
       setRunSessionId(newRunId);
+      recordJourneyEvent("run_started", { runId: newRunId, character: character.id, tutorial: readTutorialOutcome() ?? "unseen", calamity });
       setChapterIndex(0);
       setCalamityLevel(calamity);
       setSelectedTier(tier);
@@ -1461,15 +1503,21 @@ export default function GamePage() {
   );
 
   const restartAfterDefeat = useCallback(() => {
+    if (defeatActionLockRef.current) return;
+    defeatActionLockRef.current = true;
+    recordJourneyEvent("run_restarted", { character: character.id, reason: defeatReason });
     stopDefeatMusic();
     runSessionIdRef.current = null;
     setRunSessionId(null);
     clearActiveRunSave();
     setPhase("playing");
     startCultivationRun(calamityLevel);
-  }, [calamityLevel, startCultivationRun]);
+  }, [calamityLevel, startCultivationRun, character.id, defeatReason]);
 
   const returnMenuAfterDefeat = useCallback(() => {
+    if (defeatActionLockRef.current) return;
+    defeatActionLockRef.current = true;
+    recordJourneyEvent("returned_to_lobby", { reason: defeatReason });
     stopDefeatMusic();
     runSessionIdRef.current = null;
     setRunSessionId(null);
@@ -1478,7 +1526,7 @@ export default function GamePage() {
     setPhase("playing");
     resetPermanentDeck();
     returnToLobby("道途已斷，已返回山門。", true);
-  }, [returnToLobby, resetPermanentDeck]);
+  }, [returnToLobby, resetPermanentDeck, defeatReason]);
 
   const spawnDamagePopupNow = useCallback((damage: number) => {
     popupIdRef.current += 1;
@@ -1525,6 +1573,7 @@ export default function GamePage() {
     ) => {
       if (victoryStartedRef.current) return;
       victoryStartedRef.current = true;
+      recordJourneyEvent("battle_won", { runId: runSessionIdRef.current, nodeId: mapNodeId });
 
       playBattleWinSfx();
 
@@ -1584,7 +1633,7 @@ export default function GamePage() {
    */
   const resolveCombatImpact = useCallback(
     (fx: PlayFxKind) => {
-      playImpact(fx);
+      if (!isCurrentBattle()) return;
 
       const pending = pendingPlayerHitRef.current;
       if (!pending || pending.hits.length === 0) return;
@@ -1596,41 +1645,33 @@ export default function GamePage() {
       if (dmg <= 0) {
         if (!pendingPlayerHitRef.current) {
           queueMicrotask(() => {
-            if (!victoryStartedRef.current) playLockRef.current = false;
+            if (isCurrentBattle() && !victoryStartedRef.current) playLockRef.current = false;
           });
         }
         return;
       }
 
-      let displayHp = 0;
-
-      setEnemy((prev) => {
-        const next = applyDamageToEnemy(prev, dmg);
-        displayHp = next.currentHp;
-        checkVictory(
-          next.currentHp,
-          prev.name,
-          selectedTier,
-          currentMapNodeId,
-          dungeonMap
-        );
-        return next;
-      });
+      const before = enemyRef.current;
+      const next = applyDamageToEnemy(before, dmg);
+      enemyRef.current = next;
+      setEnemy(next);
+      const displayHp = next.currentHp;
+      checkVictory(next.currentHp, before.name, selectedTier, currentMapNodeId, dungeonMap);
 
       setTotalDamage((prev) => prev + dmg);
       spawnDamagePopupNow(dmg);
 
       impactIdRef.current += 1;
-      setImpactFeedback({
+      setImpactFeedback(presentCardImpact(fx, {
         id: impactIdRef.current,
         damage: dmg,
         displayHp,
         frostSlash: character.combatPath === "sword",
-      });
+      }));
 
       if (!pendingPlayerHitRef.current) {
         queueMicrotask(() => {
-          if (!victoryStartedRef.current) playLockRef.current = false;
+          if (isCurrentBattle() && !victoryStartedRef.current) playLockRef.current = false;
         });
       }
     },
@@ -1641,11 +1682,13 @@ export default function GamePage() {
       dungeonMap,
       character.combatPath,
       spawnDamagePopupNow,
+      isCurrentBattle,
     ]
   );
 
   const playCard = useCallback(
     (card: Card): boolean => {
+      if (!isCurrentBattle()) return false;
       if (
         playLockRef.current ||
         victoryStartedRef.current ||
@@ -1793,7 +1836,7 @@ export default function GamePage() {
           }
           if (unlock && !pendingPlayerHitRef.current) {
             queueMicrotask(() => {
-              if (!victoryStartedRef.current) playLockRef.current = false;
+              if (isCurrentBattle() && !victoryStartedRef.current) playLockRef.current = false;
             });
           }
         };
@@ -2005,6 +2048,7 @@ export default function GamePage() {
     },
     [
       phase,
+      isCurrentBattle,
       battlePhase,
       enemy,
       energy,
@@ -2153,6 +2197,7 @@ export default function GamePage() {
   );
 
   const endTurn = useCallback((): EnemyTurnPlan | false => {
+    if (!isCurrentBattle()) return false;
     if (
       playLockRef.current ||
       victoryStartedRef.current ||
@@ -2229,6 +2274,7 @@ export default function GamePage() {
     return plan;
   }, [
     phase,
+    isCurrentBattle,
     battlePhase,
     enemy,
     deckState,
@@ -2272,6 +2318,7 @@ export default function GamePage() {
   /** 統一玩家受擊 impact 幀 */
   const applyPlayerImpactStep = useCallback(
     (step: { kind: "shield" | "shieldBreak" | "hp"; amount: number }) => {
+      if (!isCurrentBattle()) return { defeated: true };
       const amount = Math.max(0, Math.floor(step.amount));
       let displayHp = playerHpRef.current;
       let displayBlock =
@@ -2282,7 +2329,6 @@ export default function GamePage() {
             : 0;
 
       if (step.kind === "shield" || step.kind === "shieldBreak") {
-        playShieldHitSfx(enemy);
         if (amount > 0) {
           displayBlock = Math.max(0, displayBlock - amount);
           if (character.combatPath === "karma") {
@@ -2301,7 +2347,6 @@ export default function GamePage() {
           }
         }
       } else {
-        playPlayerHitSfx(enemy);
         displayHp = Math.max(0, playerHpRef.current - amount);
         playerHpRef.current = displayHp;
         setPlayerHp(displayHp);
@@ -2322,33 +2367,28 @@ export default function GamePage() {
         displayHp,
         displayBlock,
       };
-      setPlayerImpactFeedback(feedback);
+      setPlayerImpactFeedback(presentPlayerImpact(feedback, enemy));
 
       if (displayHp <= 0) {
-        runSessionIdRef.current = null;
-        setRunSessionId(null);
-        clearActiveRunSave();
-        setRunSpirit(0);
-        playGameOverSfx(true);
-        setPhase("defeat");
-        playLockRef.current = false;
+        endRun("defeated");
         return { defeated: true, feedback };
       }
       return { defeated: false, feedback };
     },
-    [character.combatPath, enemy]
+    [character.combatPath, enemy, endRun, isCurrentBattle]
   );
 
   const resolveEnemyDefend = useCallback((value: number) => {
-    if (value <= 0) return;
+    if (!isCurrentBattle() || value <= 0) return;
     setEnemy((prev) => ({
       ...prev,
       block: (prev.block ?? 0) + value,
     }));
-  }, []);
+  }, [isCurrentBattle]);
 
   /** 當前敵行動完全結束後：推進 Intent、再生，再允許抽牌 */
   const finishEnemyTurn = useCallback((): boolean => {
+    if (!isCurrentBattle()) return false;
     if (phase === "defeat" || victoryStartedRef.current) {
       setEnemyTurnPlan(null);
       return false;
@@ -2378,10 +2418,11 @@ export default function GamePage() {
     });
     setEnemyTurnPlan(null);
     return true;
-  }, [phase, character.combatPath]);
+  }, [phase, character.combatPath, isCurrentBattle]);
 
   /** 棄牌動畫結束後補抽；保持鎖定直到抽牌動畫結束 */
   const completeEndTurnDraw = useCallback(() => {
+    if (!isCurrentBattle()) return;
     if (victoryStartedRef.current || phase === "defeat") {
       playLockRef.current = false;
       return;
@@ -2401,28 +2442,33 @@ export default function GamePage() {
     if (character.combatPath === "sword") {
       setCombatBuffs((prev) => clearSwordGuard(prev));
     }
-  }, [phase, character.combatPath, combatBuffs.cangfengStacks]);
+  }, [phase, character.combatPath, combatBuffs.cangfengStacks, isCurrentBattle]);
 
   const finishEndTurnSequence = useCallback(() => {
-    playLockRef.current = false;
-  }, []);
+    if (isCurrentBattle()) playLockRef.current = false;
+  }, [isCurrentBattle]);
 
   const handleKarmaAutoPlayResolve = useCallback(() => {
+    if (!isCurrentBattle()) return;
     karmaAutoPlayApplyRef.current?.();
     karmaAutoPlayApplyRef.current = null;
-  }, []);
+  }, [isCurrentBattle]);
 
   const handleKarmaAutoPlayFinished = useCallback(() => {
+    if (!isCurrentBattle()) return;
     setKarmaAutoPlayCard(null);
     queueMicrotask(() => {
-      if (!victoryStartedRef.current) playLockRef.current = false;
+      if (isCurrentBattle() && !victoryStartedRef.current) playLockRef.current = false;
     });
-  }, []);
+  }, [isCurrentBattle]);
 
   const completeRewardNode = useCallback(
     (cardName: string | null, templateId?: CardTemplateId) => {
       if (!selectedTier || !currentMapNodeId || rewardDoneRef.current) return;
       rewardDoneRef.current = true;
+      recordJourneyEvent(templateId ? "reward_selected" : "reward_skipped", {
+        runId: runSessionIdRef.current, nodeId: currentMapNodeId, card: templateId ?? null,
+      });
 
       if (templateId) {
         appendRunDeckCard(templateId);
@@ -2568,6 +2614,7 @@ export default function GamePage() {
     }
 
     // ascend
+    recordJourneyEvent("run_ended", { runId: runSessionIdRef.current, reason: "ascended" });
     const convert = info.convertSpirit ?? 0;
     if (convert > 0) {
       setSpiritStones((s) => s + convert);
@@ -2615,6 +2662,7 @@ export default function GamePage() {
   );
 
   const renderContent = () => {
+    if (phase === "defeat") return null;
     if (showGacha && (activeTab === "lobby" || activeTab === "characters")) {
       return (
         <div className="flex min-h-0 flex-1 flex-col">
@@ -2865,7 +2913,7 @@ export default function GamePage() {
         ) : null
       }
       bottomNav={
-        isInCombat ? null : (
+        isInCombat || phase === "defeat" ? null : (
           <BottomNav
             activeTab={characterSelectOpen ? "characters" : activeTab}
             onTabChange={handleTabChange}
@@ -2953,6 +3001,7 @@ export default function GamePage() {
 
       {phase === "defeat" && (
         <DefeatOverlay
+          reason={defeatReason}
           onRestart={restartAfterDefeat}
           onReturnMenu={returnMenuAfterDefeat}
         />

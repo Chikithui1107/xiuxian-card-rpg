@@ -1,3 +1,4 @@
+import { ENEMY_ATTACK_WINDUP_MS, ENEMY_LUNGE_MS } from "@/lib/combat-feedback";
 import type { PlayFxKind } from "@/lib/combat-fx";
 import { playDefeatMusic, stopDefeatMusic } from "@/lib/bgm";
 import { publicAsset } from "@/lib/paths";
@@ -18,7 +19,7 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
   start_cultivation: ["horror-hit", "start-cultivation"],
   /** 敵人打中玩家（通用） */
   player_hit: ["horror-hit", "fuxue-slash", "fuxue_slash"],
-  /** 妖狼攻擊：低吼 + 利爪同時播 */
+  /** 妖狼攻擊：利爪先播，低吼在命中點 */
   wolf_growl: ["wolf-growl", "wolf_growl"],
   wolf_claw: ["wolf-claw", "wolf_claw"],
   /** 護盾受擊（沿用較輕的 whoosh） */
@@ -35,12 +36,38 @@ const SFX_CACHE_BUST = "v12";
 
 /** 妖狼利爪加速；原長 ~3.02s → 約 1.68s */
 export const WOLF_CLAW_PLAYBACK_RATE = 1.8;
-/** 利爪相對命中幀提前起播 */
-export const WOLF_CLAW_LEAD_MS = 200;
+/** 最多提前 200ms，不早於突進起手；隨實際前搖時長一起調整。 */
+export const WOLF_CLAW_LEAD_MS = Math.min(200, ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 const bufferCache = new Map<string, AudioBuffer | null>();
+const pendingBuffers = new Map<string, Promise<AudioBuffer | null>>();
+const activeSources = new Set<AudioBufferSourceNode>();
+const delayedSounds = new Set<ReturnType<typeof setTimeout>>();
+let audioGeneration = 0;
+
+/** A scene change must silence old attacks and prevent decoded samples replaying late. */
+export function cancelCombatAudio(stopPlaying = true): void {
+  audioGeneration += 1;
+  for (const timer of delayedSounds) clearTimeout(timer);
+  delayedSounds.clear();
+  if (stopPlaying) {
+    for (const source of activeSources) {
+      try { source.stop(); } catch { /* already ended */ }
+    }
+    activeSources.clear();
+  }
+}
+
+function scheduleSound(callback: () => void, ms: number): void {
+  const generation = audioGeneration;
+  const timer = setTimeout(() => {
+    delayedSounds.delete(timer);
+    if (generation === audioGeneration) callback();
+  }, ms);
+  delayedSounds.add(timer);
+}
 
 function getCtx(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -53,16 +80,25 @@ function getCtx(): AudioContext | null {
     master.gain.value = 0.85;
     master.connect(ctx.destination);
   }
-  if (ctx.state === "suspended") void ctx.resume();
+  if (ctx.state === "suspended") void ctx.resume().catch(() => {});
   return ctx;
 }
 
 export function unlockCombatAudio(): void {
   const audio = getCtx();
-  if (audio?.state === "suspended") void audio.resume();
+  if (audio?.state === "suspended") void audio.resume().catch(() => {});
 }
 
-async function loadBuffer(logicalKey: string): Promise<AudioBuffer | null> {
+function loadBuffer(logicalKey: string): Promise<AudioBuffer | null> {
+  if (bufferCache.has(logicalKey)) return Promise.resolve(bufferCache.get(logicalKey)!);
+  const pending = pendingBuffers.get(logicalKey);
+  if (pending) return pending;
+  const request = fetchBuffer(logicalKey).finally(() => pendingBuffers.delete(logicalKey));
+  pendingBuffers.set(logicalKey, request);
+  return request;
+}
+
+async function fetchBuffer(logicalKey: string): Promise<AudioBuffer | null> {
   if (bufferCache.has(logicalKey)) return bufferCache.get(logicalKey)!;
   const audio = getCtx();
   if (!audio) return null;
@@ -93,14 +129,18 @@ function playBuffer(
   buffer: AudioBuffer,
   peak = 1,
   offsetSec = 0,
-  playbackRate = 1
+  playbackRate = 1,
+  generation = audioGeneration,
+  deadline = performance.now() + 80
 ): void {
+  if (generation !== audioGeneration || performance.now() > deadline) return;
   const audio = getCtx();
   if (!audio || !master) return;
   if (audio.state === "suspended") {
     void audio
       .resume()
-      .then(() => playBuffer(buffer, peak, offsetSec, playbackRate));
+      .then(() => playBuffer(buffer, peak, offsetSec, playbackRate, generation, deadline))
+      .catch(() => {});
     return;
   }
   const src = audio.createBufferSource();
@@ -114,6 +154,8 @@ function playBuffer(
     0,
     Math.min(offsetSec, Math.max(0, buffer.duration - 0.05))
   );
+  activeSources.add(src);
+  src.onended = () => { activeSources.delete(src); src.disconnect(); gain.disconnect(); };
   src.start(0, offset);
 }
 
@@ -123,9 +165,11 @@ async function playSample(
   offsetSec = 0,
   playbackRate = 1
 ): Promise<boolean> {
+  const generation = audioGeneration;
+  const deadline = performance.now() + 80;
   const buffer = await loadBuffer(logicalKey);
-  if (!buffer) return false;
-  playBuffer(buffer, peak, offsetSec, playbackRate);
+  if (!buffer || generation !== audioGeneration || performance.now() > deadline) return false;
+  playBuffer(buffer, peak, offsetSec, playbackRate, generation, deadline);
   return true;
 }
 
@@ -157,7 +201,7 @@ export function playDenySfx(): void {
   // 尚未提供專用檔時保持安靜
 }
 
-/** 同步播放已預載 buffer；未命中快取時再 async 載入（避免命中幀被 await 拖慢） */
+/** 命中只播已解碼樣本；冷啟動只預載，絕不在下載後補播過期攻擊。 */
 function playSampleSync(
   logicalKey: string,
   peak = 1,
@@ -170,7 +214,7 @@ function playSampleSync(
     return;
   }
   if (bufferCache.has(logicalKey) && cached === null) return;
-  void playSample(logicalKey, peak, offsetSec, playbackRate);
+  void loadBuffer(logicalKey);
 }
 
 /** 出牌離手：輕「唰」，不是命中 */
@@ -242,8 +286,6 @@ export function isWolfEnemy(
 export function playStartCultivationSfx(): void {
   // 若仍在播失敗曲，先停掉再開修行
   stopDefeatMusic();
-  // 換樣本後清掉舊 buffer，避免同 session 仍播舊音
-  bufferCache.delete("start_cultivation");
   unlockCombatAudio();
   void playSample("start_cultivation", 1);
 }
@@ -253,8 +295,8 @@ export function playCardDrawSfx(count = 1): void {
   unlockCombatAudio();
   const n = Math.max(1, Math.min(count, 6));
   for (let i = 0; i < n; i++) {
-    window.setTimeout(() => {
-      void playSample("card_draw", 0.85);
+    scheduleSound(() => {
+      playSampleSync("card_draw", 0.85);
     }, i * 70);
   }
 }
@@ -268,8 +310,8 @@ export function playRewardClickSfx(): void {
 /** 每場戰鬥獲勝時播放（延遲 1s，對齊勝利演出節奏） */
 export function playBattleWinSfx(): void {
   unlockCombatAudio();
-  window.setTimeout(() => {
-    void playSample("battle_win", 1);
+  scheduleSound(() => {
+    playSampleSync("battle_win", 1);
   }, 1000);
 }
 
