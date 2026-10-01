@@ -5,11 +5,10 @@ import { playRewardClickSfx } from "@/lib/combat-audio";
 import { CARD_TYPE_COLORS } from "@/types/game";
 import { CardFace, cardFaceFromTemplate } from "@/components/CardFace";
 
-const SHOP_PRICE = 200;
-
 interface ShopModalProps {
   offerIds: CardTemplateId[];
   runSpirit: number;
+  price: number;
   onBuy: (templateId: CardTemplateId) => void;
   onLeave: () => void;
 }
@@ -17,10 +16,11 @@ interface ShopModalProps {
 export function ShopModal({
   offerIds,
   runSpirit,
+  price,
   onBuy,
   onLeave,
 }: ShopModalProps) {
-  const canAfford = runSpirit >= SHOP_PRICE;
+  const canAfford = runSpirit >= price;
 
   const handleBuy = (templateId: CardTemplateId) => {
     if (!canAfford) return;
@@ -36,10 +36,10 @@ export function ShopModal({
           雲遊坊市
         </h2>
         <p className="mt-2 text-[12px] tracking-wide text-stone-400">
-          靈砂可換法訣，取捨亦是修行。
+          金幣可換法訣，取捨亦是修行。
         </p>
         <p className="mt-2 text-[11px] text-[#c9a84c]/90">
-          現有靈砂 {runSpirit}
+          現有金幣 {runSpirit}
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export function ShopModal({
               <p className="text-[11px] tracking-wide text-[#e8e0d4]">
                 {card.name}
               </p>
-              <p className="text-[10px] text-[#c9a84c]">200 靈砂</p>
+              <p className="text-[10px] text-[#c9a84c]">{price} 金幣</p>
               <button
                 type="button"
                 disabled={!canAfford}
@@ -73,7 +73,7 @@ export function ShopModal({
                     : "cursor-not-allowed border-stone-700/40 bg-stone-950/40 text-stone-500"
                 }`}
               >
-                {canAfford ? "購得" : "靈砂不足"}
+                {canAfford ? "購得" : "金幣不足"}
               </button>
             </div>
           );
@@ -87,9 +87,7 @@ export function ShopModal({
       >
         離開坊市
       </button>
-      <p className="mt-2 text-[9px] text-stone-600">不購買亦可離去</p>
+      <p className="mt-2 text-[9px] text-stone-600">每次到訪限購一張，購得後繼續前行；亦可不購離去</p>
     </div>
   );
 }
-
-export { SHOP_PRICE };

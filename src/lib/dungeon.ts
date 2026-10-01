@@ -244,7 +244,7 @@ const CHAPTER_META: Record<
     stageTab: "煉氣",
     lawName: null,
     breakthroughTitle: "道基已成",
-    breakthroughDescription: "靈氣化液，道基初築。法訣與靈砂將延續至下一境。",
+    breakthroughDescription: "靈氣化液，道基初築。法訣與金幣將延續至下一境。",
     breakthroughButton: "破境築基",
   },
   tier_foundation: {

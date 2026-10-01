@@ -1,5 +1,6 @@
 "use client";
 
+import { STARTING_RUN_GOLD } from "@/lib/run-economy";
 import { FirstRunHint } from "@/components/FirstRunHint";
 import { publicAsset } from "@/lib/paths";
 
@@ -34,7 +35,7 @@ export function DefeatOverlay({ reason = "defeated", onRestart, onReturnMenu }: 
         </p>
 
         <FirstRunHint id="retry">
-          重新修行會恢復滿血，從起始牌組與 100 靈砂開始；本局獲得的法訣與靈砂不保留。
+          重新修行會恢復滿血，從起始牌組與 {STARTING_RUN_GOLD} 金幣開始；本局獲得的法訣與金幣不保留。
           永久靈石、收藏與已解鎖成就仍在。下一次先看敵人意圖，留出防守的真元。
         </FirstRunHint>
 

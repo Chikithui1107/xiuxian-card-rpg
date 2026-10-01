@@ -37,7 +37,7 @@ export function CardRewardModal({
       : null;
 
   const rewardSummary = [
-    floorReward > 0 ? `獲得靈砂 +${floorReward}` : null,
+    floorReward > 0 ? `獲得金幣 +${floorReward}` : null,
     "可擇一法訣加入本次牌組",
   ]
     .filter(Boolean)
@@ -78,7 +78,7 @@ export function CardRewardModal({
 
         <FirstRunHint id="reward">
           選牌會加入本輪牌組，從下場戰鬥開始有機會抽到。想想它能否配合現有攻防；
-          不合適可點「捨棄此法」，仍會獲得靈砂。先試著作出自己的選擇。
+          不合適可點「捨棄此法」，仍會獲得金幣。先試著作出自己的選擇。
         </FirstRunHint>
         <div className="mb-6 flex w-full max-w-2xl flex-wrap justify-center gap-3">
           {rewardTemplateIds.map((templateId) => {
@@ -115,7 +115,7 @@ export function CardRewardModal({
             捨棄此法
           </button>
           <p className="text-[9px] text-stone-600">
-            僅保留靈砂，不增加本次牌組張數
+            僅保留金幣，不增加本次牌組張數
           </p>
         </div>
       </div>
