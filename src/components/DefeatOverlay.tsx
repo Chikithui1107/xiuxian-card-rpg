@@ -1,15 +1,17 @@
 "use client";
 
+import { FirstRunHint } from "@/components/FirstRunHint";
 import { publicAsset } from "@/lib/paths";
 
 interface DefeatOverlayProps {
+  reason?: "defeated" | "abandoned";
   onRestart: () => void;
   onReturnMenu: () => void;
 }
 
-export function DefeatOverlay({ onRestart, onReturnMenu }: DefeatOverlayProps) {
+export function DefeatOverlay({ reason = "defeated", onRestart, onReturnMenu }: DefeatOverlayProps) {
   return (
-    <div className="defeat-overlay" role="dialog" aria-label="道途已斷">
+    <div className="defeat-overlay" role="dialog" aria-modal="true" aria-label="道途已斷">
       <div className="defeat-overlay-veil" aria-hidden />
 
       <div className="defeat-overlay-content">
@@ -28,8 +30,13 @@ export function DefeatOverlay({ onRestart, onReturnMenu }: DefeatOverlayProps) {
           道途已斷
         </p>
         <p className="mt-1 text-center text-[11px] text-stone-500">
-          本次修行止於此境。
+          {reason === "abandoned" ? "已結束本次修行，可以重新出發。" : "本次修行止於此境。"}
         </p>
+
+        <FirstRunHint id="retry">
+          重新修行會恢復滿血，從起始牌組與 100 靈砂開始；本局獲得的法訣與靈砂不保留。
+          永久靈石、收藏與已解鎖成就仍在。下一次先看敵人意圖，留出防守的真元。
+        </FirstRunHint>
 
         <div className="defeat-overlay-actions">
           <button

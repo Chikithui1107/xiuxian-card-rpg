@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { FirstRunHint } from "@/components/FirstRunHint";
 import { MapView } from "@/components/MapView";
 import {
   RouteOptionCard,
@@ -216,6 +217,10 @@ export function PathChoiceView({
           </div>
         ) : null}
 
+        <FirstRunHint id="path">
+          目標：先完成一場戰鬥，再挑選適合的法訣。氣血會延續到下一戰，不會自動回滿；
+          遇到「修整」可恢復氣血，「坊市」花費本局靈砂，「奇遇」需自行取捨。
+        </FirstRunHint>
         <section className="mystic-route-fork" aria-label="路線選擇">
           <div className="mystic-route-fork__heading">
             <span className="mystic-route-fork__line" aria-hidden />

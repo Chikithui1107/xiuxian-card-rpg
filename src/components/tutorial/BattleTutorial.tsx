@@ -4,13 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import { CombatView } from "@/components/CombatView";
 import { getHero, calculateHeroStats } from "@/lib/stats";
 import { planPlayerHitSteps } from "@/lib/combat-feedback";
-import type { EnemyTurnPlan } from "@/lib/combat-feedback";
+import { cancelCombatAudio, playCardDrawSfx, preloadCombatSfx } from "@/lib/combat-audio";
+import { presentCardImpact, presentPlayerImpact } from "@/lib/combat-presentation";
+import { recordJourneyEvent } from "@/lib/journey-events";
+import type { CombatImpactFeedback, PlayerImpactFeedback, EnemyTurnPlan } from "@/lib/combat-feedback";
+import { createActionScope } from "@/lib/action-scope";
+import type { DamagePopup } from "@/types/game";
 import type { Card } from "@/types/battle";
 import { createTutorialState, playTutorialCard, impactTutorialCard, endTutorialTurn, drawTutorialTurn, PRACTICE_ATTACK, PRACTICE_ENEMY_HP, type TutorialState, type TutorialOutcome } from "@/lib/tutorial";
 import styles from "./BattleTutorial.module.css";
 
 const hero = getHero("baiye");
 const stats = calculateHeroStats(hero, []);
+const practiceEnemy = { id: "tutorial-phantom", monsterSprite: "demon_wolf" };
 const COPY = {
   intent: ["① 先看對手意圖", "敵人血條旁的意圖表示下一動。這個練習幻象將攻擊 6 點；先看清，再出牌。"],
   guard: ["② 先守住這一擊", "將發光的「劍罡護體」向上拖出，點按可看詳情。花費 1 真元，獲得 7 劍罡。"],
@@ -39,10 +45,45 @@ export function BattleTutorial({ replay, onFinish, onCancel }: Props) {
   const isCurrent = () => alive.current && generation.current === session;
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [notice, setNotice] = useState("");
+  const [impactFeedback, setImpactFeedback] = useState<CombatImpactFeedback | null>(null);
+  const [playerImpactFeedback, setPlayerImpactFeedback] = useState<PlayerImpactFeedback | null>(null);
+  const impactId = useRef(0);
+  const [damagePopups, setDamagePopups] = useState<DamagePopup[]>([]);
+  const popupScope = useRef(createActionScope());
+  useEffect(() => {
+    popupScope.current = createActionScope();
+    return () => popupScope.current.cancel();
+  }, []);
+  const opened = useRef(false);
+  const outcomeRecorded = useRef(false);
+  const lastStep = useRef("");
+  const startedRef = useRef(false);
+  const recordExit = () => {
+    if (outcomeRecorded.current) return;
+    outcomeRecorded.current = true;
+    recordJourneyEvent("tutorial_exit", { replay, step: current.current.step, started: startedRef.current });
+  };
+  useEffect(() => {
+    preloadCombatSfx();
+    if (!opened.current) {
+      opened.current = true;
+      recordJourneyEvent("tutorial_opened", { replay });
+    }
+    const pageHide = () => recordExit();
+    window.addEventListener("pagehide", pageHide);
+    return () => window.removeEventListener("pagehide", pageHide);
+    // This session owns its exit record; state is read through current.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replay]);
+  useEffect(() => {
+    if (!started || lastStep.current === state.step) return;
+    lastStep.current = state.step;
+    recordJourneyEvent("tutorial_step", { replay, step: state.step, turn: state.turn });
+  }, [started, state.step, state.turn, replay]);
   useEffect(() => {
     alive.current = true;
     titleRef.current?.focus();
-    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") onCancel(); };
+    const escape = (event: KeyboardEvent) => { if (event.key === "Escape") { alive.current = false; recordExit(); cancelCombatAudio(); onCancel(); } };
     window.addEventListener("keydown", escape);
     return () => { alive.current = false; window.removeEventListener("keydown", escape); };
   }, [onCancel]);
@@ -75,9 +116,27 @@ export function BattleTutorial({ replay, onFinish, onCancel }: Props) {
     update(next);
     return { intentType: "attack", label: "試劍", dodged: false, hits: [PRACTICE_ATTACK], defendValue: 0, kind: "attack" };
   };
-  const finish = (outcome: TutorialOutcome) => { alive.current = false; onFinish(outcome); };
-  const cancel = () => { alive.current = false; onCancel(); };
-  const restart = () => { generation.current += 1; update(createTutorialState()); setNotice(""); setSession(generation.current); };
+  const finish = (outcome: TutorialOutcome) => {
+    if (!alive.current) return;
+    outcomeRecorded.current = true;
+    recordJourneyEvent(outcome === "completed" ? "tutorial_completed" : "tutorial_skipped", { replay, step: current.current.step, started: startedRef.current });
+    alive.current = false;
+    cancelCombatAudio();
+    onFinish(outcome);
+  };
+  const cancel = () => { alive.current = false; recordExit(); cancelCombatAudio(); onCancel(); };
+  const restart = () => {
+    cancelCombatAudio();
+    generation.current += 1;
+    popupScope.current.cancel();
+    popupScope.current = createActionScope();
+    setDamagePopups([]);
+    recordJourneyEvent("tutorial_retry", { replay });
+    lastStep.current = "";
+    setImpactFeedback(null);
+    setPlayerImpactFeedback(null);
+    update(createTutorialState()); setNotice(""); setSession(generation.current);
+  };
   const done = state.step === "won" || state.step === "lost";
 
   if (!started || done) return (
@@ -89,7 +148,7 @@ export function BattleTutorial({ replay, onFinish, onCancel }: Props) {
         <p>這是獨立練習，不消耗靈石、不發放獎勵，也不改變角色與修行存檔。中途離開後，下次從頭練習。</p>
         {state.step === "won" && <p>正式修行中，生命會跨戰鬥保留；獎勵牌只加入本輪牌組，不合適可以跳過。路線上可選修整恢復生命。</p>}
         {!started ? <>
-          <button className={styles.primary} onClick={() => setStarted(true)}>開始教學</button>
+          <button className={styles.primary} onClick={() => { startedRef.current = true; recordJourneyEvent("tutorial_started", { replay }); setStarted(true); playCardDrawSfx(4); }}>開始教學</button>
           <button className={styles.secondary} onClick={() => finish("skipped")}>{replay ? "返回遊戲" : "我已熟悉，跳過"}</button>
           {!replay && <button className={styles.secondary} onClick={cancel}>返回出發準備</button>}
         </> : state.step === "won" ?
@@ -121,10 +180,29 @@ export function BattleTutorial({ replay, onFinish, onCancel }: Props) {
           phase="playing" battlePhase="IN_BATTLE" hand={state.deck.hand}
           drawPileCount={state.deck.drawPile.length} discardPileCount={state.deck.discardPile.length}
           exhaustPileCount={state.deck.exhaustPile.length} deckCount={8}
-          damagePopups={[]} isShaking={false} lastDamage={state.lastDamage}
+          impactFeedback={impactFeedback} playerImpactFeedback={playerImpactFeedback}
+          block={state.buffs.swordGuard}
+          damagePopups={damagePopups} isShaking={false} lastDamage={state.lastDamage}
           lastEnemyDamage={null} totalDamage={PRACTICE_ENEMY_HP - state.enemyHp} frostSlash
           onPlayCard={play}
-          onCombatImpact={() => { if (isCurrent()) update(impactTutorialCard(current.current)); }}
+          onCombatImpact={fx => {
+            if (!isCurrent()) return;
+            const next = impactTutorialCard(current.current);
+            if (next === current.current) return;
+            if (next.lastDamage) {
+              const id = ++impactId.current;
+              setImpactFeedback(presentCardImpact(fx, {
+                id, damage: next.lastDamage, displayHp: next.enemyHp, frostSlash: true,
+              }));
+              const popup: DamagePopup = {
+                id: `practice-hit-${id}`, value: next.lastDamage, isCrit: false,
+                isHighDamage: next.lastDamage >= 25, x: 50, y: 32,
+              };
+              setDamagePopups(prev => [...prev, popup]);
+              popupScope.current.schedule(() => setDamagePopups(prev => prev.filter(p => p.id !== popup.id)), 700);
+            }
+            update(next);
+          }}
           onEndTurn={endTurn}
           takeEnemyHitSteps={damage => planPlayerHitSteps(current.current.buffs.swordGuard, damage)}
           applyPlayerImpactStep={hit => {
@@ -132,11 +210,20 @@ export function BattleTutorial({ replay, onFinish, onCancel }: Props) {
             if (!isCurrent()) return { defeated: true };
             const hp = hit.kind === "hp" ? Math.max(0, s.hp - hit.amount) : s.hp;
             const buffs = hit.kind !== "hp" ? { ...s.buffs, swordGuard: Math.max(0, s.buffs.swordGuard - hit.amount) } : s.buffs;
+            setPlayerImpactFeedback(presentPlayerImpact({
+              id: ++impactId.current, kind: hit.kind, amount: hit.amount,
+              displayHp: hp, displayBlock: buffs.swordGuard,
+            }, practiceEnemy));
             update({ ...s, hp, buffs, step: hp === 0 ? "lost" : s.step });
             return { defeated: hp === 0 };
           }}
           finishEnemyTurn={() => isCurrent() && current.current.hp > 0}
-          onEndTurnDraw={() => { if (isCurrent()) update(drawTutorialTurn(current.current)); }}
+          onEndTurnDraw={() => {
+            if (isCurrent()) {
+              update(drawTutorialTurn(current.current));
+              playCardDrawSfx(4);
+            }
+          }}
           onEndTurnSequenceDone={() => { if (isCurrent()) update({ ...current.current, busy: false }); }}
         />
       </div>
