@@ -22,8 +22,9 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
   /** 妖狼攻擊：利爪先播，低吼在命中點 */
   wolf_growl: ["wolf-growl", "wolf_growl"],
   wolf_claw: ["wolf-claw", "wolf_claw"],
-  /** 劫修橫斬 */
+  /** 劫修橫斬：刃切 + 喝聲同時播 */
   bandit_slash: ["bandit-slash", "bandit_slash"],
+  bandit_he: ["bandit-he", "bandit_he"],
   /** 護盾受擊（沿用較輕的 whoosh） */
   shield_hit: ["tuxu-whoosh", "tuxu_whoosh"],
   card_draw: ["card-draw", "card_draw"],
@@ -34,7 +35,7 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
 
 /** 換樣本時遞增，強制繞過 HTTP 快取 */
-const SFX_CACHE_BUST = "v13";
+const SFX_CACHE_BUST = "v14";
 
 /** 妖狼利爪加速；原長 ~3.02s → 約 1.68s */
 export const WOLF_CLAW_PLAYBACK_RATE = 1.8;
@@ -296,9 +297,10 @@ export function isWolfEnemy(
   );
 }
 
-/** 劫修「橫斬」：金屬刃切，突進時播一次 */
+/** 劫修「橫斬」：金屬刃切與喝聲同時起播 */
 export function playBanditSlashSfx(): void {
   playSampleSync("bandit_slash", 1);
+  playSampleSync("bandit_he", 1);
 }
 
 export function isBanditHorizontalSlash(
@@ -366,6 +368,7 @@ export function preloadCombatSfx(): void {
   void loadBuffer("wolf_growl");
   void loadBuffer("wolf_claw");
   void loadBuffer("bandit_slash");
+  void loadBuffer("bandit_he");
   void loadBuffer("shield_hit");
   void loadBuffer("card_draw");
   void loadBuffer("reward_click");
