@@ -57,7 +57,7 @@ import {
   isWolfEnemy,
   playWolfClawSfx,
   playWolfGrowlSfx,
-  WOLF_CLAW_LEAD_MS,
+  WOLF_CLAW_BEFORE_LUNGE_MS,
   WOLF_GROWL_EXTRA_LEAD_MS,
 } from "@/lib/combat-audio";
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
@@ -645,17 +645,16 @@ export function CombatView({
 
             if (wolfAttack) {
               playWolfGrowlSfx(hitsShield);
-              if (!(await scope.wait(WOLF_GROWL_EXTRA_LEAD_MS))) return;
+              const growlToClaw = Math.max(
+                0,
+                WOLF_GROWL_EXTRA_LEAD_MS - WOLF_CLAW_BEFORE_LUNGE_MS
+              );
+              if (!(await scope.wait(growlToClaw))) return;
+              playWolfClawSfx(hitsShield);
+              if (!(await scope.wait(WOLF_CLAW_BEFORE_LUNGE_MS))) return;
             }
             setEnemyLunge(true);
-            if (wolfAttack) {
-              const clawLead = Math.min(WOLF_CLAW_LEAD_MS, attackMs);
-              if (!(await scope.wait(attackMs - clawLead))) return;
-              playWolfClawSfx(hitsShield);
-              if (!(await scope.wait(clawLead))) return;
-            } else {
-              if (!(await scope.wait(attackMs))) return;
-            }
+            if (!(await scope.wait(attackMs))) return;
 
             for (let s = 0; s < steps.length; s++) {
               const result = applyPlayerImpactStep?.(steps[s]);

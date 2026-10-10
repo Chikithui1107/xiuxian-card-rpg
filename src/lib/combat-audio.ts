@@ -38,7 +38,9 @@ const SFX_CACHE_BUST = "v12";
 export const WOLF_CLAW_PLAYBACK_RATE = 1.8;
 /** 最多提前 200ms，不早於突進起手；隨實際前搖時長一起調整。 */
 export const WOLF_CLAW_LEAD_MS = Math.min(200, ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
-/** 嘶吼比利爪再早 200ms（可早於突進起手） */
+/** 利爪比突進起手再早 100ms（每一擊，含連爪） */
+export const WOLF_CLAW_BEFORE_LUNGE_MS = 100;
+/** 嘶吼比突進起手早 200ms */
 export const WOLF_GROWL_EXTRA_LEAD_MS = 200;
 
 let ctx: AudioContext | null = null;
@@ -265,7 +267,7 @@ export function playWolfGrowlSfx(onShield = false): void {
   playSampleSync("wolf_growl", onShield ? 0.9 : 1);
 }
 
-/** 妖狼利爪（相對命中提前 WOLF_CLAW_LEAD_MS；音量 150%、1.8× 速） */
+/** 妖狼利爪（比突進早 WOLF_CLAW_BEFORE_LUNGE_MS；音量 150%、1.8× 速） */
 export function playWolfClawSfx(onShield = false): void {
   playSampleSync(
     "wolf_claw",
