@@ -644,12 +644,15 @@ export function CombatView({
             );
 
             if (wolfAttack) {
-              playWolfGrowlSfx(hitsShield);
-              const growlToClaw = Math.max(
-                0,
-                WOLF_GROWL_EXTRA_LEAD_MS - WOLF_CLAW_BEFORE_LUNGE_MS
-              );
-              if (!(await scope.wait(growlToClaw))) return;
+              const combo = plan.hits.length > 1;
+              if (i === 0) {
+                playWolfGrowlSfx(hitsShield, combo ? 1.5 : 1);
+                const growlToClaw = Math.max(
+                  0,
+                  WOLF_GROWL_EXTRA_LEAD_MS - WOLF_CLAW_BEFORE_LUNGE_MS
+                );
+                if (!(await scope.wait(growlToClaw))) return;
+              }
               playWolfClawSfx(hitsShield);
               if (!(await scope.wait(WOLF_CLAW_BEFORE_LUNGE_MS))) return;
             }

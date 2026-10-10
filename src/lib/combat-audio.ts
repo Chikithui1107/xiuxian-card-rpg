@@ -262,9 +262,10 @@ export function playShieldHitSfx(
   playSampleSync("shield_hit", 0.7);
 }
 
-/** 妖狼低吼（比利爪再早 WOLF_GROWL_EXTRA_LEAD_MS） */
-export function playWolfGrowlSfx(onShield = false): void {
-  playSampleSync("wolf_growl", onShield ? 0.9 : 1);
+/** 妖狼低吼。連擊只在第一擊呼叫，音量再乘 volumeScale（連爪為 1.5） */
+export function playWolfGrowlSfx(onShield = false, volumeScale = 1): void {
+  const base = onShield ? 0.9 : 1;
+  playSampleSync("wolf_growl", base * volumeScale);
 }
 
 /** 妖狼利爪（比突進早 WOLF_CLAW_BEFORE_LUNGE_MS；音量 150%、1.8× 速） */

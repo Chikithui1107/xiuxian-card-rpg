@@ -10,7 +10,7 @@
 | 擇劍訣入庫 | `reward-click.mp3` |
 | 拂雪流光命中 | `fuxue-slash.mp3` |
 | 一劍霜寒命中 | `yijian-slash.mp3` |
-| 妖狼攻擊 | `wolf-growl.mp3`（比突進早 0.2s）+ `wolf-claw.mp3`（比突進早 0.1s，每一擊含連爪；1.8× 速、音量 150%） |
+| 妖狼攻擊 | `wolf-growl.mp3`（比突進早 0.2s；連爪只播 1 次且音量 ×1.5）+ `wolf-claw.mp3`（每一擊，比突進早 0.1s；1.8× 速、音量 150%） |
 | 踏虛掠影起手 | `tuxu-whoosh.mp3` |
 
 背景音樂在 `public/music/`：
