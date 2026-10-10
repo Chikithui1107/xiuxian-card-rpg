@@ -262,10 +262,19 @@ export function playShieldHitSfx(
   playSampleSync("shield_hit", 0.7);
 }
 
-/** 妖狼低吼。連擊只在第一擊呼叫，音量再乘 volumeScale（連爪為 1.5） */
-export function playWolfGrowlSfx(onShield = false, volumeScale = 1): void {
+/** 妖狼低吼。連擊只在第一擊呼叫；volumeScale 提高音量，extendSec 放慢播放以拉長時長 */
+export function playWolfGrowlSfx(
+  onShield = false,
+  volumeScale = 1,
+  extendSec = 0
+): void {
   const base = onShield ? 0.9 : 1;
-  playSampleSync("wolf_growl", base * volumeScale);
+  const cached = bufferCache.get("wolf_growl");
+  const rate =
+    extendSec > 0 && cached && cached.duration > 0.05
+      ? cached.duration / (cached.duration + extendSec)
+      : 1;
+  playSampleSync("wolf_growl", base * volumeScale, 0, rate);
 }
 
 /** 妖狼利爪（比突進早 WOLF_CLAW_BEFORE_LUNGE_MS；音量 150%、1.8× 速） */

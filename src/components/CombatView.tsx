@@ -646,7 +646,7 @@ export function CombatView({
             if (wolfAttack) {
               const combo = plan.hits.length > 1;
               if (i === 0) {
-                playWolfGrowlSfx(hitsShield, combo ? 1.5 : 1);
+                playWolfGrowlSfx(hitsShield, combo ? 1.5 : 1, combo ? 0.5 : 0);
                 const growlToClaw = Math.max(
                   0,
                   WOLF_GROWL_EXTRA_LEAD_MS - WOLF_CLAW_BEFORE_LUNGE_MS
