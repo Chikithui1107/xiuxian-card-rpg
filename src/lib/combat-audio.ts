@@ -22,6 +22,8 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
   /** 妖狼攻擊：利爪先播，低吼在命中點 */
   wolf_growl: ["wolf-growl", "wolf_growl"],
   wolf_claw: ["wolf-claw", "wolf_claw"],
+  /** 劫修橫斬 */
+  bandit_slash: ["bandit-slash", "bandit_slash"],
   /** 護盾受擊（沿用較輕的 whoosh） */
   shield_hit: ["tuxu-whoosh", "tuxu_whoosh"],
   card_draw: ["card-draw", "card_draw"],
@@ -32,7 +34,7 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
 
 /** 換樣本時遞增，強制繞過 HTTP 快取 */
-const SFX_CACHE_BUST = "v12";
+const SFX_CACHE_BUST = "v13";
 
 /** 妖狼利爪加速；原長 ~3.02s → 約 1.68s */
 export const WOLF_CLAW_PLAYBACK_RATE = 1.8;
@@ -245,8 +247,7 @@ export function playImpact(kind: PlayFxKind): void {
 export function playPlayerHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
-  if (isWolfEnemy(enemy)) {
-    // 低吼已在命中前 0.2s 與利爪一起起播
+  if (isWolfEnemy(enemy) || isBanditHorizontalSlash(enemy)) {
     return;
   }
   playSampleSync("player_hit", 0.95);
@@ -256,7 +257,7 @@ export function playPlayerHitSfx(
 export function playShieldHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
-  if (isWolfEnemy(enemy)) {
+  if (isWolfEnemy(enemy) || isBanditHorizontalSlash(enemy)) {
     return;
   }
   playSampleSync("shield_hit", 0.7);
@@ -293,6 +294,25 @@ export function isWolfEnemy(
   return (
     enemy?.id === "enemy_wolf" || enemy?.monsterSprite === "demon_wolf"
   );
+}
+
+/** 劫修「橫斬」：金屬刃切，突進時播一次 */
+export function playBanditSlashSfx(): void {
+  playSampleSync("bandit_slash", 1);
+}
+
+export function isBanditHorizontalSlash(
+  enemy?: {
+    id?: string;
+    monsterSprite?: string;
+    pendingIntent?: { label?: string } | null;
+  } | null,
+  label?: string
+): boolean {
+  const isBandit =
+    enemy?.id === "enemy_bandit" || enemy?.monsterSprite === "bandit";
+  const move = label ?? enemy?.pendingIntent?.label;
+  return isBandit && move === "橫斬";
 }
 
 /** 開始 / 繼續修行時的過渡音 */
@@ -345,6 +365,7 @@ export function preloadCombatSfx(): void {
   void loadBuffer("player_hit");
   void loadBuffer("wolf_growl");
   void loadBuffer("wolf_claw");
+  void loadBuffer("bandit_slash");
   void loadBuffer("shield_hit");
   void loadBuffer("card_draw");
   void loadBuffer("reward_click");

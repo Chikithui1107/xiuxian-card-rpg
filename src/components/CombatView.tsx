@@ -57,6 +57,8 @@ import {
   isWolfEnemy,
   playWolfClawSfx,
   playWolfGrowlSfx,
+  isBanditHorizontalSlash,
+  playBanditSlashSfx,
   WOLF_CLAW_BEFORE_LUNGE_MS,
   WOLF_GROWL_EXTRA_LEAD_MS,
 } from "@/lib/combat-audio";
@@ -655,6 +657,8 @@ export function CombatView({
               }
               playWolfClawSfx(hitsShield);
               if (!(await scope.wait(WOLF_CLAW_BEFORE_LUNGE_MS))) return;
+            } else if (isBanditHorizontalSlash(enemy, plan.label)) {
+              playBanditSlashSfx();
             }
             setEnemyLunge(true);
             if (!(await scope.wait(attackMs))) return;
