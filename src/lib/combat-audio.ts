@@ -38,6 +38,8 @@ const SFX_CACHE_BUST = "v12";
 export const WOLF_CLAW_PLAYBACK_RATE = 1.8;
 /** 最多提前 200ms，不早於突進起手；隨實際前搖時長一起調整。 */
 export const WOLF_CLAW_LEAD_MS = Math.min(200, ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS);
+/** 嘶吼比利爪再早 200ms（可早於突進起手） */
+export const WOLF_GROWL_EXTRA_LEAD_MS = 200;
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -258,7 +260,7 @@ export function playShieldHitSfx(
   playSampleSync("shield_hit", 0.7);
 }
 
-/** 妖狼低吼（相對命中提前 WOLF_CLAW_LEAD_MS） */
+/** 妖狼低吼（比利爪再早 WOLF_GROWL_EXTRA_LEAD_MS） */
 export function playWolfGrowlSfx(onShield = false): void {
   playSampleSync("wolf_growl", onShield ? 0.9 : 1);
 }

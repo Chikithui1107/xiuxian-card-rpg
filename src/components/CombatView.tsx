@@ -58,6 +58,7 @@ import {
   playWolfClawSfx,
   playWolfGrowlSfx,
   WOLF_CLAW_LEAD_MS,
+  WOLF_GROWL_EXTRA_LEAD_MS,
 } from "@/lib/combat-audio";
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
 import { publicAsset } from "@/lib/paths";
@@ -642,12 +643,15 @@ export function CombatView({
               (s) => s.kind === "shield" || s.kind === "shieldBreak"
             );
 
+            if (wolfAttack) {
+              playWolfGrowlSfx(hitsShield);
+              if (!(await scope.wait(WOLF_GROWL_EXTRA_LEAD_MS))) return;
+            }
             setEnemyLunge(true);
             if (wolfAttack) {
               const clawLead = Math.min(WOLF_CLAW_LEAD_MS, attackMs);
               if (!(await scope.wait(attackMs - clawLead))) return;
               playWolfClawSfx(hitsShield);
-              playWolfGrowlSfx(hitsShield);
               if (!(await scope.wait(clawLead))) return;
             } else {
               if (!(await scope.wait(attackMs))) return;
