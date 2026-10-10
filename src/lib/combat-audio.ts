@@ -45,6 +45,8 @@ export const WOLF_CLAW_LEAD_MS = Math.min(200, ENEMY_ATTACK_WINDUP_MS + ENEMY_LU
 export const WOLF_CLAW_BEFORE_LUNGE_MS = 100;
 /** 嘶吼比突進起手早 200ms */
 export const WOLF_GROWL_EXTRA_LEAD_MS = 200;
+/** 劫修喝聲比刃切早 200ms */
+export const BANDIT_HE_LEAD_MS = 200;
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
@@ -297,10 +299,14 @@ export function isWolfEnemy(
   );
 }
 
-/** 劫修「橫斬」：金屬刃切與喝聲同時起播 */
+/** 劫修「橫斬」喝聲，比刃切早 BANDIT_HE_LEAD_MS */
+export function playBanditHeSfx(): void {
+  playSampleSync("bandit_he", 1);
+}
+
+/** 劫修「橫斬」金屬刃切，與突進同時 */
 export function playBanditSlashSfx(): void {
   playSampleSync("bandit_slash", 1);
-  playSampleSync("bandit_he", 1);
 }
 
 export function isBanditHorizontalSlash(
