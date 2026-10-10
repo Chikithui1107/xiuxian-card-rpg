@@ -35,8 +35,9 @@ export function DefeatOverlay({ reason = "defeated", onRestart, onReturnMenu }: 
         </p>
 
         <FirstRunHint id="retry">
-          重新修行會恢復滿血，從起始牌組與 {STARTING_RUN_GOLD} 金幣開始；本局獲得的法訣與金幣不保留。
-          永久靈石、收藏與已解鎖成就仍在。下一次先看敵人意圖，留出防守的真元。
+          {reason === "defeated"
+            ? "重新挑戰會回到這一戰開始前：氣血、牌庫、金幣與路線進度都與開戰時相同。"
+            : `重新修行會恢復滿血，從起始牌組與 ${STARTING_RUN_GOLD} 金幣開始；本局獲得的法訣與金幣不保留。永久靈石、收藏與已解鎖成就仍在。`}
         </FirstRunHint>
 
         <div className="defeat-overlay-actions">
@@ -45,7 +46,7 @@ export function DefeatOverlay({ reason = "defeated", onRestart, onReturnMenu }: 
             className="defeat-btn defeat-btn-restart"
             onClick={onRestart}
           >
-            重新修行
+            {reason === "defeated" ? "重新挑戰" : "重新修行"}
           </button>
           <button
             type="button"

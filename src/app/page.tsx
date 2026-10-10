@@ -496,6 +496,13 @@ export default function GamePage() {
   const [permanentDeck, setPermanentDeck] = useState<CardTemplateId[]>([]);
   /** 與 permanentDeck 同步；供新 Run／開戰避開 setState 競態 */
   const runDeckRef = useRef<CardTemplateId[]>([]);
+  /** 這一戰開始前的氣血、牌庫、金幣與節點，供戰敗後原關重開 */
+  const preBattleRef = useRef<{
+    hp: number;
+    deck: CardTemplateId[];
+    gold: number;
+    nodeId: string;
+  } | null>(null);
   const [selectedTier, setSelectedTier] = useState<DungeonTier | null>(null);
   const [tierFloor, setTierFloor] = useState(1);
   const [chapterIndex, setChapterIndex] = useState(0);
@@ -506,6 +513,8 @@ export default function GamePage() {
   const [spiritStones, setSpiritStones] = useState(1280);
   /** 本局金幣：僅存於 Active Run，結束／戰敗／放棄清零 */
   const [runSpirit, setRunSpirit] = useState(0);
+  const runSpiritRef = useRef(0);
+  runSpiritRef.current = runSpirit;
   const [runSessionId, setRunSessionId] = useState<string | null>(null);
   const runSessionIdRef = useRef<string | null>(null);
   const [unlockedAchievements, setUnlockedAchievements] = useState<string[]>(
@@ -1052,6 +1061,12 @@ export default function GamePage() {
   const startBattleForMapNode = useCallback(
     (tier: DungeonTier, node: MapNode) => {
       if (!runSessionIdRef.current) return;
+      preBattleRef.current = {
+        hp: playerHpRef.current,
+        deck: [...runDeckRef.current],
+        gold: runSpiritRef.current,
+        nodeId: node.id,
+      };
       battleGenerationRef.current += 1;
       const scaledEnemy = getEnemyForMapNode(
         tier,
@@ -1118,6 +1133,7 @@ export default function GamePage() {
       setCombatScreen("path");
       setCurrentMapNodeId(null);
       setActiveTab("combat");
+      preBattleRef.current = null;
       resetCombatState();
       if (message) setMapMessage(message);
     },
@@ -1317,6 +1333,18 @@ export default function GamePage() {
 
   const endRun = useCallback((reason: "defeated" | "abandoned") => {
     if (!runSessionIdRef.current) return;
+    // 戰鬥中失敗：保留本局，讓「重新挑戰」回到開戰前
+    if (reason === "defeated" && preBattleRef.current) {
+      recordJourneyEvent("run_ended", { runId: runSessionIdRef.current, reason });
+      clearActiveRunSave();
+      cancelCombatAudio();
+      setDefeatReason(reason);
+      defeatActionLockRef.current = false;
+      setPhase("defeat");
+      playLockRef.current = true;
+      playGameOverSfx(true);
+      return;
+    }
     recordJourneyEvent("run_ended", { runId: runSessionIdRef.current, reason });
     // Invalidate synchronously before any queued callback or checkpoint can run.
     runSessionIdRef.current = null;
@@ -1507,15 +1535,34 @@ export default function GamePage() {
 
   const restartAfterDefeat = useCallback(() => {
     if (defeatActionLockRef.current) return;
+    const snap = defeatReason === "defeated" ? preBattleRef.current : null;
+    const node = snap
+      ? dungeonMap.flat().find((n) => n.id === snap.nodeId)
+      : undefined;
+    if (snap && selectedTier && node) {
+      defeatActionLockRef.current = true;
+      stopDefeatMusic();
+      runDeckRef.current = [...snap.deck];
+      setPermanentDeck([...snap.deck]);
+      playerHpRef.current = snap.hp;
+      setPlayerHp(snap.hp);
+      runSpiritRef.current = snap.gold;
+      setRunSpirit(snap.gold);
+      setPhase("playing");
+      playLockRef.current = false;
+      startBattleForMapNode(selectedTier, node);
+      return;
+    }
     defeatActionLockRef.current = true;
     recordJourneyEvent("run_restarted", { character: character.id, reason: defeatReason });
     stopDefeatMusic();
     runSessionIdRef.current = null;
     setRunSessionId(null);
     clearActiveRunSave();
+    preBattleRef.current = null;
     setPhase("playing");
     startCultivationRun(calamityLevel);
-  }, [calamityLevel, startCultivationRun, character.id, defeatReason]);
+  }, [calamityLevel, startCultivationRun, character.id, defeatReason, dungeonMap, selectedTier, startBattleForMapNode]);
 
   const returnMenuAfterDefeat = useCallback(() => {
     if (defeatActionLockRef.current) return;
@@ -1525,6 +1572,7 @@ export default function GamePage() {
     runSessionIdRef.current = null;
     setRunSessionId(null);
     clearActiveRunSave();
+    preBattleRef.current = null;
     setRunSpirit(0);
     setPhase("playing");
     resetPermanentDeck();
