@@ -242,7 +242,7 @@ export function playPlayerHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
   if (isWolfEnemy(enemy)) {
-    playWolfGrowlSfx(false);
+    // 低吼已在命中前 0.2s 與利爪一起起播
     return;
   }
   playSampleSync("player_hit", 0.95);
@@ -253,14 +253,13 @@ export function playShieldHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
   if (isWolfEnemy(enemy)) {
-    playWolfGrowlSfx(true);
     return;
   }
   playSampleSync("shield_hit", 0.7);
 }
 
-/** 妖狼低吼（命中幀） */
-function playWolfGrowlSfx(onShield = false): void {
+/** 妖狼低吼（相對命中提前 WOLF_CLAW_LEAD_MS） */
+export function playWolfGrowlSfx(onShield = false): void {
   playSampleSync("wolf_growl", onShield ? 0.9 : 1);
 }
 

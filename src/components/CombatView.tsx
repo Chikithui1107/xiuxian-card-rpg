@@ -56,6 +56,7 @@ import {
   unlockCombatAudio,
   isWolfEnemy,
   playWolfClawSfx,
+  playWolfGrowlSfx,
   WOLF_CLAW_LEAD_MS,
 } from "@/lib/combat-audio";
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
@@ -646,6 +647,7 @@ export function CombatView({
               const clawLead = Math.min(WOLF_CLAW_LEAD_MS, attackMs);
               if (!(await scope.wait(attackMs - clawLead))) return;
               playWolfClawSfx(hitsShield);
+              playWolfGrowlSfx(hitsShield);
               if (!(await scope.wait(clawLead))) return;
             } else {
               if (!(await scope.wait(attackMs))) return;
