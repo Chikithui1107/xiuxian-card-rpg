@@ -7,6 +7,7 @@ import {
 } from "@/lib/battle-deck";
 import {
   getKarmaCardFaceDisplay,
+  getSwordFaceLiveLine,
   type CardFacePreviewState,
   type FaceToken,
 } from "@/lib/card-face-display";
@@ -122,7 +123,7 @@ function tokenClassName(token: FaceToken): string {
   return "ink-face-token ink-face-token--normal";
 }
 
-function FaceLineTokens({ tokens }: { tokens: FaceToken[] }) {
+export function FaceLineTokens({ tokens }: { tokens: FaceToken[] }) {
   return (
     <>
       {tokens.map((token, i) => (
@@ -156,6 +157,9 @@ export function CardFace({
   const iconPath = !iconBroken ? resolveCardIcon(icon) : null;
   const karmaDisplay = templateId
     ? getKarmaCardFaceDisplay(templateId, preview)
+    : null;
+  const swordLiveLine = templateId
+    ? getSwordFaceLiveLine(templateId, preview)
     : null;
   const aspect = aspectFromTemplateId(templateId);
 
@@ -260,7 +264,14 @@ export function CardFace({
             </p>
           ))
         ) : (
-          <DescriptionWithKeywordTips text={description} />
+          <>
+            <DescriptionWithKeywordTips text={description} />
+            {swordLiveLine ? (
+              <p className="ink-card-face__line">
+                <FaceLineTokens tokens={swordLiveLine.tokens} />
+              </p>
+            ) : null}
+          </>
         )}
       </div>
 

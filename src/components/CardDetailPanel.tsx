@@ -1,6 +1,8 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { FaceLineTokens } from "@/components/CardFace";
+import type { CardFaceLine } from "@/lib/card-face-display";
 
 interface CardDetailPanelProps {
   open: boolean;
@@ -8,6 +10,10 @@ interface CardDetailPanelProps {
   type: string;
   cost: number;
   detail: string;
+  /** 即時數值（如一劍霜寒目前傷害） */
+  liveLine?: CardFaceLine | null;
+  /** 關鍵詞說明：手機沒有 hover，卡面上的 title 提示看不到 */
+  keywords?: { term: string; text: string }[];
 }
 
 /** 獨立詳情面板：不改手牌 transform／扇形 */
@@ -17,6 +23,8 @@ export function CardDetailPanel({
   type,
   cost,
   detail,
+  liveLine = null,
+  keywords = [],
 }: CardDetailPanelProps) {
   if (!open || typeof document === "undefined") return null;
 
@@ -43,6 +51,23 @@ export function CardDetailPanel({
         <p className="mt-1.5 whitespace-pre-line text-[11px] leading-relaxed text-stone-300">
           {detail}
         </p>
+        {liveLine ? (
+          <p className="mt-0.5 text-[11px] leading-relaxed text-stone-300">
+            <FaceLineTokens tokens={liveLine.tokens} />
+          </p>
+        ) : null}
+        {keywords.length > 0 ? (
+          <dl className="mt-1.5 space-y-0.5 border-t border-[#8a7340]/20 pt-1.5 text-[10px] leading-snug">
+            {keywords.map(({ term, text }) => (
+              <div key={term}>
+                <dt className="inline font-semibold text-[#c9a45c]">{term}</dt>
+                <dd className="ml-1.5 inline text-stone-400">
+                  {text.replace(/\n/g, "")}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        ) : null}
       </div>
     </div>,
     document.body

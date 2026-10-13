@@ -84,7 +84,7 @@ export const KARMA_TEMPLATES: Record<KarmaCardTemplateId, KarmaCardTemplate> = {
     art: karmaArtPath("qiandhen"),
     icon: karmaIconPath("qiandhen"),
     description:
-      "造成 10 點傷害。若目標身上存在任意負面效果，本次傷害提高 50%。",
+      "造成 10 點傷害。若目標有因果印記，本次傷害提高 50%。",
   },
   zhongyin: {
     id: "zhongyin",

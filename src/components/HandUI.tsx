@@ -23,12 +23,14 @@ import { CardFace } from "@/components/CardFace";
 import { CardDetailPanel } from "@/components/CardDetailPanel";
 import {
   getKarmaCardFaceDisplay,
+  getSwordFaceLiveLine,
   type CardFacePreviewState,
 } from "@/lib/card-face-display";
 import {
   aspectDiscardDenyToast,
   canPlayAspectDiscardCard,
 } from "@/lib/karma-combat";
+import { getCardKeywordTips } from "@/data/sword-keywords";
 
 interface HandUIProps {
   hand: Card[];
@@ -198,6 +200,17 @@ export function HandUI({
   const detailKarma = detailCard
     ? getKarmaCardFaceDisplay(detailCard.id, facePreview)
     : null;
+  const detailLiveLine = detailCard
+    ? getSwordFaceLiveLine(detailCard.id, facePreview)
+    : null;
+  const detailKeywords =
+    detailCard && detailTemplate
+      ? getCardKeywordTips({
+          description: detailTemplate.description,
+          type: detailTemplate.type,
+          isExhaust: detailCard.isExhaust,
+        })
+      : [];
 
   return (
     <div
@@ -210,6 +223,8 @@ export function HandUI({
         type={detailTemplate?.type ?? ""}
         cost={detailCard ? getEffectiveCost(detailCard) : 0}
         detail={detailKarma?.detail ?? detailTemplate?.description ?? ""}
+        liveLine={detailLiveLine}
+        keywords={detailKeywords}
       />
       {hand.length === 0 ? (
         <p className="flex h-full items-center justify-center text-xs text-stone-500">

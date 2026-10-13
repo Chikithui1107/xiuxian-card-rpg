@@ -71,7 +71,10 @@ import {
   type KarmaCombatState,
   type PlayedCardRecord,
 } from "@/lib/karma-combat";
-import { buildCardFacePreviewFromKarma } from "@/lib/card-face-display";
+import {
+  buildCardFacePreviewFromKarma,
+  buildCardFacePreviewFromSword,
+} from "@/lib/card-face-display";
 import { AspectDiscardModal } from "@/components/AspectDiscardModal";
 import { RestModal } from "@/components/RestModal";
 import { ShopModal } from "@/components/ShopModal";
@@ -631,12 +634,23 @@ export default function GamePage() {
   );
   const hero = useMemo(() => getHero(activeCharacterId), [activeCharacterId]);
 
+  const enemyVulnerable = (enemy.vulnerabilityStacks ?? 0) > 0;
   const cardFacePreview = useMemo(
     () =>
       character.combatPath === "karma"
         ? buildCardFacePreviewFromKarma(karmaState)
-        : undefined,
-    [character.combatPath, karmaState]
+        : buildCardFacePreviewFromSword({
+            swordIntent: combatBuffs.swordIntent,
+            nurtureSword: combatBuffs.nurtureSword,
+            enemyVulnerable,
+          }),
+    [
+      character.combatPath,
+      karmaState,
+      combatBuffs.swordIntent,
+      combatBuffs.nurtureSword,
+      enemyVulnerable,
+    ]
   );
 
   const heroStats = useMemo(

@@ -1,5 +1,14 @@
 import type { KarmaAspect, KarmaCardTemplateId } from "@/lib/karma-deck";
 import { getKarmaTemplate, isKarmaTemplateId } from "@/lib/karma-deck";
+import { CARD_TEMPLATES, type CardEffect } from "@/lib/battle-deck";
+import { yijianHitDamage } from "@/lib/battle-resolve";
+
+/** 白夜卡面預覽 */
+export interface SwordFacePreview {
+  swordIntent: number;
+  nurtureSword: number;
+  enemyVulnerable: boolean;
+}
 
 /** 卡面動態預覽用（只影響顯示，不參與真實結算） */
 export interface CardFacePreviewState {
@@ -9,6 +18,7 @@ export interface CardFacePreviewState {
   lunzhuanArmed: boolean;
   lastPlayedAspect: KarmaAspect | null;
   yangExtraMarkThisTurn: boolean;
+  sword?: SwordFacePreview;
 }
 
 /** 語義 token：由 CardFace 統一上色，勿在資料裡拼 HTML */
@@ -48,6 +58,21 @@ export function previewYinianDamage(marks: number): number {
 
 export function previewQiandhenDamage(hasDebuff: boolean): number {
   return hasDebuff ? Math.floor(10 * 1.5) : 10;
+}
+
+const YIJIAN_EFFECT = CARD_TEMPLATES.yijian.effects.find(
+  (fx): fx is Extract<CardEffect, { kind: "damage_yijian" }> =>
+    fx.kind === "damage_yijian"
+);
+
+export function previewYijianDamage(sword: SwordFacePreview): number | null {
+  if (!YIJIAN_EFFECT) return null;
+  return yijianHitDamage(
+    YIJIAN_EFFECT,
+    sword.swordIntent,
+    sword.nurtureSword,
+    sword.enemyVulnerable
+  );
 }
 
 export function previewKuguoMarks(
@@ -97,7 +122,13 @@ export function getKarmaCardFaceDisplay(
       return {
         coreLines: [
           line(t.n("造成 "), t.dmg(`${dmg}點傷害`, true), t.n("。")),
-          line(t.n("對負面目標造成更高傷害。")),
+          line(
+            t.n("目標有"),
+            t.kw("因果印記"),
+            t.n("時傷害 "),
+            t.dmg("+50%"),
+            t.n("。")
+          ),
         ],
         detail: full,
       };
@@ -284,6 +315,25 @@ export function getKarmaCardFaceDisplay(
     default:
       return null;
   }
+}
+
+/** 白夜卡面即時數值：一劍霜寒目前傷害 */
+export function getSwordFaceLiveLine(
+  templateId: string,
+  preview?: CardFacePreviewState
+): CardFaceLine | null {
+  if (templateId !== "yijian" || !preview?.sword || !YIJIAN_EFFECT) {
+    return null;
+  }
+  const dmg = previewYijianDamage(preview.sword);
+  if (dmg === null || dmg === YIJIAN_EFFECT.base) return null;
+  return line(t.n("目前 "), t.dmg(String(dmg), true), t.n(" 點傷害"));
+}
+
+export function buildCardFacePreviewFromSword(
+  sword: SwordFacePreview
+): CardFacePreviewState {
+  return { ...EMPTY_PREVIEW, sword };
 }
 
 export function buildCardFacePreviewFromKarma(state: {

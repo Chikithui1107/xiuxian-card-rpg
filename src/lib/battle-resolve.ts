@@ -55,6 +55,21 @@ function floorDamage(n: number): number {
   return Math.max(0, Math.floor(n));
 }
 
+function applyVulnerability(raw: number, vulnerable: boolean): number {
+  return floorDamage(vulnerable ? raw * 1.5 : raw);
+}
+
+/** 一劍霜寒單段傷害（結算與卡面預覽共用） */
+export function yijianHitDamage(
+  fx: { base: number; perIntent: number },
+  swordIntent: number,
+  nurtureSword: number,
+  enemyVulnerable: boolean
+): number {
+  const raw = fx.base + swordIntent * fx.perIntent;
+  return applyVulnerability(nurtureSword >= 1 ? raw * 2 : raw, enemyVulnerable);
+}
+
 /**
  * 結算白夜牌效果。
  * 敵人破綻 ≥1 時，本張攻擊牌全部 hit ×1.5（層數不疊加倍率）。
@@ -76,10 +91,8 @@ export function resolveCardEffects(
   const enemyVulnerable = Boolean(opts?.enemyVulnerable);
   const isAttack = Boolean(template.isAttack);
 
-  const withVuln = (raw: number): number => {
-    if (!isAttack || !enemyVulnerable) return floorDamage(raw);
-    return floorDamage(raw * 1.5);
-  };
+  const withVuln = (raw: number): number =>
+    applyVulnerability(raw, isAttack && enemyVulnerable);
 
   for (const fx of template.effects) {
     switch (fx.kind) {
@@ -92,9 +105,14 @@ export function resolveCardEffects(
         break;
       }
       case "damage_yijian": {
-        let dmg = fx.base + next.swordIntent * fx.perIntent;
-        if (next.nurtureSword >= 1) dmg *= 2;
-        damageHits = [withVuln(dmg)];
+        damageHits = [
+          yijianHitDamage(
+            fx,
+            next.swordIntent,
+            next.nurtureSword,
+            isAttack && enemyVulnerable
+          ),
+        ];
         if (next.shuangjianStacks > 0) {
           next = {
             ...next,
