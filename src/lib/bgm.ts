@@ -89,11 +89,23 @@ export function unlockBgm(): void {
   syncPlayback();
 }
 
-/** 山門 / 戰鬥切換曲目 */
+function rewindCombatTrack(): void {
+  const el = getPlayer("combat");
+  if (!el) return;
+  try {
+    el.currentTime = 0;
+  } catch {
+    // 尚未可 seek 時忽略，下一輪播放仍從 0 開始
+  }
+}
+
+/** 山門 / 戰鬥切換曲目。從非戰鬥進入戰鬥時，戰曲從頭播。 */
 export function setBgmScene(next: BgmScene): void {
+  const enteringCombat = next === "combat" && scene !== "combat";
   scene = next;
   // 預載另一軌，減少進戰切歌延遲
   void getPlayer(next === "lobby" ? "combat" : "lobby");
+  if (enteringCombat) rewindCombatTrack();
   if (isBgmBlocked()) {
     syncPlayback();
     return;
@@ -203,6 +215,26 @@ export function playDefeatMusic(options?: PlayDefeatMusicOptions): void {
   el.onended = finish;
   el.onerror = finish;
   void el.play().catch(finish);
+}
+
+/**
+ * 新的一場戰鬥：即使場景已經是戰鬥（重新挑戰、曲目只是暫停），
+ * 也把戰曲拉回開頭再播。
+ */
+export function restartCombatBgm(): void {
+  scene = "combat";
+  rewindCombatTrack();
+  if (isBgmBlocked()) {
+    syncPlayback();
+    return;
+  }
+  if (unlocked && !muted) {
+    syncPlayback();
+  } else if (!unlocked) {
+    void tryAutoPlayBgm();
+  } else {
+    syncPlayback();
+  }
 }
 
 /** @deprecated 改用 setBgmScene；true=山門 false=戰鬥 */

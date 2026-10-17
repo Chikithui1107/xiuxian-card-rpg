@@ -121,7 +121,7 @@ import {
   type CombatBuffs,
 } from "@/lib/battle-resolve";
 import { playStartCultivationSfx, playCardDrawSfx, playBattleWinSfx, playGameOverSfx } from "@/lib/combat-audio";
-import { stopDefeatMusic } from "@/lib/bgm";
+import { restartCombatBgm, stopDefeatMusic } from "@/lib/bgm";
 import {
   DAMAGE_NUMBER_MS,
   planPlayerHitSteps,
@@ -1075,6 +1075,7 @@ export default function GamePage() {
   const startBattleForMapNode = useCallback(
     (tier: DungeonTier, node: MapNode) => {
       if (!runSessionIdRef.current) return;
+      restartCombatBgm();
       preBattleRef.current = {
         hp: playerHpRef.current,
         deck: [...runDeckRef.current],
