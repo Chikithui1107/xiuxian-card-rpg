@@ -30,6 +30,8 @@ interface EnemyPanelProps {
   frostSlash?: boolean;
   intentHighlight?: boolean;
   attackLunge?: boolean;
+  /** 覆寫突進動畫長度（ms），命中落在動畫結束；未給則用 CSS 預設 */
+  attackLungeMs?: number | null;
 }
 
 const INTENT_ICON: Partial<Record<EnemyIntent["type"], string>> = {
@@ -86,6 +88,7 @@ export function EnemyPanel({
   frostSlash = false,
   intentHighlight = false,
   attackLunge = false,
+  attackLungeMs = null,
 }: EnemyPanelProps) {
   const isDefeated = enemy.currentHp <= 0;
   const intent = getEnemyIntent(enemy);
@@ -366,6 +369,11 @@ export function EnemyPanel({
                   className={`relative flex h-full max-w-full items-end justify-center ${
                     spriteShake ? "enemy-sprite-hit-shake" : ""
                   } ${attackLunge ? "enemy-sprite-lunge" : ""}`}
+                  style={
+                    attackLunge && attackLungeMs
+                      ? { animationDuration: `${attackLungeMs}ms` }
+                      : undefined
+                  }
                 >
                   <img
                     src={monster.image}

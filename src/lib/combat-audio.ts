@@ -2,6 +2,7 @@ import { ENEMY_ATTACK_WINDUP_MS, ENEMY_LUNGE_MS } from "@/lib/combat-feedback";
 import type { PlayFxKind } from "@/lib/combat-fx";
 import { playDefeatMusic, stopDefeatMusic } from "@/lib/bgm";
 import { publicAsset } from "@/lib/paths";
+import { isSnakeEnemy, type SnakeHissClip, type SnakeMove } from "@/lib/snake-sfx";
 
 type WebkitWindow = Window & {
   webkitAudioContext?: typeof AudioContext;
@@ -25,6 +26,10 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
   /** 劫修橫斬：刃切 + 喝聲同時播 */
   bandit_slash: ["bandit-slash", "bandit_slash"],
   bandit_he: ["bandit-he", "bandit_he"],
+  /** 青鱗靈蛇：雙噬／毒牙／亂噬共用，各自截片段 */
+  snake_hiss: ["/audio/sfx/snake_hiss.wav"],
+  /** 靈蛇咬擊：尚無素材，放入 public/audio/sfx/snake_bite.wav 後在此填路徑即可 */
+  snake_bite: [],
   /** 護盾受擊（沿用較輕的 whoosh） */
   shield_hit: ["tuxu-whoosh", "tuxu_whoosh"],
   card_draw: ["card-draw", "card_draw"],
@@ -35,7 +40,7 @@ const SAMPLE_CANDIDATES: Record<string, string[]> = {
 const EXT = [".mp3", ".wav", ".ogg", ".m4a"] as const;
 
 /** 換樣本時遞增，強制繞過 HTTP 快取 */
-const SFX_CACHE_BUST = "v14";
+const SFX_CACHE_BUST = "v15";
 
 /** 妖狼利爪加速；原長 ~3.02s → 約 1.68s */
 export const WOLF_CLAW_PLAYBACK_RATE = 1.8;
@@ -114,8 +119,12 @@ async function fetchBuffer(logicalKey: string): Promise<AudioBuffer | null> {
 
   const names = SAMPLE_CANDIDATES[logicalKey] ?? [logicalKey];
   for (const name of names) {
-    for (const ext of EXT) {
-      const url = `${publicAsset(`/sfx/${name}${ext}`)}?${SFX_CACHE_BUST}`;
+    // 以 / 開頭的是完整路徑（含副檔名），其餘在 /sfx/ 下嘗試各副檔名
+    const paths = name.startsWith("/")
+      ? [name]
+      : EXT.map((ext) => `/sfx/${name}${ext}`);
+    for (const path of paths) {
+      const url = `${publicAsset(path)}?${SFX_CACHE_BUST}`;
       try {
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) continue;
@@ -250,7 +259,7 @@ export function playImpact(kind: PlayFxKind): void {
 export function playPlayerHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
-  if (isWolfEnemy(enemy) || isBanditHorizontalSlash(enemy)) {
+  if (isWolfEnemy(enemy) || isBanditHorizontalSlash(enemy) || isSnakeEnemy(enemy)) {
     return;
   }
   playSampleSync("player_hit", 0.95);
@@ -260,7 +269,7 @@ export function playPlayerHitSfx(
 export function playShieldHitSfx(
   enemy?: { id?: string; monsterSprite?: string } | null
 ): void {
-  if (isWolfEnemy(enemy) || isBanditHorizontalSlash(enemy)) {
+  if (isWolfEnemy(enemy) || isBanditHorizontalSlash(enemy) || isSnakeEnemy(enemy)) {
     return;
   }
   playSampleSync("shield_hit", 0.7);
@@ -323,6 +332,157 @@ export function isBanditHorizontalSlash(
   return isBandit && move === "橫斬";
 }
 
+const SNAKE_HISS_FADE_IN_SEC = 0.004;
+const SNAKE_HISS_FADE_OUT_SEC = 0.025;
+const SNAKE_HISS_CUT_SEC = 0.015;
+let snakeHissVoice: { src: AudioBufferSourceNode; gain: GainNode } | null = null;
+
+/** 同一時間只留一段嘶聲：新的一段起播前，把上一段 15ms 內淡掉 */
+function cutSnakeHiss(audio: AudioContext): void {
+  const voice = snakeHissVoice;
+  snakeHissVoice = null;
+  if (!voice) return;
+  try {
+    const now = audio.currentTime;
+    voice.gain.gain.cancelScheduledValues(now);
+    voice.gain.gain.setValueAtTime(voice.gain.gain.value, now);
+    voice.gain.gain.linearRampToValueAtTime(0, now + SNAKE_HISS_CUT_SEC);
+    voice.src.stop(now + SNAKE_HISS_CUT_SEC + 0.005);
+  } catch {
+    /* already stopped */
+  }
+}
+
+/**
+ * 靈蛇嘶聲：從 snake_hiss.wav 截一段，結尾淡出。
+ * 素材尚未解碼時不補播（只預載），失敗一律安靜。
+ */
+export function playSnakeHiss(clip: SnakeHissClip): void {
+  try {
+    const buffer = bufferCache.get("snake_hiss");
+    if (!buffer) {
+      if (!bufferCache.has("snake_hiss")) void loadBuffer("snake_hiss");
+      return;
+    }
+    const audio = getCtx();
+    if (!audio || !master || audio.state !== "running") {
+      if (audio?.state === "suspended") void audio.resume().catch(() => {});
+      return;
+    }
+    cutSnakeHiss(audio);
+
+    const rate = Math.max(0.5, clip.playbackRate);
+    const offset = Math.max(0, Math.min(clip.offsetSec, buffer.duration - 0.05));
+    const audible = Math.max(
+      SNAKE_HISS_FADE_IN_SEC + SNAKE_HISS_FADE_OUT_SEC,
+      Math.min(clip.durationSec, (buffer.duration - offset) / rate)
+    );
+
+    const src = audio.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = rate;
+    const gain = audio.createGain();
+    const t0 = audio.currentTime;
+    const fadeOutAt = t0 + audible - SNAKE_HISS_FADE_OUT_SEC;
+    gain.gain.setValueAtTime(0, t0);
+    gain.gain.linearRampToValueAtTime(clip.peak, t0 + SNAKE_HISS_FADE_IN_SEC);
+    gain.gain.setValueAtTime(clip.peak, fadeOutAt);
+    gain.gain.linearRampToValueAtTime(0, t0 + audible);
+
+    let tail: AudioNode = src;
+    let filter: BiquadFilterNode | null = null;
+    if (clip.highpassHz) {
+      filter = audio.createBiquadFilter();
+      filter.type = "highpass";
+      filter.frequency.value = clip.highpassHz;
+      filter.Q.value = 0.7;
+      src.connect(filter);
+      tail = filter;
+    }
+    tail.connect(gain);
+    gain.connect(master);
+
+    const voice = { src, gain };
+    snakeHissVoice = voice;
+    activeSources.add(src);
+    src.onended = () => {
+      activeSources.delete(src);
+      if (snakeHissVoice === voice) snakeHissVoice = null;
+      src.disconnect();
+      filter?.disconnect();
+      gain.disconnect();
+    };
+    src.start(t0, offset, audible * rate + 0.01);
+    src.stop(t0 + audible + 0.01);
+  } catch {
+    /* 音效失敗不影響戰鬥 */
+  }
+}
+
+/**
+ * 靈蛇每一咬的命中音介面（每段只呼叫一次，於命中幀）。
+ * 有 snake_bite 素材時播它；沒有時沿用原本的通用受擊聲，
+ * 毒牙不帶護盾聲。
+ */
+export function playSnakeBiteSfx(opts: {
+  move: SnakeMove;
+  hitIndex: number;
+  onShield: boolean;
+}): void {
+  try {
+    const bite = bufferCache.get("snake_bite");
+    if (bite) {
+      playSnakeBiteVoice(bite, opts.onShield ? 0.8 : 0.95);
+      return;
+    }
+    if (bufferCache.get("snake_bite") === undefined) void loadBuffer("snake_bite");
+    if (opts.onShield && opts.move === "毒牙") return;
+    const key = opts.onShield ? "shield_hit" : "player_hit";
+    const fallback = bufferCache.get(key);
+    if (fallback) playSnakeBiteVoice(fallback, opts.onShield ? 0.7 : 0.95);
+    else if (!bufferCache.has(key)) void loadBuffer(key);
+  } catch {
+    /* 音效失敗不影響戰鬥 */
+  }
+}
+
+let snakeBiteVoice: { src: AudioBufferSourceNode; gain: GainNode } | null = null;
+
+/** 連咬間隔短：下一咬起播時把上一咬的尾音淡掉，避免疊爆、每一咬都聽得清 */
+function playSnakeBiteVoice(buffer: AudioBuffer, peak: number): void {
+  const audio = getCtx();
+  if (!audio || !master || audio.state !== "running") return;
+  const prev = snakeBiteVoice;
+  snakeBiteVoice = null;
+  const now = audio.currentTime;
+  if (prev) {
+    try {
+      prev.gain.gain.cancelScheduledValues(now);
+      prev.gain.gain.setValueAtTime(prev.gain.gain.value, now);
+      prev.gain.gain.linearRampToValueAtTime(0, now + SNAKE_HISS_CUT_SEC);
+      prev.src.stop(now + SNAKE_HISS_CUT_SEC + 0.005);
+    } catch {
+      /* already stopped */
+    }
+  }
+  const src = audio.createBufferSource();
+  src.buffer = buffer;
+  const gain = audio.createGain();
+  gain.gain.value = peak;
+  src.connect(gain);
+  gain.connect(master);
+  const voice = { src, gain };
+  snakeBiteVoice = voice;
+  activeSources.add(src);
+  src.onended = () => {
+    activeSources.delete(src);
+    if (snakeBiteVoice === voice) snakeBiteVoice = null;
+    src.disconnect();
+    gain.disconnect();
+  };
+  src.start(now);
+}
+
 /** 開始 / 繼續修行時的過渡音 */
 export function playStartCultivationSfx(): void {
   // 若仍在播失敗曲，先停掉再開修行
@@ -375,6 +535,8 @@ export function preloadCombatSfx(): void {
   void loadBuffer("wolf_claw");
   void loadBuffer("bandit_slash");
   void loadBuffer("bandit_he");
+  void loadBuffer("snake_hiss");
+  void loadBuffer("snake_bite");
   void loadBuffer("shield_hit");
   void loadBuffer("card_draw");
   void loadBuffer("reward_click");

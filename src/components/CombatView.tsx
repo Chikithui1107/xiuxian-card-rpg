@@ -61,9 +61,12 @@ import {
   playBanditHeSfx,
   playBanditSlashSfx,
   BANDIT_HE_LEAD_MS,
+  playSnakeHiss,
+  playSnakeBiteSfx,
   WOLF_CLAW_BEFORE_LUNGE_MS,
   WOLF_GROWL_EXTRA_LEAD_MS,
 } from "@/lib/combat-audio";
+import { getSnakeAttackTimeline, SNAKE_MIN_RETRACT_MS } from "@/lib/snake-sfx";
 import { PlayBurstFx, type PlayBurst } from "@/components/PlayBurstFx";
 import { publicAsset } from "@/lib/paths";
 import type { CardFacePreviewState } from "@/lib/card-face-display";
@@ -412,6 +415,7 @@ export function CombatView({
   const [hitFlash, setHitFlash] = useState(false);
   const [intentHighlight, setIntentHighlight] = useState(false);
   const [enemyLunge, setEnemyLunge] = useState(false);
+  const [enemyLungeMs, setEnemyLungeMs] = useState<number | null>(null);
   const [denyShake, setDenyShake] = useState(false);
   const [feelToast, setFeelToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -638,6 +642,9 @@ export function CombatView({
         if (plan.kind === "attack" && !plan.dodged && plan.hits.length > 0) {
           const wolfAttack = isWolfEnemy(enemy);
           const attackMs = ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS;
+          const snake = getSnakeAttackTimeline(enemy, plan.label, plan.hits.length);
+          let snakeStartedAt = 0;
+          let lastRetractAt = 0;
           for (let i = 0; i < plan.hits.length; i++) {
             const steps =
               takeEnemyHitSteps?.(plan.hits[i]) ?? [
@@ -664,8 +671,26 @@ export function CombatView({
               if (!(await scope.wait(BANDIT_HE_LEAD_MS))) return;
               playBanditSlashSfx();
             }
-            setEnemyLunge(true);
-            if (!(await scope.wait(attackMs))) return;
+
+            if (snake) {
+              if (i === 0) {
+                playSnakeHiss(snake.hiss);
+                snakeStartedAt = performance.now();
+              }
+              const lungeAt = Math.max(
+                snakeStartedAt + snake.impactsMs[i] - snake.lungeMs[i],
+                i === 0 ? 0 : lastRetractAt + SNAKE_MIN_RETRACT_MS
+              );
+              if (!(await scope.wait(Math.max(0, lungeAt - performance.now())))) return;
+              setEnemyLungeMs(snake.lungeMs[i]);
+              setEnemyLunge(true);
+              if (!(await scope.wait(snake.lungeMs[i]))) return;
+              playSnakeBiteSfx({ move: snake.move, hitIndex: i, onShield: hitsShield });
+            } else {
+              setEnemyLungeMs(null);
+              setEnemyLunge(true);
+              if (!(await scope.wait(attackMs))) return;
+            }
 
             for (let s = 0; s < steps.length; s++) {
               const result = applyPlayerImpactStep?.(steps[s]);
@@ -679,14 +704,19 @@ export function CombatView({
             }
 
             setEnemyLunge(false);
+            lastRetractAt = performance.now();
             if (defeated) break;
             if (i < plan.hits.length - 1) {
-              if (!(await scope.wait(ENEMY_MULTI_HIT_GAP_MS))) return;
+              // 靈蛇的下一咬由時間軸決定何時起突進
+              if (!snake && !(await scope.wait(ENEMY_MULTI_HIT_GAP_MS))) return;
             } else {
               if (!(await scope.wait(ENEMY_RETURN_MS))) return;
             }
           }
         } else if (plan.kind === "attack" && plan.dodged) {
+          const snake = getSnakeAttackTimeline(enemy, plan.label, 1);
+          if (snake) playSnakeHiss(snake.hiss);
+          setEnemyLungeMs(null);
           setEnemyLunge(true);
           if (!(await scope.wait(ENEMY_ATTACK_WINDUP_MS + ENEMY_LUNGE_MS))) return;
           setEnemyLunge(false);
@@ -1316,6 +1346,7 @@ export function CombatView({
           frostSlash={frostSlash}
           intentHighlight={intentHighlight}
           attackLunge={enemyLunge}
+          attackLungeMs={enemyLungeMs}
           />
         </div>
 

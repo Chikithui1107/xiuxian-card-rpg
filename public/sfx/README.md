@@ -12,6 +12,7 @@
 | 一劍霜寒命中 | `yijian-slash.mp3` |
 | 妖狼攻擊 | `wolf-growl.mp3`（比突進早 0.2s；連爪只播 1 次、音量 ×1.5、時長 +0.5s）+ `wolf-claw.mp3`（每一擊，比突進早 0.1s；1.8× 速、音量 150%） |
 | 劫修橫斬 | `bandit-he.mp3`（比刃切早 0.2s）+ `bandit-slash.mp3` |
+| 青鱗靈蛇 雙噬／毒牙／亂噬 | `../audio/sfx/snake_hiss.wav`（SFXMint Snake Hiss 01，CC0；截原檔 0–0.70s，4ms 淡入、25ms 淡出）。各式截段見 `src/lib/snake-sfx.ts`；咬擊音尚缺，放 `snake_bite` 後於 `combat-audio.ts` 填路徑 |
 | 踏虛掠影起手 | `tuxu-whoosh.mp3` |
 
 背景音樂在 `public/music/`：
