@@ -201,3 +201,30 @@
     animation: none;
   }
 }
+
+/* -------------------------
+   山門構圖：腳落在出發區上緣，頭部讓開頂部狀態列
+------------------------- */
+
+.scene[data-composition="gate"] {
+  --gate-character-height: 60%;
+  --gate-character-bottom: 21%;
+}
+
+.scene[data-composition="gate"] .character {
+  left: 54%;
+}
+
+.scene[data-composition="gate"] .groundShadow {
+  left: 54%;
+  bottom: calc(var(--gate-character-bottom) + 0.4%);
+  width: 40%;
+  opacity: 0.9;
+}
+
+@container (max-height: 700px) {
+  .scene[data-composition="gate"] {
+    --gate-character-height: 56%;
+    --gate-character-bottom: 24%;
+  }
+}

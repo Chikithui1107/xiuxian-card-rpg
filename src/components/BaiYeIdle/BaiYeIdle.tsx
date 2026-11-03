@@ -16,6 +16,8 @@ type BaiYeIdleProps = {
   characterBottom?: string;
   characterHeight?: string;
   characterMaxWidth?: string;
+  /** gate：山門構圖，人物縮小上移，讓出頂部狀態列與底部出發區 */
+  composition?: "portrait" | "gate";
 };
 
 export default function BaiYeIdle({
@@ -29,6 +31,7 @@ export default function BaiYeIdle({
   characterBottom,
   characterHeight,
   characterMaxWidth,
+  composition = "portrait",
 }: BaiYeIdleProps) {
   const bgStyle: CSSProperties = {
     ...(backgroundPosition ? { objectPosition: backgroundPosition } : null),
@@ -41,12 +44,19 @@ export default function BaiYeIdle({
     ...(characterBottom ? { bottom: characterBottom } : null),
     ...(characterHeight ? { height: characterHeight } : null),
     ...(characterMaxWidth ? { maxWidth: characterMaxWidth } : null),
+    ...(composition === "gate"
+      ? {
+          bottom: "var(--gate-character-bottom)",
+          height: "var(--gate-character-height)",
+        }
+      : null),
   };
 
   return (
     <div
       className={[styles.scene, className].filter(Boolean).join(" ")}
       data-lobby-theme={theme}
+      data-composition={composition}
     >
       <img
         className={styles.background}

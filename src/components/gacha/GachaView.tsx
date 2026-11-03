@@ -106,18 +106,29 @@ export function GachaView({
   );
 
   return (
-    <div className="gacha-page animate-fade-in">
-      <header className="gacha-page__header">
-        <div>
-          <p className="gacha-page__eyebrow">局外因緣</p>
-          <h2 className="gacha-page__title">因緣閣</h2>
+    <div className="gacha-page ui-page animate-fade-in">
+      <div
+        className="ui-page__backdrop ui-page__backdrop--dim"
+        style={{ backgroundImage: `url(${publicAsset(banner.background)})` }}
+        aria-hidden
+      />
+      <header className="ui-page-header">
+        <div className="ui-page-header__text">
+          <p className="ui-eyebrow">局外因緣</p>
+          <h2 className="ui-title ui-page-header__title">因緣閣</h2>
         </div>
-        <button type="button" className="gacha-page__close" onClick={onClose}>
+        <button
+          type="button"
+          className="ui-btn ui-btn--sm ui-page-header__action"
+          onClick={onClose}
+        >
           返回山門
         </button>
       </header>
 
-      <GachaPoolTabs active={poolId} onChange={handlePoolChange} />
+      <div className="gacha-page__tabs">
+        <GachaPoolTabs active={poolId} onChange={handlePoolChange} />
+      </div>
 
       <div className="gacha-page__body">
         {panel === "banner" ? (
@@ -157,14 +168,14 @@ export function GachaView({
         ) : null}
 
         {panel === "collection" ? (
-          <div className="gacha-panel">
+          <div className="gacha-panel ui-panel">
             <div className="gacha-panel__bar">
               <h3 className="gacha-panel__title">
                 {poolId === "wudao" ? "白夜卡牌收藏" : "外觀收藏"}
               </h3>
               <button
                 type="button"
-                className="gacha-link"
+                className="ui-btn ui-btn--sm"
                 onClick={() => setPanel("banner")}
               >
                 返回
@@ -250,12 +261,12 @@ export function GachaView({
         ) : null}
 
         {panel === "history" ? (
-          <div className="gacha-panel">
+          <div className="gacha-panel ui-panel">
             <div className="gacha-panel__bar">
               <h3 className="gacha-panel__title">抽取紀錄</h3>
               <button
                 type="button"
-                className="gacha-link"
+                className="ui-btn ui-btn--sm"
                 onClick={() => setPanel("banner")}
               >
                 返回

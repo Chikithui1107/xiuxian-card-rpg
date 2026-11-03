@@ -1,9 +1,11 @@
 "use client";
 
+import { useCallback, useState } from "react";
 import type { Hero, HeroStats } from "@/lib/stats";
 import { formatNumber } from "@/lib/stats";
 import type { PlayableCharacter } from "@/data/characters";
 import BaiYeIdle from "@/components/BaiYeIdle/BaiYeIdle";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { RunToast } from "@/components/RunToast";
 
 interface LobbyViewProps {
@@ -20,9 +22,25 @@ interface LobbyViewProps {
   runLabel?: string | null;
   onEnterDungeon: () => void;
   onContinueGame: () => void;
+  /** 已在大廳內二次確認後才呼叫 */
   onAbandonGame: () => void;
   onOpenGacha?: () => void;
   onDismissRunMessage?: () => void;
+}
+
+function GachaGlyph() {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" aria-hidden>
+      <circle cx="16" cy="16" r="10" stroke="currentColor" strokeWidth="1.1" />
+      <path
+        d="M16 3v5m0 16v5M3 16h5m16 0h5M16 10l6 6-6 6-6-6 6-6Z"
+        stroke="currentColor"
+        strokeWidth="1.1"
+        strokeLinejoin="round"
+      />
+      <circle cx="16" cy="16" r="1.8" fill="currentColor" />
+    </svg>
+  );
 }
 
 export function LobbyView({
@@ -42,17 +60,20 @@ export function LobbyView({
   onOpenGacha,
   onDismissRunMessage,
 }: LobbyViewProps) {
-  const hpPercent = Math.max(0, (playerHp / stats.maxHp) * 100);
+  const [confirmAbandon, setConfirmAbandon] = useState(false);
+  const closeConfirm = useCallback(() => setConfirmAbandon(false), []);
+  const hpPercent = Math.min(100, Math.max(0, (playerHp / stats.maxHp) * 100));
   const art = character.lobbyArt;
 
   return (
     <div
-      className={`lobby-home animate-fade-in relative min-h-0 flex-1 overflow-hidden${
+      className={`lobby-home lobby-gate animate-fade-in relative min-h-0 flex-1 overflow-hidden${
         character.lobbyTheme === "ink" ? " lobby-home-ink" : ""
       }`}
     >
       <BaiYeIdle
         className="absolute inset-0"
+        composition="gate"
         characterSrc={
           character.lobbyPortrait ??
           hero.lobbyPortrait ??
@@ -67,115 +88,121 @@ export function LobbyView({
         theme={character.lobbyTheme}
         backgroundPosition={art?.backgroundPosition}
         backgroundFilter={art?.backgroundFilter}
-        characterBottom={art?.characterBottom}
-        characterHeight={art?.characterHeight}
         characterMaxWidth={art?.characterMaxWidth}
       />
+      <div className="lobby-gate__veil" aria-hidden />
 
-      <div className="lobby-bg-veil pointer-events-none absolute inset-0 z-[19]" />
+      <section className="lobby-gate__hud" aria-label="修士狀態">
+        <div className="lobby-gate__identity">
+          <p className="ui-eyebrow">天樞聖宗 · 山門</p>
+          <h2 className="lobby-gate__name">{hero.name}</h2>
+          <p className="lobby-gate__rank">
+            {hero.title}
+            <span aria-hidden> · </span>
+            {hero.realm}
+          </p>
+          <div className="lobby-gate__vital">
+            <div className="lobby-gate__vital-label">
+              <span>氣血</span>
+              <span className="ui-num">
+                {formatNumber(playerHp)} / {formatNumber(stats.maxHp)}
+              </span>
+            </div>
+            <div
+              className="lobby-gate__hp-track"
+              role="progressbar"
+              aria-label="氣血"
+              aria-valuemin={0}
+              aria-valuemax={stats.maxHp}
+              aria-valuenow={playerHp}
+            >
+              <span className="hp-bar-fill" style={{ width: `${hpPercent}%` }} />
+            </div>
+          </div>
+        </div>
+        <div className="lobby-gate__purse ui-panel">
+          <span className="ui-stat__label">靈石</span>
+          <strong className="ui-num">{formatNumber(spiritStones)}</strong>
+        </div>
+      </section>
+
+      {onOpenGacha ? (
+        <button
+          type="button"
+          onClick={onOpenGacha}
+          className="lobby-gate__side-entry"
+          aria-label="前往因緣閣"
+        >
+          <span className="lobby-gate__side-icon">
+            <GachaGlyph />
+          </span>
+          <span className="lobby-gate__side-label">因緣閣</span>
+        </button>
+      ) : null}
+
+      <div className="lobby-gate__dock">
+        {hasActiveRun ? (
+          <button
+            type="button"
+            onClick={onContinueGame}
+            className="ui-btn ui-btn--primary ui-btn--lg ui-btn--block"
+            aria-label="繼續修行"
+          >
+            <span>繼續修行</span>
+            <span className="ui-btn__sub">{runLabel ?? "返回本次秘境"}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onEnterDungeon}
+            className="ui-btn ui-btn--primary ui-btn--lg ui-btn--block"
+            aria-label="開始修行，前往秘境試煉"
+          >
+            <span>開始修行</span>
+            <span className="ui-btn__sub">五境連闖 · 一世修行</span>
+          </button>
+        )}
+        <div className="lobby-gate__ledger">
+          <p className="ui-meta">
+            牌組<b>{deckCount}</b>
+            <span className="lobby-gate__ledger-sep" aria-hidden>
+              ·
+            </span>
+            通關<b>{totalClears}</b>
+          </p>
+          {hasActiveRun ? (
+            <button
+              type="button"
+              className="ui-link ui-link--danger"
+              onClick={() => setConfirmAbandon(true)}
+            >
+              放棄本次修行
+            </button>
+          ) : null}
+        </div>
+      </div>
 
       {lastRunMessage && onDismissRunMessage && (
         <RunToast
           message={lastRunMessage}
           onDismiss={onDismissRunMessage}
-          topClassName="top-[calc(3.85rem+env(safe-area-inset-top,0px))]"
+          topClassName="lobby-gate__toast"
         />
       )}
 
-      <div className="lobby-hero-title pointer-events-none absolute inset-x-0 z-20 px-4 pb-3 pt-8 text-center">
-        <h2 className="text-[1.55rem] font-bold tracking-[0.36em] text-[#f5efe4] drop-shadow-[0_2px_10px_rgba(0,0,0,0.85)]">
-          {hero.name}
-        </h2>
-        <p className="lobby-hero-subtitle mt-1 text-[11px] tracking-[0.22em]">
-          {hero.title} · {hero.realm}
-        </p>
-      </div>
-
-      <div className="lobby-dock absolute inset-x-0 bottom-0 z-20 px-3 pb-3 pt-3">
-        {onOpenGacha ? (
-          <button
-            type="button"
-            onClick={onOpenGacha}
-            className="lobby-gacha-entry mb-2"
-            aria-label="前往因緣閣"
-          >
-            因緣閣 · 悟道／霓裳
-          </button>
-        ) : null}
-        <div className="lobby-stat-sheet mb-3 px-3 py-2.5">
-          <div className="mb-1 flex items-center justify-between text-[10px]">
-            <span className="text-[#8eb8a8]">氣血</span>
-            <span className="stat-value text-[#d5e8dc]">
-              {formatNumber(playerHp)} / {formatNumber(stats.maxHp)}
-            </span>
-          </div>
-          <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-black/55">
-            <div
-              className="hp-bar-fill h-full rounded-full"
-              style={{ width: `${hpPercent}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between gap-2 text-[10px]">
-            <span className="text-stone-400">
-              靈石{" "}
-              <span className="font-semibold text-[#8eb8a8]">
-                {formatNumber(spiritStones)}
-              </span>
-            </span>
-            <span className="text-stone-400">
-              牌組{" "}
-              <span className="font-semibold text-[#c9a84c]">{deckCount}</span>
-            </span>
-            <span className="text-stone-400">
-              通關{" "}
-              <span className="font-semibold text-[#c9a84c]">{totalClears}</span>
-            </span>
-          </div>
-        </div>
-
-        {hasActiveRun ? (
-          <div className="space-y-2">
-            <button
-              onClick={onContinueGame}
-              className="btn-start-game"
-              aria-label="繼續修行"
-            >
-              <span className="relative block text-[1.05rem] font-bold tracking-[0.42em]">
-                繼續修行
-              </span>
-              <span className="btn-start-divider" aria-hidden>
-                <i className="btn-start-diamond" />
-              </span>
-              <span className="relative block text-[10px] font-semibold tracking-[0.22em] text-[#b8a878]/90">
-                {runLabel ?? "返回本次秘境"}
-              </span>
-            </button>
-            <button
-              onClick={onAbandonGame}
-              className="btn-abandon"
-              aria-label="放棄本次修行"
-            >
-              放棄本次修行
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={onEnterDungeon}
-            className="btn-start-game"
-            aria-label="開始修行，前往秘境試煉"
-          >
-            <span className="relative block text-[1.05rem] font-bold tracking-[0.42em]">
-              開始修行
-            </span>
-            <span className="btn-start-divider" aria-hidden>
-              <i className="btn-start-diamond" />
-            </span>
-            <span className="relative block text-[10px] font-semibold tracking-[0.22em] text-[#b8a878]/90">
-              五境連闖 · 一世修行
-            </span>
-          </button>
-        )}
-      </div>
+      <ConfirmDialog
+        open={confirmAbandon}
+        eyebrow="請再確認"
+        title="放棄本次修行"
+        description="當前五境進度、法訣與金幣將全部失去，下次將從引氣入道重新開始。"
+        cancelLabel="繼續修行"
+        confirmLabel="確定放棄"
+        onCancel={closeConfirm}
+        onConfirm={() => {
+          setConfirmAbandon(false);
+          onAbandonGame();
+        }}
+      />
     </div>
   );
 }

@@ -204,12 +204,6 @@ interface ActiveRunSaveV2 {
   savedAt: number;
 }
 
-const TAB_LABELS: Record<AppTab, string> = {
-  lobby: "青雲宗 · 山門",
-  combat: "天下秘境",
-  characters: "選擇角色",
-};
-
 function sanitizeMaxCalamityLevel(value: unknown): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(MAX_CALAMITY_LEVEL, Math.floor(value)));
@@ -1393,18 +1387,6 @@ export default function GamePage() {
   const dismissRunMessage = useCallback(() => {
     setLastRunMessage(null);
   }, []);
-
-  const abandonGame = useCallback(() => {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(
-        "確定放棄本次修行？當前五境進度、法訣與金幣將全部失去，下次將從引氣入道重新開始。"
-      )
-    ) {
-      return;
-    }
-    quitRun();
-  }, [quitRun]);
 
   const enterTierSelect = useCallback(() => {
     playStartCultivationSfx();
@@ -2770,7 +2752,7 @@ export default function GamePage() {
               }
               onEnterDungeon={enterTierSelect}
               onContinueGame={continueGame}
-              onAbandonGame={abandonGame}
+              onAbandonGame={quitRun}
               onOpenGacha={() => setShowGacha(true)}
               onDismissRunMessage={dismissRunMessage}
             />
@@ -2952,21 +2934,7 @@ export default function GamePage() {
   return (
     <MobileFrame
       title="仙途"
-      subtitle={
-        isInCombat
-          ? undefined
-          : hasActiveRun && selectedTier
-            ? (() => {
-                const meta = getDungeonChapterMeta(selectedTier);
-                return `${meta.chapterLabel} · ${meta.realmLabel} · 修行中`;
-              })()
-            : showGacha
-              ? "因緣閣"
-              : activeTab === "lobby"
-              ? "天樞聖宗"
-              : TAB_LABELS[activeTab]
-      }
-      immersive={activeTab === "lobby" && !isInCombat}
+      immersive={activeTab === "lobby" && !showGacha && !isInCombat}
       compactHeader={isInCombat}
       bgmScene={isInCombat ? "combat" : "lobby"}
       storyMode={storyActive}

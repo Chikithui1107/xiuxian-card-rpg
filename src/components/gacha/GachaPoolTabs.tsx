@@ -14,14 +14,14 @@ const TABS: { id: GachaPoolId; label: string }[] = [
 
 export function GachaPoolTabs({ active, onChange }: GachaPoolTabsProps) {
   return (
-    <div className="gacha-tabs" role="tablist" aria-label="因緣閣卡池">
+    <div className="ui-tabs" role="tablist" aria-label="因緣閣卡池">
       {TABS.map((tab) => (
         <button
           key={tab.id}
           type="button"
           role="tab"
           aria-selected={active === tab.id}
-          className={`gacha-tab${active === tab.id ? " is-active" : ""}`}
+          className="ui-tab"
           onClick={() => onChange(tab.id)}
         >
           {tab.label}
